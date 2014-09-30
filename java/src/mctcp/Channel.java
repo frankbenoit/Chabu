@@ -18,6 +18,7 @@ public class Channel {
 	 * Add first, removeLast
 	 */
 	private final LinkedList<Block> txBlocks = new LinkedList<>();
+	private Block txBlockCompose;
 	private final int   txBlocksCount;
 	private int   txBlocksSeq    = 1;
 	private int   txBlocksArm    = 0;
@@ -57,14 +58,14 @@ public class Channel {
 	public ByteBuffer rxGetBuffer() {
 		Block block = rxBlocks.getLast();
 		if( block == null ) return null;
-		return block.rxGetPayload();
+		return block.getPayload();
 	}
 	public void rxConsumedBuffer() {
 		// remove buffer from list
 		Block consumed = rxBlocks.removeLast();
-		int arm = consumed.getSeq() + rxBlocksCount;
-		if( arm > 0xFFFF ){
-			arm -= 0xFFFE; // jump over 0x0000
+		int txArm = consumed.getSeq() + rxBlocksCount;
+		if( txArm > 0xFFFF ){
+			txArm -= 0xFFFE; // jump over 0x0000
 		}
 		// send next ARM notice
 		if( txBlocks.isEmpty() ){
@@ -72,14 +73,14 @@ public class Channel {
 			Block block = new Block(byteOrder);
 			block.txReset();
 			block.setChannel( id );
-			block.setArm( arm );
+			block.setArm( txArm );
 			block.txComposeComplete();
 			txBlocks.addFirst(block);
 		}
 		else {
 			// next block to be sent will have the latest arm value
 			Block block = txBlocks.getLast();
-			block.setArm(arm);
+			block.setArm(txArm);
 		}
 		if( !txReqPending ){
 			txReqPending = true;
@@ -87,6 +88,9 @@ public class Channel {
 		}
 	}
 
+	/**
+	 * put a block received by the protocol
+	 */
 	void rxPutBlock(Block rxBlock) {
 		Utils.ensure( rxBlock.rxCanConsume(), "Block not ready for rx consume");
 		Utils.ensure( rxBlock.getChannel() == id, "Block not for this channel");
@@ -96,27 +100,51 @@ public class Channel {
 		if( arm != 0 ){
 			txBlocksArm = arm;
 		}
+		txCheckToSend();
+	}
+
+	private void txCheckToSend() {
+		if( !txReqPending && !txBlocks.isEmpty() ){
+			int diff = ( txBlocksArm - txBlocks.getLast().getSeq() ) & 0xFFFF;
+			if( diff > 0x8000 ){
+				diff -= 0xFFFF;
+			}
+			if( diff > 0 ){
+				txReqPending = true;
+				networkConnector.channelReadyToSend(this);
+			}
+		}
 	}
 
 	// ------------------------------------------------------------------------------------
 	// --- TX ----
 	
 	public ByteBuffer txGetBuffer() {
-		return null;
+		if( txBlockCompose == null ){
+			txBlockCompose = new Block(byteOrder);
+			txBlockCompose.txReset();
+		}
+		return txBlockCompose.getPayload();
 	}
 	public void txCommitBuffer() {
+		Utils.ensure( txBlockCompose != null , "no active tx compose block" );
 		// add buffer to list
+		
+		txBlockCompose.setSeq(txBlocksSeq++);
+		txBlockCompose.setChannel(id);
+		txBlockCompose.txComposeComplete();
+		
+		txBlocks.addFirst(txBlockCompose);
+		
+		txBlockCompose = null;
+		txCheckToSend();
 	}
 
 	Block txPopBlock() {
 		Block res = txBlocks.removeLast();
 
-		if( !txBlocks.isEmpty() ){
-			networkConnector.channelReadyToSend(this);
-		}
-		else {
-			txReqPending = false;			
-		}
+		txReqPending = false;			
+		txCheckToSend();
 		
 		return res;
 	}

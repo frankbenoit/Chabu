@@ -57,7 +57,7 @@ class Block {
 		return state == State.RX_CONSUMING;
 	}
 	
-	ByteBuffer rxGetPayload(){
+	ByteBuffer getPayload(){
 
 		Utils.ensure( state == State.RX_CONSUMING, "Receive consuming in wrong state %s", state);
 
@@ -98,6 +98,8 @@ class Block {
 		buffer.position(OFFSET_PAYLOAD_DATA);
 		buffer.putLong( 0, 0L );
 		buffer.limit(buffer.capacity());
+		bufferPayload.position(0);
+		bufferPayload.limit(bufferPayload.capacity());
 	}
 	
 	/**
@@ -117,8 +119,9 @@ class Block {
 
 	public void txComposeComplete() {
 		state = State.TX_ING;
-		buffer.putShort( OFFSET_PAYLOAD_SZ, (short)(buffer.position() - OFFSET_PAYLOAD_DATA) );
-		buffer.flip();
+		buffer.putShort( OFFSET_PAYLOAD_SZ, (short)bufferPayload.position() );
+		buffer.limit( OFFSET_PAYLOAD_DATA + bufferPayload.position() );
+		buffer.position(0);
 	}
 
 	// ------------------------------------------------------------------------------------

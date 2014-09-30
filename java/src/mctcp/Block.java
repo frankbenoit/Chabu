@@ -1,12 +1,28 @@
 package mctcp;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 
-public class Block {
-	 
+class Block {
+
+	enum State {
+		/** to be filled by the protocol */
+		RX_ING,
+		/** to be read out by application */
+		RX_CONSUMING, 
+		/** to be sent by the protocol */
+		TX_ING, 
+		/** to be filled by application */
+		TX_FILLING
+	}
+	
 	Block prevBlock;
 	Block nextBlock;
 
+	private State state = State.RX_ING;
 	private ByteBuffer buffer;
 	private ByteBuffer bufferPayload;
 
@@ -17,101 +33,123 @@ public class Block {
 	public static final int OFFSET_PAYLOAD_DATA =  8;
 
 	public static final int BLOCK_SIZE =  1200;
-	private Channel channel;
-
-	public Block(Channel channel){
-		this.channel = channel;
+	
+	public Block( ByteOrder bo ){
 		this.buffer = ByteBuffer.allocate(BLOCK_SIZE);
-		 this.bufferPayload = ByteBuffer.wrap( 
-				 buffer.array(), 
-				 buffer.arrayOffset() + OFFSET_PAYLOAD_DATA, 
-				 buffer.capacity() - OFFSET_PAYLOAD_DATA );
-	 }
+		this.buffer.order(bo);
+		this.bufferPayload = ByteBuffer.wrap( 
+				buffer.array(), 
+				buffer.arrayOffset() + OFFSET_PAYLOAD_DATA, 
+				buffer.capacity() - OFFSET_PAYLOAD_DATA );
+	}
 
-	 public int getMaxBlockSize(){
-		 return buffer.capacity();
-	 }
-	 
-	 public boolean isCompleted(){
-		 if( buffer.limit() < OFFSET_PAYLOAD_DATA ){
-			 return false;
-		 }
-		 return ( buffer.position() == buffer.limit() );
-	 }
-	 public boolean isHeaderCompleted(){
-		 if( buffer.limit() < 24 ){
-			 return false;
-		 }
-		 return ( buffer.position() >= 24 );
-	 }
-	 private void ensureCompleted(){
-		 if( !isCompleted() ){
-			 throw new RuntimeException("Block not completed");
-		 }
-	 }
-	 
-	 public int getChannel(){
-		 return buffer.getShort( OFFSET_CHANNEL_ID ) & 0xFF_FF;
-	 }
-	 
-	 public int getBlockSeqId(){
-		 return buffer.getShort( OFFSET_BLOCK_SEQ_ID ) & 0xFF_FF;
-	 }
-	 
-	 public int getBlockArmId(){
-		 return buffer.getShort( OFFSET_BLOCK_ARM_ID ) & 0xFF_FF;
-	 }
-	 
-	 public int getPayloadSize(){
-		 return buffer.getShort( OFFSET_PAYLOAD_SZ ) & 0xFF_FF;
-	 }
-	 
-	 public ByteBuffer getPayload(){
-		 ensureCompleted();
-		 bufferPayload.position(0);
-		 bufferPayload.limit( getPayloadSize() );
-		 return bufferPayload.slice();
-	 }
-	 
-	 /**
-	  * Write data from the protocol into this Block.
-	  * 
-	  * @param bb data from the protocol. bb is set to be ready for reading. 
-	  * 	This means the data between position+limit is the data copied into the Block.
-	  */
-	 public void protocolPutContent( ByteBuffer bb ){
-		 buffer.put( bb );
-	 }
+	// ------------------------------------------------------------------------------------
+	// --- RX ----
 
-	 /**
-	  * Write data from this Block into a buffer from the protocol.
-	  * 
-	  * @param bb data from the protocol. bb is set to be ready for writing. 
-	  * 	This means the data between position+limit is the data copied from the Block.
-	  */
-	 public void protocolGetContent( ByteBuffer bb ){
-		 
-	 }
+	void rxReset() {
+		state = State.RX_ING;
+		buffer.position(0);
+		// receive header info
+		buffer.limit(OFFSET_PAYLOAD_DATA);
+	}
 
-	 public void resetForTx() {
-		 buffer.position(OFFSET_PAYLOAD_DATA);
-		 buffer.limit(buffer.capacity());
-	 }
+	boolean rxCanConsume(){
+		return state == State.RX_CONSUMING;
+	}
+	
+	ByteBuffer rxGetPayload(){
 
-	 public void setSeq(int seq) {
-		 buffer.putShort( OFFSET_BLOCK_SEQ_ID, (short)seq );
-	 }
+		Utils.ensure( state == State.RX_CONSUMING, "Receive consuming in wrong state %s", state);
 
-	 public void setArm(int arm) {
-		 buffer.putShort( OFFSET_BLOCK_ARM_ID, (short)arm );
-	 }
+		return bufferPayload;
+	}
 
-	 public void setChannel(int channel) {
-		 buffer.putShort( OFFSET_CHANNEL_ID, (short)channel);
-	 }
+	/**
+	 * Write data from the protocol into this Block.
+	 */
+	void receiveContent( ReadableByteChannel c ) throws IOException {
+		
+		Utils.ensure( state == State.RX_ING, "Receiving in wrong state %s", state);
+		
+		// header receive?
+		if( buffer.limit() == OFFSET_PAYLOAD_DATA && buffer.hasRemaining() ){
+			c.read( buffer );
+			// header complete? -> prepare payload
+			if( !buffer.hasRemaining() ){
+				buffer.limit( getPayloadSize() + OFFSET_PAYLOAD_DATA );
+			}
+		}
+		if( buffer.hasRemaining() ){
+			c.read( buffer );
+		}
+		if( buffer.limit() >= OFFSET_PAYLOAD_DATA && !buffer.hasRemaining() ){
 
-	public void composeComplete() {
+			bufferPayload.position(0);
+			bufferPayload.limit( getPayloadSize() );
+			
+			state = State.RX_CONSUMING;
+		}
+	}
+
+	// ------------------------------------------------------------------------------------
+	// --- TX ----
+	public void txReset() {
+		state = State.TX_FILLING;
+		buffer.position(OFFSET_PAYLOAD_DATA);
+		buffer.putLong( 0, 0L );
+		buffer.limit(buffer.capacity());
+	}
+	
+	/**
+	 * Write data from this Block into a buffer from the protocol.
+	 * 
+	 * @return true if the block is copied completely into the channel.
+	 */
+	public boolean transmitContent( WritableByteChannel c ) throws IOException{
+
+		Utils.ensure( state == State.TX_ING, "Transmit in wrong state %s", state);
+		
+		c.write( buffer );
+		
+		return !buffer.hasRemaining();
+		
+	}
+
+	public void txComposeComplete() {
+		state = State.TX_ING;
 		buffer.putShort( OFFSET_PAYLOAD_SZ, (short)(buffer.position() - OFFSET_PAYLOAD_DATA) );
 		buffer.flip();
 	}
+
+	// ------------------------------------------------------------------------------------
+	// --- Getter/Setter ----
+
+	public int getSeq(){
+		return buffer.getShort( OFFSET_BLOCK_SEQ_ID ) & 0xFF_FF;
+	}
+	
+	public void setSeq(int seq) {
+		buffer.putShort( OFFSET_BLOCK_SEQ_ID, (short)seq );
+	}
+
+	public int getArm(){
+		return buffer.getShort( OFFSET_BLOCK_ARM_ID ) & 0xFF_FF;
+	}
+	
+	public void setArm(int arm) {
+		buffer.putShort( OFFSET_BLOCK_ARM_ID, (short)arm );
+	}
+
+	public int getChannel(){
+		return buffer.getShort( OFFSET_CHANNEL_ID ) & 0xFF_FF;
+	}
+	
+	public void setChannel(int channel) {
+		buffer.putShort( OFFSET_CHANNEL_ID, (short)channel);
+	}
+
+	public int getPayloadSize(){
+		return buffer.getShort( OFFSET_PAYLOAD_SZ ) & 0xFF_FF;
+	}
+
 }

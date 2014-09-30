@@ -2,6 +2,6 @@ package mctcp;
 
 interface INetworkConnector {
 	
-	void channelReadyToSend( Channel channel );
+	void channelReadyToSend(Channel channel);
 	
 }

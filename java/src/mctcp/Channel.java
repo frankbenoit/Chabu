@@ -23,6 +23,8 @@ public class Channel {
 	private int   txBlocksSeq    = 1;
 	private int   txBlocksArm    = 0;
 	private boolean txReqPending = false;
+	private final Object txLock = new Object();
+	private final Object rxLock = new Object();
 
 	private INetworkConnector networkConnector;
 	private final int id;
@@ -56,35 +58,49 @@ public class Channel {
 	// --- RX ----
 
 	public ByteBuffer rxGetBuffer() {
-		Block block = rxBlocks.getLast();
-		if( block == null ) return null;
-		return block.getPayload();
+		synchronized( rxLock ){
+			while( rxBlocks.isEmpty() ){
+				try {
+					rxLock.wait();
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			Block block = rxBlocks.getLast();
+			if( block == null ) return null;
+			return block.getPayload();
+		}
 	}
 	public void rxConsumedBuffer() {
 		// remove buffer from list
-		Block consumed = rxBlocks.removeLast();
+		Block consumed;
+		synchronized( rxLock ){
+			consumed = rxBlocks.removeLast();
+		}
 		int txArm = consumed.getSeq() + rxBlocksCount;
 		if( txArm > 0xFFFF ){
 			txArm -= 0xFFFE; // jump over 0x0000
 		}
-		// send next ARM notice
-		if( txBlocks.isEmpty() ){
-			// nothing else to send, so create extra ARM notify block
-			Block block = new Block(byteOrder);
-			block.txReset();
-			block.setChannel( id );
-			block.setArm( txArm );
-			block.txComposeComplete();
-			txBlocks.addFirst(block);
-		}
-		else {
-			// next block to be sent will have the latest arm value
-			Block block = txBlocks.getLast();
-			block.setArm(txArm);
-		}
-		if( !txReqPending ){
-			txReqPending = true;
-			networkConnector.channelReadyToSend(this);
+		synchronized( txLock ){
+			// send next ARM notice
+			if( txBlocks.isEmpty() ){
+				// nothing else to send, so create extra ARM notify block
+				Block block = new Block(byteOrder);
+				block.txReset();
+				block.setChannel( id );
+				block.setArm( txArm );
+				block.txComposeComplete();
+				txBlocks.addFirst(block);
+			}
+			else {
+				// next block to be sent will have the latest arm value
+				Block block = txBlocks.getLast();
+				block.setArm(txArm);
+			}
+			if( !txReqPending ){
+				txReqPending = true;
+				networkConnector.channelReadyToSend(this);
+			}
 		}
 	}
 
@@ -95,7 +111,10 @@ public class Channel {
 		Utils.ensure( rxBlock.rxCanConsume(), "Block not ready for rx consume");
 		Utils.ensure( rxBlock.getChannel() == id, "Block not for this channel");
 		Utils.ensure( rxBlocks.size() >= rxBlocksCount, "Too many RX Blocks");
-		rxBlocks.addFirst( rxBlock );
+		synchronized( rxLock ){
+			rxBlocks.addFirst( rxBlock );
+			rxLock.notifyAll();
+		}
 		int arm = rxBlock.getArm();
 		if( arm != 0 ){
 			txBlocksArm = arm;
@@ -134,19 +153,28 @@ public class Channel {
 		txBlockCompose.setChannel(id);
 		txBlockCompose.txComposeComplete();
 		
-		txBlocks.addFirst(txBlockCompose);
-		
-		txBlockCompose = null;
-		txCheckToSend();
+		synchronized( txLock ){
+			while( txBlocks.size() >= txBlocksCount ){
+				try {
+					txLock.wait();
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
+				}
+			}
+			txBlocks.addFirst(txBlockCompose);
+			txBlockCompose = null;
+			txCheckToSend();
+		}		
 	}
 
 	Block txPopBlock() {
-		Block res = txBlocks.removeLast();
-
-		txReqPending = false;			
-		txCheckToSend();
-		
-		return res;
+		synchronized( txLock ){
+			Block res = txBlocks.removeLast();
+			txLock.notifyAll();
+			txReqPending = false;			
+			txCheckToSend();
+			return res;
+		}		
 	}
 
 }

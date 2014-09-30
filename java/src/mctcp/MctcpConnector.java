@@ -7,7 +7,7 @@ import java.nio.channels.SelectionKey;
 import java.util.LinkedList;
 import java.util.TreeMap;
 
-public class MctcpServerConnector {
+public class MctcpConnector {
 	
 	private final ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
 	private ByteChannel  transferChannel;
@@ -24,7 +24,7 @@ public class MctcpServerConnector {
 		}
 	};
 	
-	public MctcpServerConnector( ByteChannel transferChannel, Channel[] channels ){
+	public MctcpConnector( ByteChannel transferChannel, Channel[] channels ){
 		this.transferChannel = transferChannel;
 		for (int i = 0; i < channels.length; i++) {
 			this.channels.put( channels[i].getId(), channels[i] );

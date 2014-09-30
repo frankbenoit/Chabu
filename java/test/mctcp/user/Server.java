@@ -9,7 +9,7 @@ import java.nio.channels.spi.AbstractSelector;
 import java.util.Iterator;
 import java.util.Set;
 
-import mctcp.MctcpServerConnector;
+import mctcp.MctcpConnector;
 
 public class Server {
 	int port = 2000;
@@ -50,12 +50,12 @@ public class Server {
 							if (key.isAcceptable()) {
 								SocketChannel clientSocket = server.accept();
 								clientSocket.configureBlocking(false);
-								MctcpServerConnector con = new MctcpServerConnector(clientSocket, null);
+								MctcpConnector con = new MctcpConnector(clientSocket, null);
 								connectionOpenIndex++;
 								clientSocket.register(selector, SelectionKey.OP_READ|SelectionKey.OP_CONNECT, con );
 							} else if (key.isWritable() || key.isReadable() ) {
 								//System.out.printf("Server selector %s\n", con.getConnectionName());
-								MctcpServerConnector con = (MctcpServerConnector) key.attachment();
+								MctcpConnector con = (MctcpConnector) key.attachment();
 								con.doIo( key );
 							}
 							else {

@@ -18,11 +18,9 @@ public class MctcpConnector {
 	private TreeMap<Integer, Channel> channels = new TreeMap<>();
 	private LinkedList<Channel> nextToSend = new LinkedList<>();
 	
-	private INetworkConnector networkConnector = new INetworkConnector() {
-		public void channelReadyToSend(Channel channel) {
-			nextToSend.addFirst( channel );
-		}
-	};
+	void channelReadyToSend(Channel channel) {
+		nextToSend.addFirst( channel );
+	}
 	
 	public MctcpConnector( ByteChannel transferChannel, Channel[] channels ){
 		this.transferChannel = transferChannel;
@@ -32,7 +30,7 @@ public class MctcpConnector {
 		
 		for( Integer k : this.channels.keySet() ){
 			Channel ch = this.channels.get(k);
-			ch.setNetworkConnector( networkConnector );
+			ch.setNetworkConnector( this );
 		}
 		
 	}

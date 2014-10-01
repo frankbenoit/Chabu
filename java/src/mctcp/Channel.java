@@ -26,7 +26,7 @@ public class Channel {
 	private final Object txLock = new Object();
 	private final Object rxLock = new Object();
 
-	private INetworkConnector networkConnector;
+	private MctcpConnector mctcpConnector;
 	private final int id;
 	private final ByteOrder byteOrder;
 	
@@ -41,8 +41,8 @@ public class Channel {
 		return id;
 	}
 
-	void setNetworkConnector(INetworkConnector networkConnector) {
-		this.networkConnector = networkConnector;
+	void setNetworkConnector(MctcpConnector networkConnector) {
+		this.mctcpConnector = networkConnector;
 
 		Block tx = new Block( byteOrder );
 		tx.txReset();
@@ -51,7 +51,7 @@ public class Channel {
 		tx.setArm    ( rxBlocksCount );
 		tx.txComposeComplete();
 		txReqPending = true;
-		this.networkConnector.channelReadyToSend(this);
+		mctcpConnector.channelReadyToSend(this);
 	}
 	
 	// ------------------------------------------------------------------------------------
@@ -99,7 +99,7 @@ public class Channel {
 			}
 			if( !txReqPending ){
 				txReqPending = true;
-				networkConnector.channelReadyToSend(this);
+				mctcpConnector.channelReadyToSend(this);
 			}
 		}
 	}
@@ -130,7 +130,7 @@ public class Channel {
 			}
 			if( diff > 0 ){
 				txReqPending = true;
-				networkConnector.channelReadyToSend(this);
+				mctcpConnector.channelReadyToSend(this);
 			}
 		}
 	}

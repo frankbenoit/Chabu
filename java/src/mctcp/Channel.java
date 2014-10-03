@@ -1,7 +1,6 @@
 package mctcp;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.LinkedList;
 
 public class Channel {
@@ -28,10 +27,8 @@ public class Channel {
 
 	private MctcpConnector mctcpConnector;
 	private final int id;
-	private final ByteOrder byteOrder;
 	
-	public Channel( ByteOrder bo, int channelId, int rxBlocksCount, int txBlocksCount ){
-		this.byteOrder     = bo;
+	public Channel( int channelId, int rxBlocksCount, int txBlocksCount ){
 		this.id            = channelId;
 		this.rxBlocksCount = rxBlocksCount;
 		this.txBlocksCount = txBlocksCount;
@@ -44,7 +41,7 @@ public class Channel {
 	void setNetworkConnector(MctcpConnector networkConnector) {
 		this.mctcpConnector = networkConnector;
 
-		Block tx = new Block( byteOrder );
+		Block tx = new Block();
 		tx.txReset();
 		tx.setChannel( id            );
 		tx.setSeq    ( txBlocksSeq++ );
@@ -85,7 +82,7 @@ public class Channel {
 			// send next ARM notice
 			if( txBlocks.isEmpty() ){
 				// nothing else to send, so create extra ARM notify block
-				Block block = new Block(byteOrder);
+				Block block = new Block();
 				block.txReset();
 				block.setChannel( id );
 				block.setArm( txArm );
@@ -140,7 +137,7 @@ public class Channel {
 	
 	public ByteBuffer txGetBuffer() {
 		if( txBlockCompose == null ){
-			txBlockCompose = new Block(byteOrder);
+			txBlockCompose = new Block();
 			txBlockCompose.txReset();
 		}
 		return txBlockCompose.getPayload();

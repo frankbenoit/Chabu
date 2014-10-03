@@ -2,7 +2,6 @@ package mctcp;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.channels.WritableByteChannel;
 
@@ -34,9 +33,9 @@ class Block {
 
 	public static final int BLOCK_SIZE =  1200;
 	
-	public Block( ByteOrder bo ){
+	public Block(){
 		this.buffer = ByteBuffer.allocate(BLOCK_SIZE);
-		this.buffer.order(bo);
+		this.buffer.order(Constants.BYTE_ORDER);
 		this.bufferPayload = ByteBuffer.wrap( 
 				buffer.array(), 
 				buffer.arrayOffset() + OFFSET_PAYLOAD_DATA, 

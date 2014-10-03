@@ -1,7 +1,6 @@
 package mctcp;
 
 import java.io.IOException;
-import java.nio.ByteOrder;
 import java.nio.channels.ByteChannel;
 import java.nio.channels.SelectionKey;
 import java.util.LinkedList;
@@ -9,7 +8,6 @@ import java.util.TreeMap;
 
 public class MctcpConnector {
 	
-	private final ByteOrder byteOrder = ByteOrder.BIG_ENDIAN;
 	private ByteChannel  transferChannel;
 	private Block        currentRxBlock;
 	private Block        currentTxBlock;
@@ -44,7 +42,7 @@ public class MctcpConnector {
 
 		if( key.isReadable() ){
 			if( currentRxBlock == null ){
-				currentRxBlock = new Block( byteOrder );
+				currentRxBlock = new Block();
 				currentRxBlock.rxReset();
 			}
 			currentRxBlock.receiveContent( transferChannel );

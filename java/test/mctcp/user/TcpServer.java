@@ -130,6 +130,9 @@ public class TcpServer implements INetworkConnector {
 				if( selector != null ) {
 					selector.close();
 				}
+				synchronized( this ){
+					notifyAll();
+				}
 			} catch (Exception e) {
 				//					startupException = e;
 				e.printStackTrace();
@@ -239,5 +242,13 @@ public class TcpServer implements INetworkConnector {
 	@Override
 	public void setChannelHandler(Consumer<IChannel> h) {
 		channel.setHandler(h);
+	}
+
+	@Override
+	public synchronized void forceShutDown() {
+		shutDown();
+		while( selector.isOpen() ){
+			Utils.waitOn(this);
+		}
 	}
 }

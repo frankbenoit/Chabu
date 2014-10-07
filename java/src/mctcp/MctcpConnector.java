@@ -101,5 +101,9 @@ public class MctcpConnector implements INetworkConnector {
 	}
 
 
+	@Override
+	public void forceShutDown() {
+	}
+
 
 }

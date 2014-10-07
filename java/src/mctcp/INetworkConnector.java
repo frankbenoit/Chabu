@@ -9,4 +9,6 @@ public interface INetworkConnector {
 	IChannel getChannel(int i);
 	public void setChannelHandler( Consumer<IChannel> h );
 
+	void forceShutDown();
+
 }

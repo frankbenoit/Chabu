@@ -10,7 +10,7 @@ import mctcp.Utils;
 
 public class ChannelTester {
 
-	final boolean print = false;
+	boolean print = false;
 	static class WakeupEvent {
 		long           nanoTime;
 		StreamEndpoint endPoint;
@@ -208,7 +208,8 @@ public class ChannelTester {
 //			System.out.println("main wait");
 			Utils.waitOn(this);
 		}
-
+		server.forceShutDown();
+		client.forceShutDown();
 		ChState cs = (ChState)server.getChannel(1).getUserData();
 		if(print) cs.tx.ss.tdf.printStats();
 		if(print) cs.rx.ss.tdf.printStats();

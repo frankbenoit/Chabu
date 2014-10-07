@@ -75,71 +75,17 @@ public class ChannelTester {
 	private final LinkedList<StreamEndpoint> allEndpoints = new LinkedList<>();
 	
 	private void channelHandler( IChannel ch ){
-		handleRecv(ch);
-		handleSend(ch);
+		handleEndpoint( ch, true  );
+		handleEndpoint( ch, false );
 	}
 
-	private void handleSend(IChannel ch) {
+	private void handleEndpoint(IChannel ch, boolean isTx ) {
+		
 		ChState cs = (ChState)ch.getUserData();
-
-		StreamEndpoint ep = cs.tx;
-		// sending
-		ByteBuffer buffer = ch.txGetBuffer();
-		if( !ep.closed && !ep.paused ){
-			long pauseIdx = Long.MAX_VALUE;
-			if( !ep.pausingIndices.isEmpty() ){
-				pauseIdx = ep.pausingIndices.getFirst().idx;
-			}
-			if( pauseIdx > ep.amount ){
-				pauseIdx = ep.amount;
-			}
-			if( ep.idx < pauseIdx ){
-				long diff = pauseIdx - ep.idx;
-				if( buffer.remaining() > diff ){
-					buffer.limit( buffer.position() + (int)diff );
-				}
-				long sz = ep.ss.tdf.copySendData(buffer);
-				ep.idx += sz;
-				if( sz > 0 ){
-					if(print) System.out.printf("%s Send %6d rem:%8d\n", ep.name, sz, ep.amount-ep.idx);
-				}
-				
-				if( !ep.pausingIndices.isEmpty() && ep.idx == ep.pausingIndices.getFirst().idx ){
-					PausingIndex pi = ep.pausingIndices.removeFirst();
-					System.out.printf("%s pausing for %sms\n", ep.name, pi.millis );
-					ep.paused = true;
-					synchronized( this ){
-						events.add( new WakeupEvent( ep, pi.millis, true ) );
-						Collections.sort( events );
-					}
-				}
-				else {
-					ch.registerWaitForWrite();
-				}
-			}
-			if( ep.idx >= ep.amount ){
-				if(print) System.out.printf("%s Send completed ----------------------- %d\n", ep.name, buffer.position() );
-				ep.closed = true;
-			}
-		}
-
-		if( cs.rx.closed && cs.tx.closed && buffer.position() == 0){
-			ch.close();
-			if(print) System.out.printf("%s Send completed ----------------------- close\n", ep.name );
-			synchronized(ChannelTester.this){
-				ChannelTester.this.notifyAll();
-			}
-		}
-		else {
-			ch.registerWaitForWrite();
-		}
-	}
-
-	private void handleRecv(IChannel ch) {
-		ChState cs = (ChState)ch.getUserData();
-		StreamEndpoint ep = cs.rx;
-		ByteBuffer buffer = ch.rxGetBuffer();
-//		System.out.printf("%s Recv %s\n", ep.name, ep.closed );
+		StreamEndpoint ep = isTx ? cs.tx            : cs.rx; 
+		ByteBuffer buffer = isTx ? ch.txGetBuffer() : ch.rxGetBuffer();
+		String action     = isTx ? "Send"           : "Recv";
+		
 		if( !ep.closed && !ep.paused ){
 			long pauseIdx = Long.MAX_VALUE;
 			if( !ep.pausingIndices.isEmpty() ){
@@ -155,38 +101,60 @@ public class ChannelTester {
 					buffer.limit( buffer.position() + (int)diff );
 				}
 				
-				long sz = ep.ss.tdf.checkRecvData(buffer);
-				buffer.limit(lim);
-				ep.idx += sz;
-				if( sz > 0 ){
-					if(print) System.out.printf("%s Recv %6d rem:%8d buf:%d\n", ep.name, sz, ep.amount-ep.idx, buffer.remaining());
+				long sz = isTx ? 
+						ep.ss.tdf.copySendData (buffer) : 
+						ep.ss.tdf.checkRecvData(buffer) ;
+						
+				if( !isTx ) {
+					buffer.limit(lim);
 				}
+				ep.idx += sz;
+				if( sz > 0 && print ){
+					System.out.printf("%s %s %6d rem:%8d buf:%8d\n", 
+							ep.name, action, sz, ep.amount-ep.idx, buffer.remaining());
+				}
+				
 				if( !ep.pausingIndices.isEmpty() && ep.idx == ep.pausingIndices.getFirst().idx ){
 					PausingIndex pi = ep.pausingIndices.removeFirst();
-					System.out.printf("%s pausing for %sms\n", ep.name, pi.millis );
+					if(print) {
+						System.out.printf("%s pausing for %sms\n", ep.name, pi.millis );
+					}
 					ep.paused = true;
 					synchronized( this ){
-						events.add( new WakeupEvent( ep, pi.millis, false ) );
+						events.add( new WakeupEvent( ep, pi.millis, isTx ) );
 						Collections.sort( events );
 					}
 				}
 				else {
-					ch.registerWaitForRead();
+					if( isTx ){
+						ch.registerWaitForWrite();
+					}
+					else {
+						ch.registerWaitForRead();
+					}
 				}
 			}
 			if( ep.idx >= ep.amount ){
-				if(print) System.out.printf("%s Recv completed -----------------------\n", ep.name );
+				if(print) {
+					System.out.printf("%s %s completed ----------------------- %d\n", ep.name, action, buffer.position() );
+				}
 				ep.closed = true;
 			}
 		}
-		
-		if( cs.rx.closed && cs.tx.closed ){
-			if(print) System.out.printf("%s Recv completed ----------------------- closed\n", ep.name );
+
+		if( cs.rx.closed && cs.tx.closed && ( !isTx || buffer.position() == 0)){
 			ch.close();
+			if(print) {
+				System.out.printf("%s %s completed ----------------------- close\n", ep.name, action );
+			}
 			synchronized(ChannelTester.this){
 				ChannelTester.this.notifyAll();
 			}
 		}
+		else if( isTx ){
+			ch.registerWaitForWrite();
+		}
+		
 	}
 
 	public static ChannelTester createTcp() throws IOException {

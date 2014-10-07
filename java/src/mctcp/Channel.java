@@ -2,8 +2,9 @@ package mctcp;
 
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
+import java.util.function.Consumer;
 
-public class Channel {
+public class Channel implements IChannel {
 
 	/**
 	 * Add first, removeLast
@@ -27,6 +28,8 @@ public class Channel {
 
 	private MctcpConnector mctcpConnector;
 	private final int id;
+	
+	private Object userData;
 	
 	public Channel( int channelId, int rxBlocksCount, int txBlocksCount ){
 		this.id            = channelId;
@@ -174,4 +177,56 @@ public class Channel {
 		}		
 	}
 
+	public Object getUserData() {
+		return userData;
+	}
+	public void setUserData(Object userData) {
+		this.userData = userData;
+	}
+
+	public void close() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean txPossible() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean rxPossible() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public void setHandler(Consumer<IChannel> h) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void registerWaitForRead() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void registerWaitForWrite() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean isClosed() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public int getChannelId() {
+		return id;
+	}
 }

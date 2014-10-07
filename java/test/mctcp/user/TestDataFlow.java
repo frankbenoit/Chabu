@@ -38,15 +38,16 @@ public class TestDataFlow {
 	}
 	
 	private void updateStats(int sz, ArrayList<Integer> stats) {
-		int statsIdx = (int)(( System.nanoTime() - td.startTs ) / TICK_NS);
-		if( stats.size() <= statsIdx ){
-			stats.ensureCapacity( statsIdx *2 );
-		}
-		if( stats.size() > statsIdx ){
+		synchronized(stats){			
+			int statsIdx = (int)(( System.nanoTime() - td.startTs ) / TICK_NS);
+			if( stats.size() <= statsIdx ){
+				int cap = (int)Math.ceil( Math.log(statsIdx)/Math.log(2) );
+				stats.ensureCapacity( cap );
+			}
+			while( stats.size() <= statsIdx ){
+				stats.add( stats.size(), 0 );
+			}
 			stats.set( statsIdx, sz + stats.get( statsIdx ) );
-		}
-		else {
-			stats.add( statsIdx, sz );
 		}
 	}
 	public void printStats(){

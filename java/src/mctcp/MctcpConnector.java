@@ -5,8 +5,9 @@ import java.nio.channels.ByteChannel;
 import java.nio.channels.SelectionKey;
 import java.util.LinkedList;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
-public class MctcpConnector {
+public class MctcpConnector implements INetworkConnector {
 	
 	private ByteChannel  transferChannel;
 	private Block        currentRxBlock;
@@ -70,6 +71,33 @@ public class MctcpConnector {
 		}
 		key.interestOps( interrestOps );
 
+	}
+
+	public static MctcpConnector startServer(int port) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	public static MctcpConnector startClient(String host, int port) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void start() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public IChannel getChannel(int i) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void setChannelHandler(Consumer<IChannel> h) {
+		
 	}
 
 

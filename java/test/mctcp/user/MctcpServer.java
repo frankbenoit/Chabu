@@ -13,7 +13,7 @@ import java.util.Set;
 import mctcp.Channel;
 import mctcp.MctcpConnector;
 
-public class Server implements Runnable {
+public class MctcpServer implements Runnable {
 
 	private boolean doShutDown;
 	private ServerSocketChannel server;
@@ -21,13 +21,13 @@ public class Server implements Runnable {
 	private SocketChannel socketChannel;
 	private Channel[] channels;
 
-	private Server(ServerSocketChannel server, AbstractSelector selector, Channel[] channels) {
+	private MctcpServer(ServerSocketChannel server, AbstractSelector selector, Channel[] channels) {
 		this.server = server;
 		this.selector = selector;
 		this.channels = channels;
 	}
 
-	private Server(SocketChannel socketChannel, AbstractSelector selector, Channel[] channels) {
+	private MctcpServer(SocketChannel socketChannel, AbstractSelector selector, Channel[] channels) {
 		this.socketChannel = socketChannel;
 		this.selector = selector;
 		this.channels = channels;
@@ -101,26 +101,36 @@ public class Server implements Runnable {
 		}
 	}
 
-
-	public static Server startServer(int port, Channel[] channels ) throws IOException {
+	private static final int STD_PORT = 2000;
+	public static MctcpServer startServer( Channel... channels ) throws IOException {
+		return startServer( STD_PORT, channels );
+	}
+	public static MctcpServer startServer(int port, Channel... channels ) throws IOException {
 		ServerSocketChannel server = ServerSocketChannel.open();
 		server.configureBlocking(false);
 		server.bind(new InetSocketAddress(port));
 		AbstractSelector selector = server.provider().openSelector();
 		server.register( selector, SelectionKey.OP_ACCEPT );
-		Server runnable = new Server(server, selector, channels );
+		MctcpServer runnable = new MctcpServer(server, selector, channels );
 		Thread thread = new Thread(runnable);
 		thread.start();
 		return runnable;
 	}
-	public static Server startClient(String host, int port, Channel[] channels ) throws IOException{
+	public static MctcpServer startClient( Channel... channels ) throws IOException{
+		return startClient( "localhost", STD_PORT, channels );
+	}
+	public static MctcpServer startClient(String host, int port, Channel... channels ) throws IOException{
 		InetSocketAddress address = new InetSocketAddress(Inet4Address.getByName(host), port );
 		SocketChannel socketChannel = SocketChannel.open(address);
 		AbstractSelector selector = socketChannel.provider().openSelector();
 		socketChannel.register( selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ );
-		Server runnable = new Server(socketChannel, selector, channels );
+		MctcpServer runnable = new MctcpServer(socketChannel, selector, channels );
 		Thread thread = new Thread(runnable);
 		thread.start();
 		return runnable;
+	}
+
+	public void forceShutDown() {
+		
 	}
 }

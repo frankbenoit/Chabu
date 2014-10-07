@@ -14,9 +14,10 @@ import java.util.function.Consumer;
 
 import mctcp.Constants;
 import mctcp.IChannel;
+import mctcp.INetworkConnector;
 import mctcp.Utils;
 
-public class TcpServer implements Runnable {
+public class TcpServer implements INetworkConnector {
 
 	private boolean doShutDown;
 	private ServerSocketChannel server;
@@ -41,7 +42,7 @@ public class TcpServer implements Runnable {
 		return client;
 	}
 	
-	@Override
+	
 	public void run() {
 		//ServerSocketChannel server = null;
 		try {
@@ -52,7 +53,7 @@ public class TcpServer implements Runnable {
 			while (!doShutDown) {
 
 				//System.out.println(">> select() " + cnt++ );
-				selector.select();
+				selector.select(500);
 
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
 				//System.out.printf("<< select() readyKeys.size()=%s\n", readyKeys.size());
@@ -96,7 +97,7 @@ public class TcpServer implements Runnable {
 							channel.interestedOps = 0;
 							client.register( selector, interestOps );
 							//System.out.printf("reg key %02X\n", interestOps );
-							if( channel.doClose  ){
+							if( channel.doClose && (interestOps & SelectionKey.OP_WRITE) == 0 ){
 								client.close();
 							}
 						}
@@ -143,6 +144,7 @@ public class TcpServer implements Runnable {
 		boolean doClose = false;
 		Consumer<IChannel> handler;
 		private int interestedOps;
+		private Object userData;
 		
 		{
 			txBuffer.order(Constants.BYTE_ORDER);
@@ -150,36 +152,61 @@ public class TcpServer implements Runnable {
 			rxBuffer.flip();
 		}
 		
+		@Override
 		public boolean txPossible() {
 			return client.keyFor(selector).isWritable();
 		}
+		@Override
 		public ByteBuffer txGetBuffer() {
 			return txBuffer;
 		}
+		@Override
 		public boolean rxPossible() {
 			return client.keyFor(selector).isReadable();
 		}
+		@Override
 		public ByteBuffer rxGetBuffer() {
 			return rxBuffer;
 		}
+		@Override
 		public void setHandler(Consumer<IChannel> h) {
 			this.handler = h;
 		}
+		@Override
 		public void registerWaitForRead() {
 			interestedOps |= SelectionKey.OP_READ;
 		}
+		@Override
 		public void registerWaitForWrite() {
 			interestedOps |= SelectionKey.OP_WRITE;
 		}
+		@Override
 		public void close() {
 			doClose = true;
+		}
+		@Override
+		public boolean isClosed() {
+			return doClose;
+		}
+		@Override
+		public Object getUserData() {
+			return userData;
+		}
+		@Override
+		public void setUserData(Object userData) {
+			this.userData = userData;
+		}
+		@Override
+		public int getChannelId() {
+			return 1;
 		}
 	};
 
 	public void start(){
-		thread = new Thread(this);
+		thread = new Thread(this::run);
 		thread.start();
 	}
+	
 	public static TcpServer startServer(int port ) throws IOException {
 		ServerSocketChannel server = ServerSocketChannel.open();
 		server.configureBlocking(false);
@@ -204,7 +231,13 @@ public class TcpServer implements Runnable {
 		selector.wakeup();
 	}
 
-	public IChannel getChannel() {
+	@Override
+	public IChannel getChannel(int i) {
 		return channel;
+	}
+
+	@Override
+	public void setChannelHandler(Consumer<IChannel> h) {
+		channel.setHandler(h);
 	}
 }

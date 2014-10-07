@@ -17,5 +17,10 @@ public interface IChannel {
 	public void registerWaitForWrite();
 
 	public void close();
-	
+	public boolean isClosed();
+
+	public int getChannelId();
+	public Object getUserData();
+	public void setUserData(Object userData);
+
 }

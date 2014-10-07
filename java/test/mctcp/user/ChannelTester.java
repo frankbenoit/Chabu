@@ -1,7 +1,9 @@
 package mctcp.user;
 
 import java.io.IOException;
-import java.util.TreeMap;
+import java.nio.ByteBuffer;
+import java.util.Collections;
+import java.util.LinkedList;
 
 import mctcp.IChannel;
 import mctcp.INetworkConnector;
@@ -11,9 +13,30 @@ import mctcp.Utils;
 public class ChannelTester {
 
 	boolean print = false;
-	static class WakeupEvent {
-		long           nanoTime;
-		StreamEndpoint endPoint;
+	static class WakeupEvent implements Comparable<WakeupEvent> {
+		
+		private StreamEndpoint ep;
+		private long    millis;
+		private boolean isTx;
+
+		public WakeupEvent(StreamEndpoint ep, int millis, boolean isTx ) {
+			this.ep = ep;
+			// TODO Auto-generated constructor stub
+			this.millis = System.currentTimeMillis() + millis;
+			this.isTx = isTx;
+		}
+		@Override
+		public int compareTo(WakeupEvent o) {
+			return Long.compare(millis, o.millis);
+		}
+	}
+	static class PausingIndex implements Comparable<PausingIndex>{
+		long  idx;
+		int   millis;
+		@Override
+		public int compareTo(PausingIndex o) {
+			return Long.compare( idx, o.idx );
+		}
 	}
 	static class StreamEndpoint {
 		public StreamEndpoint(StreamState ss) {
@@ -25,6 +48,8 @@ public class ChannelTester {
 		boolean closed = false;
 		final StreamState ss;
 		String name;
+		final LinkedList<PausingIndex> pausingIndices = new LinkedList<>();
+		IChannel channel;
 	}
 	
 	static class StreamState {
@@ -44,9 +69,10 @@ public class ChannelTester {
 	private final TestData td;
 	private final IChannel[] serverChannels;
 	private final IChannel[] clientChannels;
-	private final TreeMap<Long, WakeupEvent> events = new TreeMap<>();
+	private final LinkedList<WakeupEvent> events = new LinkedList<>();
 	private INetworkConnector server;
-	private INetworkConnector client; 
+	private INetworkConnector client;
+	private final LinkedList<StreamEndpoint> allEndpoints = new LinkedList<>();
 	
 	private void channelHandler( IChannel ch ){
 		handleRecv(ch);
@@ -58,26 +84,46 @@ public class ChannelTester {
 
 		StreamEndpoint ep = cs.tx;
 		// sending
-		if( !ep.closed ){
-			if( ep.idx < ep.amount ){
-				long diff = ep.amount - ep.idx;
-				if( ch.txGetBuffer().remaining() > diff ){
-					ch.txGetBuffer().limit( ch.txGetBuffer().position() + (int)diff );
+		ByteBuffer buffer = ch.txGetBuffer();
+		if( !ep.closed && !ep.paused ){
+			long pauseIdx = Long.MAX_VALUE;
+			if( !ep.pausingIndices.isEmpty() ){
+				pauseIdx = ep.pausingIndices.getFirst().idx;
+			}
+			if( pauseIdx > ep.amount ){
+				pauseIdx = ep.amount;
+			}
+			if( ep.idx < pauseIdx ){
+				long diff = pauseIdx - ep.idx;
+				if( buffer.remaining() > diff ){
+					buffer.limit( buffer.position() + (int)diff );
 				}
-				long sz = ep.ss.tdf.copySendData(ch.txGetBuffer());
+				long sz = ep.ss.tdf.copySendData(buffer);
 				ep.idx += sz;
 				if( sz > 0 ){
 					if(print) System.out.printf("%s Send %6d rem:%8d\n", ep.name, sz, ep.amount-ep.idx);
 				}
-				ch.registerWaitForWrite();
+				
+				if( !ep.pausingIndices.isEmpty() && ep.idx == ep.pausingIndices.getFirst().idx ){
+					PausingIndex pi = ep.pausingIndices.removeFirst();
+					System.out.printf("%s pausing for %sms\n", ep.name, pi.millis );
+					ep.paused = true;
+					synchronized( this ){
+						events.add( new WakeupEvent( ep, pi.millis, true ) );
+						Collections.sort( events );
+					}
+				}
+				else {
+					ch.registerWaitForWrite();
+				}
 			}
 			if( ep.idx >= ep.amount ){
-				if(print) System.out.printf("%s Send completed ----------------------- %d\n", ep.name, ch.txGetBuffer().position() );
+				if(print) System.out.printf("%s Send completed ----------------------- %d\n", ep.name, buffer.position() );
 				ep.closed = true;
 			}
 		}
 
-		if( cs.rx.closed && cs.tx.closed && ch.txGetBuffer().position() == 0){
+		if( cs.rx.closed && cs.tx.closed && buffer.position() == 0){
 			ch.close();
 			if(print) System.out.printf("%s Send completed ----------------------- close\n", ep.name );
 			synchronized(ChannelTester.this){
@@ -92,12 +138,41 @@ public class ChannelTester {
 	private void handleRecv(IChannel ch) {
 		ChState cs = (ChState)ch.getUserData();
 		StreamEndpoint ep = cs.rx;
+		ByteBuffer buffer = ch.rxGetBuffer();
 //		System.out.printf("%s Recv %s\n", ep.name, ep.closed );
-		if( !ep.closed ){
-			long sz = ep.ss.tdf.checkRecvData(ch.rxGetBuffer());
-			ep.idx += sz;
-			if( sz > 0 ){
-				if(print) System.out.printf("%s Recv %6d rem:%8d buf:%d\n", ep.name, sz, ep.amount-ep.idx, ch.rxGetBuffer().remaining());
+		if( !ep.closed && !ep.paused ){
+			long pauseIdx = Long.MAX_VALUE;
+			if( !ep.pausingIndices.isEmpty() ){
+				pauseIdx = ep.pausingIndices.getFirst().idx;
+			}
+			if( pauseIdx > ep.amount ){
+				pauseIdx = ep.amount;
+			}
+			if( ep.idx < pauseIdx ){
+				long diff = pauseIdx - ep.idx;
+				int lim = buffer.limit();
+				if( buffer.remaining() > diff ){
+					buffer.limit( buffer.position() + (int)diff );
+				}
+				
+				long sz = ep.ss.tdf.checkRecvData(buffer);
+				buffer.limit(lim);
+				ep.idx += sz;
+				if( sz > 0 ){
+					if(print) System.out.printf("%s Recv %6d rem:%8d buf:%d\n", ep.name, sz, ep.amount-ep.idx, buffer.remaining());
+				}
+				if( !ep.pausingIndices.isEmpty() && ep.idx == ep.pausingIndices.getFirst().idx ){
+					PausingIndex pi = ep.pausingIndices.removeFirst();
+					System.out.printf("%s pausing for %sms\n", ep.name, pi.millis );
+					ep.paused = true;
+					synchronized( this ){
+						events.add( new WakeupEvent( ep, pi.millis, false ) );
+						Collections.sort( events );
+					}
+				}
+				else {
+					ch.registerWaitForRead();
+				}
 			}
 			if( ep.idx >= ep.amount ){
 				if(print) System.out.printf("%s Recv completed -----------------------\n", ep.name );
@@ -157,6 +232,16 @@ public class ChannelTester {
 			css.rx = ssr.endPointRx;
 			csc.tx = ssr.endPointTx;
 			csc.rx = sst.endPointRx;
+
+			css.tx.channel = serverChannels[i];
+			css.rx.channel = serverChannels[i];
+			csc.tx.channel = clientChannels[i];
+			csc.rx.channel = clientChannels[i];
+			
+			allEndpoints.add( sst.endPointRx );
+			allEndpoints.add( sst.endPointTx );
+			allEndpoints.add( ssr.endPointRx );
+			allEndpoints.add( ssr.endPointTx );
 			
 			css.tx.name = String.format("S[%d].tx", i );
 			css.rx.name = String.format("S[%d].rx", i );
@@ -183,8 +268,10 @@ public class ChannelTester {
 		IChannel ch[] = channelType.isServer ? serverChannels : clientChannels;
 		ChState cs = (ChState)ch[channelId-1].getUserData();
 		StreamEndpoint ep = channelType.isTx ? cs.tx : cs.rx;
-
-		//TODO ...
+		PausingIndex pi = new PausingIndex();
+		pi.idx = byteIdx;
+		pi.millis = pauseMs;
+		ep.pausingIndices.add(pi);
 	}
 	private boolean isAllCompleted(){
 		for( IChannel ch : serverChannels ){
@@ -199,14 +286,29 @@ public class ChannelTester {
 		}
 		return true;
 	}
-	public synchronized void runTest() {
+	public void runTest() {
+
+		for( StreamEndpoint ep : allEndpoints ){
+			Collections.sort( ep.pausingIndices );
+		}
 		
 		server.start();
 		client.start();
 		
-		while( !isAllCompleted() ){
-//			System.out.println("main wait");
-			Utils.waitOn(this);
+		synchronized ( this ){
+			while( !isAllCompleted() ){
+				while( !events.isEmpty() && System.currentTimeMillis() > events.getFirst().millis ){
+					WakeupEvent ev = events.removeFirst();
+					ev.ep.paused = false;
+					if( ev.isTx ){
+						ev.ep.channel.registerWaitForWrite();
+					}
+					else {
+						ev.ep.channel.registerWaitForRead();
+					}
+				}
+				Utils.waitOn(this, 500 );
+			}
 		}
 		server.forceShutDown();
 		client.forceShutDown();

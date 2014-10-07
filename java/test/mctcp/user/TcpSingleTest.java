@@ -35,12 +35,22 @@ public class TcpSingleTest {
 	}
 	
 	@Test
-	public void testPausing() throws IOException {
+	public void testPausingServerTx() throws IOException {
 		ChannelTester ct = ChannelTester.createTcp();
 		ct.print = true;
 		ct.setStreamAmount( 1, ChannelType.ClientRx, AMOUNT/2 );
 		ct.setStreamAmount( 1, ChannelType.ServerTx, AMOUNT/2 );
 		ct.addStreamEndpointPause( 1, ChannelType.ServerTx, AMOUNT/4, 500 );
+		ct.runTest();
+	}
+	
+	@Test
+	public void testPausingClientRx() throws IOException {
+		ChannelTester ct = ChannelTester.createTcp();
+		ct.print = true;
+		ct.setStreamAmount( 1, ChannelType.ClientRx, AMOUNT/2 );
+		ct.setStreamAmount( 1, ChannelType.ServerTx, AMOUNT/2 );
+		ct.addStreamEndpointPause( 1, ChannelType.ClientRx, AMOUNT/4, 500 );
 		ct.runTest();
 	}
 	

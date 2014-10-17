@@ -203,6 +203,9 @@ public class TcpServer implements INetworkConnector {
 		public int getChannelId() {
 			return 1;
 		}
+		@Override
+		public void setChannelId(int i) {
+		}
 	};
 
 	public void start(){

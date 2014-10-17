@@ -27,18 +27,22 @@ public class Channel implements IChannel {
 	private final Object rxLock = new Object();
 
 	private MctcpConnector mctcpConnector;
-	private final int id;
+	private int id;
 	
 	private Object userData;
 	
-	public Channel( int channelId, int rxBlocksCount, int txBlocksCount ){
-		this.id            = channelId;
+	public Channel( int rxBlocksCount, int txBlocksCount ){
 		this.rxBlocksCount = rxBlocksCount;
 		this.txBlocksCount = txBlocksCount;
 	}
 
-	public int getId() {
+	@Override
+	public int getChannelId() {
 		return id;
+	}
+	@Override
+	public void setChannelId(int id) {
+		this.id = id;
 	}
 
 	void setNetworkConnector(MctcpConnector networkConnector) {
@@ -57,6 +61,7 @@ public class Channel implements IChannel {
 	// ------------------------------------------------------------------------------------
 	// --- RX ----
 
+	@Override
 	public ByteBuffer rxGetBuffer() {
 		synchronized( rxLock ){
 			while( rxBlocks.isEmpty() ){
@@ -138,6 +143,7 @@ public class Channel implements IChannel {
 	// ------------------------------------------------------------------------------------
 	// --- TX ----
 	
+	@Override
 	public ByteBuffer txGetBuffer() {
 		if( txBlockCompose == null ){
 			txBlockCompose = new Block();
@@ -177,13 +183,16 @@ public class Channel implements IChannel {
 		}		
 	}
 
+	@Override
 	public Object getUserData() {
 		return userData;
 	}
+	@Override
 	public void setUserData(Object userData) {
 		this.userData = userData;
 	}
 
+	@Override
 	public void close() {
 		// TODO Auto-generated method stub
 		
@@ -225,8 +234,4 @@ public class Channel implements IChannel {
 		return false;
 	}
 
-	@Override
-	public int getChannelId() {
-		return id;
-	}
 }

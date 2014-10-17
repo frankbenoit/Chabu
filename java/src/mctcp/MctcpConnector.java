@@ -24,7 +24,7 @@ public class MctcpConnector implements INetworkConnector {
 	public MctcpConnector( ByteChannel transferChannel, Channel[] channels ){
 		this.transferChannel = transferChannel;
 		for (int i = 0; i < channels.length; i++) {
-			this.channels.put( channels[i].getId(), channels[i] );
+			this.channels.put( channels[i].getChannelId(), channels[i] );
 		}
 		
 		for( Integer k : this.channels.keySet() ){

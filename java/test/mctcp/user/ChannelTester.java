@@ -219,6 +219,8 @@ public class ChannelTester {
 			sst.tdf = td.createFlow(String.format("Ch%d>", i+1));
 			ssr.tdf = td.createFlow(String.format("Ch%d<", i+1));
 			
+			serverChannels[i].setChannelId(i);
+			clientChannels[i].setChannelId(i);
 			serverChannels[i].setUserData(css);
 			clientChannels[i].setUserData(csc);
 		}

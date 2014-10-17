@@ -19,6 +19,7 @@ public interface IChannel {
 	public void close();
 	public boolean isClosed();
 
+	public void setChannelId(int i);
 	public int getChannelId();
 	public Object getUserData();
 	public void setUserData(Object userData);

@@ -6,7 +6,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 
 import mctcp.IChannel;
-import mctcp.INetworkConnector;
+import mctcp.INetworkUser;
 import mctcp.MctcpConnector;
 import mctcp.Utils;
 
@@ -70,8 +70,8 @@ public class ChannelTester {
 	private final IChannel[] serverChannels;
 	private final IChannel[] clientChannels;
 	private final LinkedList<WakeupEvent> events = new LinkedList<>();
-	private INetworkConnector server;
-	private INetworkConnector client;
+	private INetworkUser server;
+	private INetworkUser client;
 	private final LinkedList<StreamEndpoint> allEndpoints = new LinkedList<>();
 	
 	private void channelHandler( IChannel ch ){
@@ -182,7 +182,7 @@ public class ChannelTester {
 		return res;
 	}
 
-	private ChannelTester(INetworkConnector server, INetworkConnector client, IChannel[] serverChannels, IChannel[] clientChannels){
+	private ChannelTester(INetworkUser server, INetworkUser client, IChannel[] serverChannels, IChannel[] clientChannels){
 		this.server = server;
 		this.client = client;
 		this.serverChannels = serverChannels;

@@ -14,10 +14,10 @@ import java.util.function.Consumer;
 
 import mctcp.Constants;
 import mctcp.IChannel;
-import mctcp.INetworkConnector;
+import mctcp.INetworkUser;
 import mctcp.Utils;
 
-public class TcpServer implements INetworkConnector {
+public class TcpServer implements INetworkUser {
 
 	private boolean doShutDown;
 	private ServerSocketChannel server;

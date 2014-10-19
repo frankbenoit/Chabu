@@ -7,6 +7,11 @@ public class Utils {
 		throw new RuntimeException( String.format( fmt, args ));
 	}
 	
+	public static void ensure( boolean cond ){
+		if( cond ) return;
+		throw new RuntimeException();
+	}
+	
 	/**
 	 * Wrap Object.wait() and throw RuntimeException instead of InterruptedException
 	 */

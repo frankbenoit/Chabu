@@ -1,4 +1,4 @@
-package mctcp.tester;
+package chabu.tester;
 
 import org.eclipse.jface.action.CoolBarManager;
 import org.eclipse.jface.action.MenuManager;

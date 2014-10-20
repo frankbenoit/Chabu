@@ -1,4 +1,4 @@
-package mctcp.tester.controller;
+package chabu.tester.controller;
 
 public class McTcpTestServer {
 

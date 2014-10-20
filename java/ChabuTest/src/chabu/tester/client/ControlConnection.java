@@ -1,12 +1,12 @@
-package mctcp.tester.client;
+package chabu.tester.client;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-import mctcp.INetwork;
-import mctcp.INetworkUser;
-import mctcp.Utils;
-import mctcp.tester.CommandId;
+import chabu.INetwork;
+import chabu.INetworkUser;
+import chabu.Utils;
+import chabu.tester.CommandId;
 
 public class ControlConnection implements INetworkUser {
 

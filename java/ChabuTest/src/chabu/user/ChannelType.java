@@ -1,4 +1,4 @@
-package mctcp.user;
+package chabu.user;
 
 public enum ChannelType {
 	ServerRx( true , false ),

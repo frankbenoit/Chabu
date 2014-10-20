@@ -1,6 +1,6 @@
-package mctcp.tester.client;
+package chabu.tester.client;
 
-import mctcp.tester.CommandId;
+import chabu.tester.CommandId;
 
 public class Command {
 	CommandId commandId;

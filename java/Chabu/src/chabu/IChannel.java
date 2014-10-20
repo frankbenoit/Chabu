@@ -1,4 +1,4 @@
-package mctcp;
+package chabu;
 
 public interface IChannel {
 

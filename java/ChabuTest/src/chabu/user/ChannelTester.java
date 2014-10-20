@@ -1,14 +1,14 @@
-package mctcp.user;
+package chabu.user;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.LinkedList;
 
-import mctcp.IChannel;
-import mctcp.INetworkUser;
-import mctcp.MctcpConnector;
-import mctcp.Utils;
+import chabu.IChannel;
+import chabu.INetworkUser;
+import chabu.MctcpConnector;
+import chabu.Utils;
 
 public class ChannelTester {
 

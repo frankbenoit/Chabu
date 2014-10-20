@@ -1,9 +1,9 @@
-package mctcp.user;
+package chabu.user;
 
 import java.io.IOException;
 
-import mctcp.Channel;
-import mctcp.IChannel;
+import chabu.Channel;
+import chabu.IChannel;
 
 import org.junit.Test;
 

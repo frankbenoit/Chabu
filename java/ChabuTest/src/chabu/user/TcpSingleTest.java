@@ -1,4 +1,4 @@
-package mctcp.user;
+package chabu.user;
 
 import java.io.IOException;
 

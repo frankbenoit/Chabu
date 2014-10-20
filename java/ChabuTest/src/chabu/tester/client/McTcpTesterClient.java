@@ -1,4 +1,4 @@
-package mctcp.tester.client;
+package chabu.tester.client;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -12,9 +12,9 @@ import java.nio.channels.WritableByteChannel;
 import java.util.Iterator;
 import java.util.Set;
 
-import mctcp.INetwork;
-import mctcp.INetworkUser;
-import mctcp.Utils;
+import chabu.INetwork;
+import chabu.INetworkUser;
+import chabu.Utils;
 
 public class McTcpTesterClient {
 

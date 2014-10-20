@@ -1,4 +1,4 @@
-package mctcp.user;
+package chabu.user;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -12,10 +12,10 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import mctcp.Constants;
-import mctcp.IChannel;
-import mctcp.INetworkUser;
-import mctcp.Utils;
+import chabu.Constants;
+import chabu.IChannel;
+import chabu.INetworkUser;
+import chabu.Utils;
 
 public class TcpServer implements INetworkUser {
 

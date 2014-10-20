@@ -1,4 +1,4 @@
-package mctcp.tester;
+package chabu.tester;
 
 public enum CommandId {
 	

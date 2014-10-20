@@ -1,4 +1,4 @@
-package mctcp.user;
+package chabu.user;
 
 import java.io.IOException;
 import java.net.Inet4Address;
@@ -10,8 +10,8 @@ import java.nio.channels.spi.AbstractSelector;
 import java.util.Iterator;
 import java.util.Set;
 
-import mctcp.Channel;
-import mctcp.MctcpConnector;
+import chabu.Channel;
+import chabu.MctcpConnector;
 
 public class MctcpServer implements Runnable {
 

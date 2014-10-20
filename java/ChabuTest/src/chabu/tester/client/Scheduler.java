@@ -1,9 +1,9 @@
-package mctcp.tester.client;
+package chabu.tester.client;
 
 import java.util.ArrayDeque;
 
-import mctcp.Utils;
-import mctcp.tester.CommandId;
+import chabu.Utils;
+import chabu.tester.CommandId;
 
 public class Scheduler {
 

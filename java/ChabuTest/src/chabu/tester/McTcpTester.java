@@ -1,10 +1,14 @@
 package chabu.tester;
 
+import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.CoolBarManager;
-import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.StatusLineManager;
+import org.eclipse.jface.action.ToolBarManager;
+import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.TableViewer;
 import org.eclipse.jface.window.ApplicationWindow;
+import org.eclipse.jface.window.Window;
+import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
@@ -14,9 +18,12 @@ import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
+import org.eclipse.wb.swt.ResourceManager;
 
 public class McTcpTester extends ApplicationWindow {
 	private Table table;
+	private Action actionStartTest;
+	private Action action;
 
 	/**
 	 * Create the application window,
@@ -26,7 +33,7 @@ public class McTcpTester extends ApplicationWindow {
 		setBlockOnOpen(true);
 		createActions();
 		addCoolBar(SWT.FLAT);
-		addMenuBar();
+		//addMenuBar();
 		addStatusLine();
 	}
 
@@ -52,16 +59,51 @@ public class McTcpTester extends ApplicationWindow {
 	 */
 	private void createActions() {
 		// Create the actions
-	}
-
-	/**
-	 * Create the menu manager.
-	 * @return the menu manager
-	 */
-	@Override
-	protected MenuManager createMenuManager() {
-		MenuManager menuManager = new MenuManager("menu");
-		return menuManager;
+		{
+			actionStartTest = new Action("&Start Test" ) {				public void run() {
+					try{
+						ConfigureTestData data = new ConfigureTestData();
+						WizardDialog dlg = new WizardDialog(getShell(), new ConfigureTest(data));
+						dlg.setBlockOnOpen(true);
+						int res = dlg.open();
+						if( res != Window.OK ){
+							System.out.println("canceled");
+							return;
+						}
+						System.out.printf("%d %d %d:%02d:%02d\n", data.testType, data.numberOfChannels, data.durationHours, data.durationMinutes, data.durationSeconds );
+//						
+//						getStatusLineManager().setCancelEnabled(true);
+//						ModalContext.run( new IRunnableWithProgress() {
+//							public void run(IProgressMonitor mon) throws InvocationTargetException, InterruptedException {
+//								mon.beginTask("Task", 20);
+//								synchronized(this){
+//									for( int i = 0; i < 20; i++ ){
+//										wait(200);
+//										mon.worked(1);
+//									}
+//								}
+//								mon.done();
+//							}
+//						}, true, getStatusLineManager().getProgressMonitor(), getShell().getDisplay());
+					}
+					catch( Exception e ){
+						e.printStackTrace();
+					}
+				}
+			};
+			actionStartTest.setImageDescriptor(ResourceManager.getImageDescriptor(McTcpTester.class, "running-man-16.png"));
+			actionStartTest.setAccelerator(SWT.F9);
+		}
+		{
+			action = new Action("A&bout") {				public void run() {
+					MessageDialog.openInformation(getShell(), "Chabu Tester - About ...", 
+							"Chabu - the channel bundle\n"
+							+ "Test application, to start 2 sub-processes that communicate with each other.\n"
+							+ "Version 1.0");
+				}
+			};
+			action.setImageDescriptor(ResourceManager.getImageDescriptor(McTcpTester.class, "/chabu/tester/about-16.png"));
+		}
 	}
 
 	/**
@@ -71,6 +113,16 @@ public class McTcpTester extends ApplicationWindow {
 	@Override
 	protected CoolBarManager createCoolBarManager(int style) {
 		CoolBarManager coolBarManager = new CoolBarManager(style);
+		{
+			ToolBarManager toolBarManager = new ToolBarManager();
+			coolBarManager.add(toolBarManager);
+			toolBarManager.add(actionStartTest);
+		}
+		{
+			ToolBarManager toolBarManager = new ToolBarManager();
+			coolBarManager.add(toolBarManager);
+			toolBarManager.add(action);
+		}
 		return coolBarManager;
 	}
 
@@ -80,8 +132,10 @@ public class McTcpTester extends ApplicationWindow {
 	 */
 	@Override
 	protected StatusLineManager createStatusLineManager() {
-		StatusLineManager statusLineManager = new StatusLineManager();
-		return statusLineManager;
+		StatusLineManager slm = new StatusLineManager();
+//		slm.setErrorMessage("E1");
+//		slm.setMessage("M1");
+		return slm;
 	}
 
 	/**
@@ -106,7 +160,7 @@ public class McTcpTester extends ApplicationWindow {
 	@Override
 	protected void configureShell(Shell newShell) {
 		super.configureShell(newShell);
-		newShell.setText("New Application");
+		newShell.setText("Chabu Tester");
 	}
 
 	/**
@@ -116,5 +170,4 @@ public class McTcpTester extends ApplicationWindow {
 	protected Point getInitialSize() {
 		return new Point(450, 300);
 	}
-
 }

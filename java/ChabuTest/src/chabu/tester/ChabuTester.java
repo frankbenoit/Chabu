@@ -20,7 +20,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
 
-public class McTcpTester extends ApplicationWindow {
+public class ChabuTester extends ApplicationWindow {
 	private Table table;
 	private Action actionStartTest;
 	private Action action;
@@ -28,7 +28,7 @@ public class McTcpTester extends ApplicationWindow {
 	/**
 	 * Create the application window,
 	 */
-	public McTcpTester() {
+	public ChabuTester() {
 		super(null);
 		setBlockOnOpen(true);
 		createActions();
@@ -91,7 +91,7 @@ public class McTcpTester extends ApplicationWindow {
 					}
 				}
 			};
-			actionStartTest.setImageDescriptor(ResourceManager.getImageDescriptor(McTcpTester.class, "running-man-16.png"));
+			actionStartTest.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "running-man-16.png"));
 			actionStartTest.setAccelerator(SWT.F9);
 		}
 		{
@@ -102,7 +102,7 @@ public class McTcpTester extends ApplicationWindow {
 							+ "Version 1.0");
 				}
 			};
-			action.setImageDescriptor(ResourceManager.getImageDescriptor(McTcpTester.class, "/chabu/tester/about-16.png"));
+			action.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "/chabu/tester/about-16.png"));
 		}
 	}
 
@@ -144,7 +144,7 @@ public class McTcpTester extends ApplicationWindow {
 	 */
 	public static void main(String args[]) {
 		try {
-			McTcpTester window = new McTcpTester();
+			ChabuTester window = new ChabuTester();
 			window.setBlockOnOpen(true);
 			window.open();
 			Display.getCurrent().dispose();

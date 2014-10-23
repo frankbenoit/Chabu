@@ -5,7 +5,7 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.BitSet;
 
-public class McTcp implements INetworkUser {
+public class Chabu implements INetworkUser {
 
 	private int txBytes;
 	private int rxBytes;
@@ -30,7 +30,7 @@ public class McTcp implements INetworkUser {
 	String instanceName = "";
 	
 	
-	public McTcp( ByteOrder byteOrder, int maxPayloadSize ){
+	public Chabu( ByteOrder byteOrder, int maxPayloadSize ){
 		this.byteOrder = byteOrder;
 		this.maxPayloadSize = maxPayloadSize;
 		this.byteOrderId = ( ( byteOrder == ByteOrder.BIG_ENDIAN ) ?
@@ -60,7 +60,7 @@ public class McTcp implements INetworkUser {
 	}
 	
 	public void evRecv(ByteBuffer buf) {
-		System.out.println("McTcp.evRecv() "+instanceName);
+		System.out.println("Chabu.evRecv() "+instanceName);
 		int rxBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
@@ -128,7 +128,7 @@ public class McTcp implements INetworkUser {
 	}
 
 	public void evXmit(ByteBuffer buf) {
-		System.out.println("McTcp.evXmit() "+instanceName);
+		System.out.println("Chabu.evXmit() "+instanceName);
 		int txBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){

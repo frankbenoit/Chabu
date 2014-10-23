@@ -8,11 +8,11 @@ import java.util.ArrayDeque;
 public final class Channel implements IChannel {
 
 	private int   channelId;
-	private McTcp mcTcp;
+	private Chabu chabu;
 	private final IChannelUser user;
 	private final Object       attachment;
 	
-	final int rxBlocks; // used in mctcp
+	final int rxBlocks; // used in chabu
 	
 	private ByteBuffer xmitBuffer;
 	private int        xmitSeq = 0;
@@ -39,17 +39,17 @@ public final class Channel implements IChannel {
 		
 	}
 
-	void activate(McTcp mcTcp, int channelId ){
-		this.mcTcp      = mcTcp;
+	void activate(Chabu chabu, int channelId ){
+		this.chabu      = chabu;
 		this.channelId  = channelId;
-		this.xmitBuffer = ByteBuffer.allocate(mcTcp.maxPayloadSize);
-		this.xmitBuffer.order( mcTcp.byteOrder );
+		this.xmitBuffer = ByteBuffer.allocate(chabu.maxPayloadSize);
+		this.xmitBuffer.order( chabu.byteOrder );
 	}
 	public void evUserReadRequest(){
 		Utils.ensure( false, "Not implemented" );
 	}
 	public void evUserWriteRequest(){
-		mcTcp.evUserWriteRequest(channelId);
+		chabu.evUserWriteRequest(channelId);
 	}
 
 	void handleRecv( Block block ) {
@@ -77,7 +77,7 @@ public final class Channel implements IChannel {
 				
 				// remove the buffer, now space for receive
 				this.recvBuffers.remove();
-				mcTcp.freeBlock( userBuf );
+				chabu.freeBlock( userBuf );
 				this.recvArm = ( this.recvArm + 1 ) & 0xFFFF;
 				this.xmitArmValid = true;
 
@@ -88,7 +88,7 @@ public final class Channel implements IChannel {
 		}
 		if( xmitAllowed() || xmitInterest ){
 			System.out.println("Channel.handleRecv() -> WriteRequest");
-			mcTcp.evUserWriteRequest(channelId);
+			chabu.evUserWriteRequest(channelId);
 		}
 	}
 	void handleXmit( Block block ) {
@@ -104,7 +104,7 @@ public final class Channel implements IChannel {
 		if( !xmitDataValid ){
 			checkUserXmitData();
 			if( xmitAllowed() ){
-				mcTcp.evUserWriteRequest(channelId);
+				chabu.evUserWriteRequest(channelId);
 			}
 		}
 	}

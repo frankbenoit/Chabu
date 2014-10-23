@@ -12,7 +12,7 @@ import java.nio.channels.spi.AbstractSelector;
 import java.util.Iterator;
 import java.util.Set;
 
-public class McTcp_SingleServer implements INetwork {
+public class Chabu_SingleServer implements INetwork {
 
 	private String name;
 	private boolean doShutDown;
@@ -39,7 +39,7 @@ public class McTcp_SingleServer implements INetwork {
 		selector.wakeup();
 	}
 	public void evUserXmitRequest() {
-		System.out.println("McTcp_SingleServer.evUserXmitRequest()");
+		System.out.println("Chabu_SingleServer.evUserXmitRequest()");
 		userRequestXmit = true;
 		netwRequestXmit = true;
 		selector.wakeup();
@@ -48,12 +48,12 @@ public class McTcp_SingleServer implements INetwork {
 		this.user = user;
 	}
 	
-	private McTcp_SingleServer(ServerSocketChannel server, AbstractSelector selector) {
+	private Chabu_SingleServer(ServerSocketChannel server, AbstractSelector selector) {
 		this.serverSocket = server;
 		this.selector = selector;
 	}
 
-	private McTcp_SingleServer(SocketChannel socketChannel, AbstractSelector selector) {
+	private Chabu_SingleServer(SocketChannel socketChannel, AbstractSelector selector) {
 		this.socketChannel = socketChannel;
 		this.selector = selector;
 	}
@@ -169,25 +169,25 @@ public class McTcp_SingleServer implements INetwork {
 		thread.start();
 	}
 	
-	public static McTcp_SingleServer startServer(INetworkUser nwUser, int port ) throws IOException {
+	public static Chabu_SingleServer startServer(INetworkUser nwUser, int port ) throws IOException {
 		ServerSocketChannel server = ServerSocketChannel.open();
 		server.configureBlocking(false);
 		server.bind(new InetSocketAddress(port));
 		AbstractSelector selector = server.provider().openSelector();
 		server.register( selector, SelectionKey.OP_ACCEPT );
-		McTcp_SingleServer nw = new McTcp_SingleServer( server, selector );
+		Chabu_SingleServer nw = new Chabu_SingleServer( server, selector );
 		nw.name = "S";
 		nwUser.setNetwork(nw);
 		nw.setNetworkUser(nwUser);
 		return nw;
 	}
-	public static McTcp_SingleServer startClient(INetworkUser nwUser, String host, int port ) throws IOException{
+	public static Chabu_SingleServer startClient(INetworkUser nwUser, String host, int port ) throws IOException{
 		InetSocketAddress address = new InetSocketAddress(Inet4Address.getByName(host), port );
 		SocketChannel socketChannel = SocketChannel.open(address);
 		socketChannel.configureBlocking(false);
 		AbstractSelector selector = socketChannel.provider().openSelector();
 		socketChannel.register( selector, SelectionKey.OP_WRITE | SelectionKey.OP_READ );
-		McTcp_SingleServer nw = new McTcp_SingleServer( socketChannel, selector );
+		Chabu_SingleServer nw = new Chabu_SingleServer( socketChannel, selector );
 		nw.name = "C";
 		nwUser.setNetwork(nw);
 		nw.setNetworkUser(nwUser);
@@ -233,30 +233,30 @@ public class McTcp_SingleServer implements INetwork {
 	public static void main(String[] args) throws IOException, InterruptedException {
 		ChannelUser cus;
 		ChannelUser cuc;
-		McTcp_SingleServer server;
-		McTcp_SingleServer client;
+		Chabu_SingleServer server;
+		Chabu_SingleServer client;
 		{
-			McTcp mcTcpServer = new McTcp(ByteOrder.BIG_ENDIAN, 1000 );
-			mcTcpServer.instanceName = "S";
+			Chabu chabuServer = new Chabu(ByteOrder.BIG_ENDIAN, 1000 );
+			chabuServer.instanceName = "S";
 			cus = new ChannelUser("ChSrv");
-			mcTcpServer.addChannel( cus.channel );
-			mcTcpServer.activate();
-			server = startServer(mcTcpServer, 20000);
+			chabuServer.addChannel( cus.channel );
+			chabuServer.activate();
+			server = startServer(chabuServer, 20000);
 			server.start();
 		}
 		{
-			McTcp mcTcpClient = new McTcp(ByteOrder.BIG_ENDIAN, 1000 );
-			mcTcpClient.instanceName = "C";
+			Chabu chabuClient = new Chabu(ByteOrder.BIG_ENDIAN, 1000 );
+			chabuClient.instanceName = "C";
 			cuc = new ChannelUser("ChCli");
-			mcTcpClient.addChannel( cuc.channel );
-			mcTcpClient.activate();
-			client = startClient(mcTcpClient, "localhost", 20000);
+			chabuClient.addChannel( cuc.channel );
+			chabuClient.activate();
+			client = startClient(chabuClient, "localhost", 20000);
 			client.start();
 		}
 
 		//cus.channel.evUserWriteRequest();
-		synchronized (McTcp_SingleServer.class) {
-			McTcp_SingleServer.class.wait(3000);	
+		synchronized (Chabu_SingleServer.class) {
+			Chabu_SingleServer.class.wait(3000);	
 		}
 		client.forceShutDown();
 		server.forceShutDown();

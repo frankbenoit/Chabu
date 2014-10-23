@@ -16,7 +16,7 @@ import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
 
-public class McTcpTesterClient {
+public class ChabuTestClient {
 
 	private String name;
 	private boolean doShutDown;
@@ -84,7 +84,7 @@ public class McTcpTesterClient {
 		this.testNw.user = user;
 	}
 	
-	public McTcpTesterClient(int ctrlPort, int testPort) throws IOException {
+	public ChabuTestClient(int ctrlPort, int testPort) throws IOException {
 
 		ctrlNw.serverSocket = ServerSocketChannel.open();
 		ctrlNw.serverSocket.configureBlocking(false);
@@ -241,7 +241,7 @@ public class McTcpTesterClient {
 		try{
 			int ctrlPort = Integer.parseInt( args[0] );
 			int testPort = ctrlPort+1;
-			McTcpTesterClient client = new McTcpTesterClient( ctrlPort, testPort );
+			ChabuTestClient client = new ChabuTestClient( ctrlPort, testPort );
 			client.run();
 		}
 		catch( Exception e ){
@@ -251,7 +251,7 @@ public class McTcpTesterClient {
 	}
 
 	private static void usageExit() {
-		System.err.println("McTcpClientTester <control-port>");
+		System.err.println("ChabuClientTester <control-port>");
 		System.exit(1);
 	}
 

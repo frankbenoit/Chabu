@@ -1,4 +1,4 @@
-package chabu.tester.client;
+package chabu.tester.dut;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

@@ -7,7 +7,6 @@ import java.util.LinkedList;
 
 import chabu.IChannel;
 import chabu.INetworkUser;
-import chabu.MctcpConnector;
 import chabu.Utils;
 
 public class ChannelTester {

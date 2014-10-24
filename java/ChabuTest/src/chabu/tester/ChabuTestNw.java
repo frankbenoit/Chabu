@@ -1,4 +1,4 @@
-package chabu.tester.controller;
+package chabu.tester;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -16,7 +16,7 @@ import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
 
-public class ChabuTestServer {
+public class ChabuTestNw {
 	private String name;
 	private boolean doShutDown;
 	private Selector selector;
@@ -83,7 +83,7 @@ public class ChabuTestServer {
 		this.testNw.user = user;
 	}
 	
-	public ChabuTestServer(int ctrlPort, int testPort) throws IOException {
+	public ChabuTestNw(int ctrlPort, int testPort) throws IOException {
 
 		ctrlNw.serverSocket = ServerSocketChannel.open();
 		ctrlNw.serverSocket.configureBlocking(false);

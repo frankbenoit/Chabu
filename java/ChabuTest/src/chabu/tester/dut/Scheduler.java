@@ -3,11 +3,14 @@ package chabu.tester.dut;
 import java.util.ArrayDeque;
 
 import chabu.Utils;
-import chabu.tester.CommandId;
+import chabu.tester.data.ACmdScheduled;
+import chabu.tester.data.ACommand;
+import chabu.tester.data.CmdTimeBroadcast;
+import chabu.tester.data.CommandId;
 
 public class Scheduler {
 
-	ArrayDeque<Command> commands = new ArrayDeque<>(100);
+	ArrayDeque<ACmdScheduled> commands = new ArrayDeque<>(100);
 	
 	private long timeOffset;
 	private Thread thread;
@@ -29,8 +32,8 @@ public class Scheduler {
 						continue;
 					}
 					
-					Command cmd = commands.element();
-					long diff = System.nanoTime() - timeOffset + cmd.time;
+					ACmdScheduled cmd = commands.element();
+					long diff = System.nanoTime() - timeOffset + cmd.schedTime;
 					long diffMillis = diff / 1_000_000;
 					if( diffMillis <= 0 ){
 						execute( commands.remove() );
@@ -49,36 +52,39 @@ public class Scheduler {
 		}
 		
 	}
-	private void execute(Command cmd) {
+	private void execute(ACmdScheduled cmd) {
 		switch( cmd.commandId ){
 		case TIME_BROADCAST:
 			Utils.ensure(false);
 			break;
-		case CLOSE_APPLICATION:
+		case APPLICATION_CLOSE:
 			break;
-		case AWAIT_CONNECTION:
+		case CONNECTION_AWAIT:
 			break;
-		case START_CONNECTION:
+		case CONNECTION_CONNECT:
 			break;
-		case CLOSE_CONNECTION:
+		case CONNECTION_CLOSE:
 			break;
-		case ADD_CHANNEL:
+		case CHANNEL_ADD:
 			break;
-		case ACTION_CHANNEL:
+		case CHANNEL_ACTION:
 			break;
-		case CREATE_CHANNEL_STAT:
+		case CHANNEL_CREATE_STAT:
 			break;
 		}
 	}
 
-	public void addCommand( Command cmd ){
+	public void addCommand( ACommand cmd ){
 		synchronized(thread){
 			if( cmd.commandId == CommandId.TIME_BROADCAST ){
-				timeOffset = cmd.time - System.nanoTime();
+				Utils.ensure( cmd instanceof CmdTimeBroadcast );
+				CmdTimeBroadcast tb = (CmdTimeBroadcast)cmd;
+				timeOffset = tb.time - System.nanoTime();
 				thread.notifyAll();
 			}
 			else {
-				commands.add( cmd );
+				Utils.ensure( cmd instanceof ACmdScheduled );
+				commands.add( (ACmdScheduled)cmd );
 				if( commands.size() ==  1){
 					thread.notifyAll();
 				}

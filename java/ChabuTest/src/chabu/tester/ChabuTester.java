@@ -1,7 +1,10 @@
 package chabu.tester;
 
+import java.io.IOException;
+
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.CoolBarManager;
+import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.StatusLineManager;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -23,18 +26,23 @@ import org.eclipse.wb.swt.ResourceManager;
 public class ChabuTester extends ApplicationWindow {
 	private Table table;
 	private Action actionStartTest;
-	private Action action;
+	private Action actionInfo;
+	ChabuTestNw nw;
+	private Action actionPlay;
 
 	/**
 	 * Create the application window,
+	 * @throws IOException 
 	 */
-	public ChabuTester() {
+	public ChabuTester() throws IOException {
 		super(null);
 		setBlockOnOpen(true);
 		createActions();
 		addCoolBar(SWT.FLAT);
-		//addMenuBar();
+		addMenuBar();
 		addStatusLine();
+		
+		nw = new ChabuTestNw();
 	}
 
 	/**
@@ -95,14 +103,23 @@ public class ChabuTester extends ApplicationWindow {
 			actionStartTest.setAccelerator(SWT.F9);
 		}
 		{
-			action = new Action("A&bout") {				public void run() {
+			actionInfo = new Action("A&bout") {				public void run() {
 					MessageDialog.openInformation(getShell(), "Chabu Tester - About ...", 
 							"Chabu - the channel bundle\n"
 							+ "Test application, to start 2 sub-processes that communicate with each other.\n"
 							+ "Version 1.0");
 				}
 			};
-			action.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "/chabu/tester/about-16.png"));
+			actionInfo.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "/chabu/tester/about-16.png"));
+		}
+		{
+			actionPlay = new Action("New Action") {				public void run() {
+					System.out.println("Start:");
+					nw.connect( Dut.A, 2310 );
+				}
+			};
+			actionPlay.setAccelerator(SWT.F8);
+			actionPlay.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "/chabu/tester/play-16.png"));
 		}
 	}
 
@@ -116,12 +133,13 @@ public class ChabuTester extends ApplicationWindow {
 		{
 			ToolBarManager toolBarManager = new ToolBarManager();
 			coolBarManager.add(toolBarManager);
+			toolBarManager.add(actionPlay);
 			toolBarManager.add(actionStartTest);
 		}
 		{
 			ToolBarManager toolBarManager = new ToolBarManager();
 			coolBarManager.add(toolBarManager);
-			toolBarManager.add(action);
+			toolBarManager.add(actionInfo);
 		}
 		return coolBarManager;
 	}
@@ -138,21 +156,23 @@ public class ChabuTester extends ApplicationWindow {
 		return slm;
 	}
 
-	/**
-	 * Launch the application.
-	 * @param args
-	 */
-	public static void main(String args[]) {
-		try {
-			ChabuTester window = new ChabuTester();
-			window.setBlockOnOpen(true);
-			window.open();
-			Display.getCurrent().dispose();
-		} catch (Exception e) {
-			e.printStackTrace();
+	@Override
+	protected MenuManager createMenuManager() {
+		MenuManager mm = new MenuManager("menu");
+		{
+			MenuManager menuManager = new MenuManager("File");
+			mm.add(menuManager);
+			menuManager.add(actionPlay);
+			menuManager.add(actionStartTest);
 		}
+		{
+			MenuManager menuManager = new MenuManager("Help");
+			mm.add(menuManager);
+			menuManager.add(actionInfo);
+		}
+		return mm;
 	}
-
+	
 	/**
 	 * Configure the shell.
 	 * @param newShell
@@ -169,5 +189,35 @@ public class ChabuTester extends ApplicationWindow {
 	@Override
 	protected Point getInitialSize() {
 		return new Point(450, 300);
+	}
+
+	/**
+	 * Launch the application.
+	 * @param args
+	 */
+	public static void main(String args[]) {
+		mainInternal( 2300, 2310 );
+		System.exit(0);
+	}
+
+	public static void mainInternal(final int PORT_DUT0, final int PORT_DUT1) {
+		try {
+			
+			ChabuTester wnd = new ChabuTester();
+			wnd.setBlockOnOpen(true);
+			wnd.open();
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			Display.getCurrent().dispose();
+		}
+	}
+
+	public static Thread mainInternalCreateThread( String threadName, final int PORT_DUT0, final int PORT_DUT1) {
+		Thread res = new Thread( ()->{
+			ChabuTester.mainInternal( PORT_DUT0, PORT_DUT1 );
+		}, threadName);
+		res.start();
+		return res;
 	}
 }

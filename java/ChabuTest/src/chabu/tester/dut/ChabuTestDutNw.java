@@ -254,5 +254,15 @@ public class ChabuTestDutNw {
 		System.err.println("ChabuClientTester <control-port>");
 		System.exit(1);
 	}
+	public static void mainInternal(String name, int firstListenPort) {
+		
+	}
+	public static Thread mainInternalCreateThread(String name, int firstListenPort) {
+		Thread res = new Thread( ()->{
+			mainInternal( name, firstListenPort );
+		}, name );
+		res.start();
+		return res;
+	}
 
 }

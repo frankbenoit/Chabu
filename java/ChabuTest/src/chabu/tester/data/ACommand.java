@@ -1,7 +1,7 @@
 package chabu.tester.data;
 
 
-public class ACommand {
+public abstract class ACommand {
 	
 	protected ACommand(CommandId commandId) {
 		this.commandId = commandId;

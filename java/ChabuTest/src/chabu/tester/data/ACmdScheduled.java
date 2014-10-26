@@ -1,6 +1,6 @@
 package chabu.tester.data;
 
-public class ACmdScheduled extends ACommand {
+public abstract class ACmdScheduled extends ACommand {
 	
 	public final long schedTime;
 

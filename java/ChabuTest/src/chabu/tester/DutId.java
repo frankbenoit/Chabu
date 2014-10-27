@@ -1,5 +1,5 @@
 package chabu.tester;
 
-public enum Dut {
+public enum DutId {
 	ALL, A, B;
 }

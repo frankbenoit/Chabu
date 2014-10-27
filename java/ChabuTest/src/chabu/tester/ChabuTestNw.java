@@ -27,7 +27,7 @@ public class ChabuTestNw {
 	private Thread thread;
 	private boolean isStarted = false;
 
-	private TreeMap<Dut, DutState> dutStates = new TreeMap<>();
+	private TreeMap<DutId, DutState> dutStates = new TreeMap<>();
 	
 	class DutState {
 		ArrayDeque<ACommand> commands = new ArrayDeque<>(100);
@@ -228,8 +228,8 @@ public class ChabuTestNw {
 		}
 	}
 
-	public synchronized void addCommand(Dut dut, ACommand cmd) {
-		if( dut == Dut.ALL ){
+	public synchronized void addCommand(DutId dut, ACommand cmd) {
+		if( dut == DutId.ALL ){
 			for( DutState ds : dutStates.values() ){
 				ds.commands.add( cmd );
 			}
@@ -243,10 +243,10 @@ public class ChabuTestNw {
 		notifyAll();
 	}
 
-	public synchronized void flush( Dut dut ) throws InterruptedException {
+	public synchronized void flush( DutId dut ) throws InterruptedException {
 		while(true){
 			boolean isEmpty = true;
-			if( dut == Dut.ALL ){
+			if( dut == DutId.ALL ){
 				for( DutState ds : dutStates.values() ){
 					if( !ds.commands.isEmpty() ){
 						isEmpty = false;

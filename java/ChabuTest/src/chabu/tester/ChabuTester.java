@@ -124,20 +124,20 @@ public class ChabuTester extends ApplicationWindow {
 					System.out.println("Start:");
 					Thread actions = new Thread( ()->{
 						try {
-							nw.addCommand( Dut.A, new CmdDutConnect( System.nanoTime(), "localhost", 2300 ));
-							nw.flush(Dut.ALL);
+							nw.addCommand( DutId.A, new CmdDutConnect( System.nanoTime(), "localhost", 2300 ));
+							nw.flush(DutId.ALL);
 							System.out.println("A connected");
 							//						nw.connect( Dut.B, 2310 );
 							//						System.out.println("B connected");
 							for( int i = 0; i < 10; i++ ){
 								synchronized(this){
-									nw.addCommand( Dut.A, new CmdTimeBroadcast( System.nanoTime() ));
-									nw.addCommand( Dut.A, new CmdChannelCreateStat( System.nanoTime(), 1 ));
+									nw.addCommand( DutId.A, new CmdTimeBroadcast( System.nanoTime() ));
+									nw.addCommand( DutId.A, new CmdChannelCreateStat( System.nanoTime(), 1 ));
 									wait(400);
 								}
 							}
-							nw.addCommand( Dut.A, new CmdDutDisconnect( System.nanoTime() ) );
-							nw.flush(Dut.ALL);
+							nw.addCommand( DutId.A, new CmdDutDisconnect( System.nanoTime() ) );
+							nw.flush(DutId.ALL);
 							System.out.println("--- Actions finished ---");
 						} catch (Exception e) {
 							// TODO Auto-generated catch block

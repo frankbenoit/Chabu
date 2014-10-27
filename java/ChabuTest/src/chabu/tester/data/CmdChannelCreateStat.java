@@ -1,5 +1,7 @@
 package chabu.tester.data;
 
+import java.nio.ByteBuffer;
+
 public class CmdChannelCreateStat extends ACmdScheduled {
 
 	public final int channelId;
@@ -9,4 +11,9 @@ public class CmdChannelCreateStat extends ACmdScheduled {
 		this.channelId = channelId;
 	}
 	
+	@Override
+	public void encode(ByteBuffer buf) {
+		super.encode(buf);
+		buf.put( (byte) channelId );
+	}
 }

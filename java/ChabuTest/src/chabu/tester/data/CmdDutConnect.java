@@ -1,5 +1,9 @@
 package chabu.tester.data;
 
+import java.nio.ByteBuffer;
+
+import chabu.Utils;
+
 public class CmdDutConnect extends ACmdScheduled {
 
 	public final String address;
@@ -11,4 +15,8 @@ public class CmdDutConnect extends ACmdScheduled {
 		this.port = port;
 	}
 	
+	@Override
+	public void encode(ByteBuffer buf) {
+		Utils.fail("not implemented");
+	}
 }

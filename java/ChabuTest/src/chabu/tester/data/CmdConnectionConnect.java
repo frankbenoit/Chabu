@@ -1,5 +1,7 @@
 package chabu.tester.data;
 
+import java.nio.ByteBuffer;
+
 public class CmdConnectionConnect extends ACmdScheduled {
 
 	public final String address;
@@ -11,4 +13,10 @@ public class CmdConnectionConnect extends ACmdScheduled {
 		this.port = port;
 	}
 	
+	@Override
+	public void encode(ByteBuffer buf) {
+		super.encode(buf);
+		ACommand.encodeString( buf, address );
+		buf.putShort( (short)this.port );
+	}
 }

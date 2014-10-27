@@ -14,7 +14,14 @@ public abstract class ACommand {
 	
 	public final CommandId commandId;
 	
+	protected abstract void encode( ByteBuffer buf );
 	
+	public static void encodeCommand( ByteBuffer buf, ACommand cmd ){
+		int pos = buf.position();
+		buf.putInt(0); // fill dummy length
+		cmd.encode(buf);
+		buf.putInt( pos, buf.position() - pos - 4 ); // now make the length valid
+	}
 	
 	public static ACommand decodeCommand(ByteBuffer buf) {
 		int cmd = buf.get(0);
@@ -101,6 +108,12 @@ public abstract class ACommand {
 		byte[] data = new byte[len];
 		bb.get( data );
 		return new String( data, StandardCharsets.UTF_8 );
+	}
+
+	protected static void encodeString(ByteBuffer buf, String string) {
+		byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+		buf.putShort((short) bytes.length );
+		buf.put( bytes );
 	}
 	
 }

@@ -1,5 +1,7 @@
 package chabu.tester.data;
 
+import java.nio.ByteBuffer;
+
 public class CmdConnectionAwait extends ACmdScheduled {
 
 	public final int port;
@@ -9,4 +11,9 @@ public class CmdConnectionAwait extends ACmdScheduled {
 		this.port = port;
 	}
 	
+	@Override
+	public void encode(ByteBuffer buf) {
+		super.encode(buf);
+		buf.putShort((short)port);
+	}
 }

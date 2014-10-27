@@ -1,5 +1,6 @@
 package chabu.tester.data;
 
+
 public class CmdDutApplicationClose extends ACmdScheduled {
 
 	public CmdDutApplicationClose( long schedTime ){

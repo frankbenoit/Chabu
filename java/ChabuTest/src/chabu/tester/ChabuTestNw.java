@@ -27,6 +27,12 @@ public class ChabuTestNw {
 	private Thread thread;
 	private boolean isStarted = false;
 
+	private TreeMap<Dut, DutState> dutStates = new TreeMap<>();
+	
+	class DutState {
+		ArrayDeque<ACommand> commands = new ArrayDeque<>(100);
+	}
+	
 	class CtrlNetwork extends Network {
 	
 	}
@@ -98,12 +104,6 @@ public class ChabuTestNw {
 		}
 	}
 	
-	public void connect( Dut dut, int port ){
-		
-	}
-	public void close( Dut dut ){
-		
-	}
 	private void run() {
 		try {
 			@SuppressWarnings("unused")
@@ -228,20 +228,43 @@ public class ChabuTestNw {
 		}
 	}
 
-	private TreeMap<Dut, ArrayDeque<ACommand>> commands = new TreeMap<>();
 	public synchronized void addCommand(Dut dut, ACommand cmd) {
 		if( dut == Dut.ALL ){
-			for( ArrayDeque<ACommand> q : commands.values() ){
-				q.add( cmd );
+			for( DutState ds : dutStates.values() ){
+				ds.commands.add( cmd );
 			}
 		}
 		else {
-			if( !commands.containsKey(dut)){
-				commands.put( dut, new ArrayDeque<>());
+			if( !dutStates.containsKey(dut)){
+				dutStates.put( dut, new DutState());
 			}
-			commands.get(dut).add(cmd);
+			dutStates.get(dut).commands.add(cmd);
 		}
 		notifyAll();
+	}
+
+	public synchronized void flush( Dut dut ) throws InterruptedException {
+		while(true){
+			boolean isEmpty = true;
+			if( dut == Dut.ALL ){
+				for( DutState ds : dutStates.values() ){
+					if( !ds.commands.isEmpty() ){
+						isEmpty = false;
+					}
+				}
+			}
+			else {
+				DutState ds = dutStates.get(dut);
+				if( ds != null && !ds.commands.isEmpty() ){
+					isEmpty = false;
+				}
+			}
+
+			if( isEmpty ){
+				break;
+			}
+			wait();
+		}
 	}
 
 }

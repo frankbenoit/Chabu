@@ -24,6 +24,8 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
 
 import chabu.tester.data.CmdChannelCreateStat;
+import chabu.tester.data.CmdDutConnect;
+import chabu.tester.data.CmdDutDisconnect;
 import chabu.tester.data.CmdTimeBroadcast;
 
 
@@ -122,7 +124,8 @@ public class ChabuTester extends ApplicationWindow {
 					System.out.println("Start:");
 					Thread actions = new Thread( ()->{
 						try {
-							nw.connect( Dut.A, 2300 );
+							nw.addCommand( Dut.A, new CmdDutConnect( System.nanoTime(), "localhost", 2300 ));
+							nw.flush(Dut.ALL);
 							System.out.println("A connected");
 							//						nw.connect( Dut.B, 2310 );
 							//						System.out.println("B connected");
@@ -133,7 +136,8 @@ public class ChabuTester extends ApplicationWindow {
 									wait(400);
 								}
 							}
-							nw.close( Dut.A );
+							nw.addCommand( Dut.A, new CmdDutDisconnect( System.nanoTime() ) );
+							nw.flush(Dut.ALL);
 							System.out.println("--- Actions finished ---");
 						} catch (Exception e) {
 							// TODO Auto-generated catch block

@@ -57,7 +57,7 @@ public class Scheduler {
 		case TIME_BROADCAST:
 			Utils.ensure(false);
 			break;
-		case APPLICATION_CLOSE:
+		case DUT_APPLICATION_CLOSE:
 			break;
 		case CONNECTION_AWAIT:
 			break;

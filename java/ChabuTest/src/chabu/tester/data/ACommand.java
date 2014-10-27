@@ -21,7 +21,7 @@ public abstract class ACommand {
 		if( cmd == CommandId.TIME_BROADCAST.getId() ){
 			return cmdTimeBroadcast   ( buf );
 		}
-		else if( cmd == CommandId.APPLICATION_CLOSE.getId() ){
+		else if( cmd == CommandId.DUT_APPLICATION_CLOSE.getId() ){
 			return cmdCloseApplication( buf );
 		}
 		else if( cmd == CommandId.CONNECTION_CLOSE.getId() ){
@@ -88,7 +88,7 @@ public abstract class ACommand {
 
 	private static ACommand cmdCloseApplication(ByteBuffer buf) {
 		long time = buf.getLong();
-		return new CmdApplicationClose( time );
+		return new CmdDutApplicationClose( time );
 	}
 
 	private static ACommand cmdTimeBroadcast(ByteBuffer buf) {

@@ -8,20 +8,24 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.WritableByteChannel;
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.TreeMap;
 
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
+import chabu.tester.data.ACommand;
 
 public class ChabuTestNw {
 	private String name;
 	private boolean doShutDown;
 	private Selector selector;
-	private Thread thread;
 	
 	private CtrlNetwork ctrlNw = new CtrlNetwork();
+	private Thread thread;
+	private boolean isStarted = false;
 
 	class CtrlNetwork extends Network {
 	
@@ -75,14 +79,23 @@ public class ChabuTestNw {
 		this.ctrlNw.user = user;
 	}
 	
-	public ChabuTestNw() throws IOException {
+	public ChabuTestNw(String name) throws IOException, InterruptedException {
 
+		this.name = name;
+		
 		ctrlNw.serverSocket = ServerSocketChannel.open();
 		ctrlNw.serverSocket.configureBlocking(false);
 		
 		selector = Selector.open();
 		ctrlNw.serverSocket.register( selector, 0 );
 		
+		thread = new Thread( this::run, name );
+		thread.start();
+		synchronized(this){
+			while( !isStarted ){
+				this.wait();
+			}
+		}
 	}
 	
 	public void connect( Dut dut, int port ){
@@ -91,13 +104,19 @@ public class ChabuTestNw {
 	public void close( Dut dut ){
 		
 	}
-	public void run() {
+	private void run() {
 		try {
 			@SuppressWarnings("unused")
 			int connectionOpenIndex = 0;
 
+			synchronized(this){
+				isStarted = true;
+				notifyAll();
+			}
+			
 			while (!doShutDown) {
 
+				
 				selector.select(500);
 
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
@@ -207,6 +226,22 @@ public class ChabuTestNw {
 		while( selector.isOpen() ){
 			Utils.waitOn(this);
 		}
+	}
+
+	private TreeMap<Dut, ArrayDeque<ACommand>> commands = new TreeMap<>();
+	public synchronized void addCommand(Dut dut, ACommand cmd) {
+		if( dut == Dut.ALL ){
+			for( ArrayDeque<ACommand> q : commands.values() ){
+				q.add( cmd );
+			}
+		}
+		else {
+			if( !commands.containsKey(dut)){
+				commands.put( dut, new ArrayDeque<>());
+			}
+			commands.get(dut).add(cmd);
+		}
+		notifyAll();
 	}
 
 }

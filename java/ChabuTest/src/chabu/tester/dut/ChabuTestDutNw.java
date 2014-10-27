@@ -84,23 +84,24 @@ public class ChabuTestDutNw {
 		this.testNw.user = user;
 	}
 	
-	public ChabuTestDutNw(int ctrlPort, int testPort) throws IOException {
+	public ChabuTestDutNw(String name, int ctrlPort ) throws IOException {
 
+		this.name = name;
 		ctrlNw.serverSocket = ServerSocketChannel.open();
 		ctrlNw.serverSocket.configureBlocking(false);
 		ctrlNw.serverSocket.bind(new InetSocketAddress(ctrlPort));
 		
-		testNw.serverSocket = ServerSocketChannel.open();
-		testNw.serverSocket.configureBlocking(false);
-		testNw.serverSocket.bind(new InetSocketAddress(testPort));
+//		testNw.serverSocket = ServerSocketChannel.open();
+//		testNw.serverSocket.configureBlocking(false);
+//		testNw.serverSocket.bind(new InetSocketAddress(testPort));
 		
 		selector = Selector.open();
 		ctrlNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT );
-		testNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT );
+//		testNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT );
 		
 	}
 	
-	public void run() {
+	private void run() {
 		try {
 			@SuppressWarnings("unused")
 			int connectionOpenIndex = 0;
@@ -216,7 +217,7 @@ public class ChabuTestDutNw {
 
 	public void start() {
 		Utils.ensure( thread == null );
-		thread = new Thread(this::run);
+		thread = new Thread(this::run, name );
 		thread.start();
 	}
 
@@ -240,9 +241,9 @@ public class ChabuTestDutNw {
 		}
 		try{
 			int ctrlPort = Integer.parseInt( args[0] );
-			int testPort = ctrlPort+1;
-			ChabuTestDutNw client = new ChabuTestDutNw( ctrlPort, testPort );
-			client.run();
+			ChabuTestDutNw client = mainInternalCreateThread( "DUT", ctrlPort );
+			client.start();
+			client.join();
 		}
 		catch( Exception e ){
 			e.printStackTrace();
@@ -250,19 +251,17 @@ public class ChabuTestDutNw {
 		}
 	}
 
+	public void join() throws InterruptedException {
+		thread.join();
+	}
 	private static void usageExit() {
 		System.err.println("ChabuClientTester <control-port>");
 		System.exit(1);
 	}
-	public static void mainInternal(String name, int firstListenPort) {
-		
-	}
-	public static Thread mainInternalCreateThread(String name, int firstListenPort) {
-		Thread res = new Thread( ()->{
-			mainInternal( name, firstListenPort );
-		}, name );
-		res.start();
-		return res;
+	public static ChabuTestDutNw mainInternalCreateThread(String name, int firstListenPort) throws IOException {
+		ChabuTestDutNw client = new ChabuTestDutNw( name, firstListenPort );
+		client.start();
+		return client;
 	}
 
 }

@@ -2,6 +2,10 @@ package chabu;
 
 public class Utils {
 	
+	public static RuntimeException fail( String fmt, Object ... args ){
+		throw new RuntimeException( String.format( fmt, args ));
+	}
+	
 	public static void ensure( boolean cond, String fmt, Object ... args ){
 		if( cond ) return;
 		throw new RuntimeException( String.format( fmt, args ));

@@ -23,6 +23,10 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
 
+import chabu.tester.data.CmdChannelCreateStat;
+import chabu.tester.data.CmdTimeBroadcast;
+
+
 public class ChabuTester extends ApplicationWindow {
 	private Table table;
 	private Action actionStartTest;
@@ -33,8 +37,9 @@ public class ChabuTester extends ApplicationWindow {
 	/**
 	 * Create the application window,
 	 * @throws IOException 
+	 * @throws InterruptedException 
 	 */
-	public ChabuTester() throws IOException {
+	public ChabuTester() throws IOException, InterruptedException {
 		super(null);
 		setBlockOnOpen(true);
 		createActions();
@@ -42,7 +47,7 @@ public class ChabuTester extends ApplicationWindow {
 		addMenuBar();
 		addStatusLine();
 		
-		nw = new ChabuTestNw();
+		nw = new ChabuTestNw("Tester");
 	}
 
 	/**
@@ -115,7 +120,27 @@ public class ChabuTester extends ApplicationWindow {
 		{
 			actionPlay = new Action("New Action") {				public void run() {
 					System.out.println("Start:");
-					nw.connect( Dut.A, 2310 );
+					Thread actions = new Thread( ()->{
+						try {
+							nw.connect( Dut.A, 2300 );
+							System.out.println("A connected");
+							//						nw.connect( Dut.B, 2310 );
+							//						System.out.println("B connected");
+							for( int i = 0; i < 10; i++ ){
+								synchronized(this){
+									nw.addCommand( Dut.A, new CmdTimeBroadcast( System.nanoTime() ));
+									nw.addCommand( Dut.A, new CmdChannelCreateStat( System.nanoTime(), 1 ));
+									wait(400);
+								}
+							}
+							nw.close( Dut.A );
+							System.out.println("--- Actions finished ---");
+						} catch (Exception e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}, "actions" );
+					actions.start();
 				}
 			};
 			actionPlay.setAccelerator(SWT.F8);
@@ -196,11 +221,11 @@ public class ChabuTester extends ApplicationWindow {
 	 * @param args
 	 */
 	public static void main(String args[]) {
-		mainInternal( 2300, 2310 );
+		mainInternal();
 		System.exit(0);
 	}
 
-	public static void mainInternal(final int PORT_DUT0, final int PORT_DUT1) {
+	public static void mainInternal() {
 		try {
 			
 			ChabuTester wnd = new ChabuTester();
@@ -213,10 +238,10 @@ public class ChabuTester extends ApplicationWindow {
 		}
 	}
 
-	public static Thread mainInternalCreateThread( String threadName, final int PORT_DUT0, final int PORT_DUT1) {
+	public static Thread mainInternalCreateThread( String threadName) {
 		Thread res = new Thread( ()->{
-			ChabuTester.mainInternal( PORT_DUT0, PORT_DUT1 );
-		}, threadName);
+			ChabuTester.mainInternal();
+		}, threadName+"GUI");
 		res.start();
 		return res;
 	}

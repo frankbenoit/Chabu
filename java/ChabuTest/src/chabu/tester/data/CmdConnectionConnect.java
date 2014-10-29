@@ -16,13 +16,13 @@ public class CmdConnectionConnect extends ACmdScheduled {
 	@Override
 	public void encode(ByteBuffer buf) {
 		super.encode(buf);
-		ACommand.encodeString( buf, address );
+		AXferItem.encodeString( buf, address );
 		buf.putShort( (short)this.port );
 	}
 	
 	static CmdConnectionConnect createConnectionStart(ByteBuffer buf) {
 		long   time    = buf.getLong();
-		String address = ACommand.decodeString( buf );
+		String address = AXferItem.decodeString( buf );
 		int    port    = buf.getShort();
 		return new CmdConnectionConnect(time, address, port );
 	}

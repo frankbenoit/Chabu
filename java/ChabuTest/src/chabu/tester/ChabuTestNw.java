@@ -16,6 +16,7 @@ import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
 import chabu.tester.data.ACommand;
+import chabu.tester.data.AXferItem;
 import chabu.tester.data.CmdDutConnect;
 import chabu.tester.data.CmdDutDisconnect;
 
@@ -189,7 +190,7 @@ System.out.printf("%s: selector wakeup\n", name );
 								while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
 									System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
 									ACommand cmd = ds.commands.remove();
-									ACommand.encodeCommand(ds.txBuffer, cmd);
+									AXferItem.encodeItem(ds.txBuffer, cmd);
 								}
 								System.out.printf("Tester %s: buf %s\n", name, ds.txBuffer );
 								ds.txBuffer.flip();

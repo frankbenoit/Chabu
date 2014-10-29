@@ -3,6 +3,7 @@ package chabu.tester.dut;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -16,16 +17,22 @@ import chabu.INetworkUser;
 import chabu.Utils;
 import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.ACommand;
+import chabu.tester.data.AResult;
+import chabu.tester.data.CmdChannelCreateStat;
 import chabu.tester.data.CmdTimeBroadcast;
+import chabu.tester.data.ResultChannelStat;
+import chabu.tester.data.ResultVersion;
 
 public class ChabuTestDutNw {
 
+	private static final int DUT_VERSION = 0;
 	private String name;
 	private boolean doShutDown;
 	private Selector selector;
 	private Thread thread;
 	
 	private ArrayDeque<ACmdScheduled> commands = new ArrayDeque<>(100);
+	private ArrayDeque<AResult>       results = new ArrayDeque<>(100);
 	
 	private long syncTimeRemote;
 	private long syncTimeLocal;
@@ -158,32 +165,48 @@ public class ChabuTestDutNw {
 							ctrlNw.serverSocket.register(selector, SelectionKey.OP_ACCEPT, ctrlNw);
 							ctrlNw.socketChannel.register(selector, SelectionKey.OP_READ, ctrlNw);
 							System.out.printf("DUT %s: ctrl connected\n", name );
+
+							enqueueResult( new ResultVersion( DUT_VERSION ) );
+
 						}
 						synchronized(this){
 							notifyAll();
 						}
 
 						if (key.isReadable() ) {
-							System.out.printf("DUT %s: read 1\n", name );
-							if( key.attachment() instanceof CtrlNetwork ){
-								int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
-								System.out.printf("DUT %s: %s\n", name, ctrlNw.rxBuffer );
-								ctrlNw.rxBuffer.flip();
-								while( true ){
-									ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
-									if( cmd == null ){
-										break;
-									}
-									consumeCmd( cmd );
+							System.out.printf("DUT %s: read\n", name );
+							int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
+							System.out.printf("DUT %s: %s\n", name, ctrlNw.rxBuffer );
+							ctrlNw.rxBuffer.flip();
+							while( true ){
+								ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
+								if( cmd == null ){
+									break;
 								}
-								ctrlNw.rxBuffer.compact();
-
-								if( readSz < 0 ){
-									System.out.printf("DUT %s: closing\n", name );
-									ctrlNw.socketChannel.close();
-								}
-								System.out.printf("DUT %s: read complete\n", name );
+								consumeCmd( cmd );
 							}
+							ctrlNw.rxBuffer.compact();
+
+							if( readSz < 0 ){
+								System.out.printf("DUT %s: closing\n", name );
+								ctrlNw.socketChannel.close();
+							}
+							System.out.printf("DUT %s: read complete\n", name );
+						}
+						if (key.isWritable() ) {
+							System.out.printf("DUT %s: write\n", name );
+							System.out.printf("DUT %s: %s\n", name, ctrlNw.txBuffer );
+							while( ctrlNw.txBuffer.remaining() > 1000 && !results.isEmpty() ){
+								System.out.printf("Tester %s: loop buf %s\n", name, ctrlNw.txBuffer );
+								AResult res = results.remove();
+								AResult.encodeItem(ctrlNw.txBuffer, res);
+							}
+							ctrlNw.txBuffer.flip();
+							ctrlNw.socketChannel.write( ctrlNw.txBuffer );
+							if( !ctrlNw.txBuffer.hasRemaining() ){
+								ctrlNw.socketChannel.register( selector, SelectionKey.OP_READ, ctrlNw );
+							}
+							ctrlNw.txBuffer.compact();
 						}
 					}
 				}
@@ -248,10 +271,22 @@ public class ChabuTestDutNw {
 		case CHANNEL_ACTION:
 			break;
 		case CHANNEL_CREATE_STAT:
+		{
+			CmdChannelCreateStat c = (CmdChannelCreateStat)cmd;
+			ResultChannelStat res = new ResultChannelStat( createResultTimeStamp(), c.channelId, 1234, 5678 );
+			enqueueResult( res );
+		}
 			break;
 		}
 
 		
+	}
+	private long createResultTimeStamp() {
+		return System.nanoTime() - syncTimeLocal + syncTimeRemote;
+	}
+	private void enqueueResult(AResult res) throws ClosedChannelException {
+		results.add( res );
+		ctrlNw.socketChannel.register( selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE, ctrlNw );
 	}
 	private void consumeCmd(ACommand cmd) throws IOException {
 

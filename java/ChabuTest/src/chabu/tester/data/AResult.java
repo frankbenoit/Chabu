@@ -1,6 +1,8 @@
 package chabu.tester.data;
 
-public abstract class AResult {
+import java.nio.ByteBuffer;
+
+public abstract class AResult extends AXferItem {
 	
 	public final ResultId resultId;
 	public final long time;
@@ -10,4 +12,11 @@ public abstract class AResult {
 		this.resultId = resultId;
 		this.time = time;
 	}
+
+	@Override
+	public void encode(ByteBuffer buf) {
+		buf.put( (byte)this.resultId.getId() );
+		buf.putLong( this.time );
+	}
+
 }

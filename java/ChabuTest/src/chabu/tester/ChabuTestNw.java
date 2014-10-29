@@ -36,16 +36,19 @@ public class ChabuTestNw {
 		final ArrayDeque<ACommand> commands;
 		public SocketChannel socketChannel;
 		int registeredInterrestOps = 0;
+		public ByteBuffer rxBuffer;
 		
 		DutState(){
 			commands = new ArrayDeque<>(100);
 			txBuffer = ByteBuffer.allocate(2000);
+			rxBuffer = ByteBuffer.allocate(2000);
 			txBuffer.clear();
 		}
 		
 		public void addCommand(ACommand cmd) throws ClosedChannelException {
 			commands.add(cmd);
 			if( (registeredInterrestOps & SelectionKey.OP_WRITE) == 0 ){
+				selector.wakeup();
 				registeredInterrestOps |= SelectionKey.OP_WRITE;
 				socketChannel.register( selector, registeredInterrestOps, this );
 			}
@@ -137,8 +140,9 @@ public class ChabuTestNw {
 			while (!doShutDown) {
 
 				
-				selector.select(500);
-
+				System.out.printf("%s: selector sleep\n", name );
+				selector.select();
+System.out.printf("%s: selector wakeup\n", name );
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
 
 				ctrlNw.handleRequests();
@@ -146,14 +150,18 @@ public class ChabuTestNw {
 				while (iterator.hasNext()) {
 					SelectionKey key = iterator.next();
 					iterator.remove();
+					System.out.printf("%s selector key %s\n", name, key);
 					if( key.isValid() ){
 						if (key.isConnectable()) {
+							System.out.printf("%s: connecting\n", name );
 							synchronized( this ){
 								DutState ds = (DutState)key.attachment();
 								if (ds.socketChannel.isConnectionPending()){
 									if( ds.socketChannel.finishConnect() ){
-										ds.registeredInterrestOps = SelectionKey.OP_READ;
+										ds.registeredInterrestOps &= ~SelectionKey.OP_CONNECT;
+										ds.registeredInterrestOps |= SelectionKey.OP_READ;
 										ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
+										System.out.printf("%s: connecting ok\n", name );
 									}
 								}
 							}
@@ -192,6 +200,17 @@ public class ChabuTestNw {
 									ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
 								}
 								ds.txBuffer.compact();
+							}
+						}
+						if( key.isReadable() ){
+							synchronized( this ){
+								DutState ds = (DutState)key.attachment();
+								int readSz = ds.socketChannel.read( ds.rxBuffer );
+								System.out.printf("%s read %d\n", name, readSz );
+								if( readSz < 0 ){
+									ds.socketChannel.close();
+									System.out.printf("%s closed\n", name );
+								}
 							}
 						}
 //						if (key.isWritable() || key.isReadable() ) {
@@ -302,7 +321,10 @@ public class ChabuTestNw {
 				socketChannel.configureBlocking(false);
 				socketChannel.connect( new InetSocketAddress( cmdDutConnect.address, cmdDutConnect.port ));
 				ds.socketChannel = socketChannel;
-				socketChannel.register( selector, SelectionKey.OP_CONNECT, ds );
+				ds.registeredInterrestOps = SelectionKey.OP_CONNECT;
+				selector.wakeup();
+				socketChannel.register( selector, ds.registeredInterrestOps, ds );
+				System.out.println("selector wakeup!");
 			}
 			else if( cmd instanceof CmdDutDisconnect ){
 				if( ds.socketChannel != null ) {

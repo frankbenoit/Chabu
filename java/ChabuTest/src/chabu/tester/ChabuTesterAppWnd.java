@@ -28,9 +28,11 @@ import chabu.tester.data.CmdDutApplicationClose;
 import chabu.tester.data.CmdDutConnect;
 import chabu.tester.data.CmdDutDisconnect;
 import chabu.tester.data.CmdTimeBroadcast;
+import chabu.tester.dlg.ConfigureTest;
+import chabu.tester.dlg.ConfigureTestData;
 
 
-public class ChabuTester extends ApplicationWindow {
+public class ChabuTesterAppWnd extends ApplicationWindow {
 	private Table table;
 	private Action actionStartTest;
 	private Action actionInfo;
@@ -42,7 +44,7 @@ public class ChabuTester extends ApplicationWindow {
 	 * @throws IOException 
 	 * @throws InterruptedException 
 	 */
-	public ChabuTester() throws IOException, InterruptedException {
+	public ChabuTesterAppWnd() throws IOException, InterruptedException {
 		super(null);
 		setBlockOnOpen(true);
 		createActions();
@@ -107,7 +109,7 @@ public class ChabuTester extends ApplicationWindow {
 					}
 				}
 			};
-			actionStartTest.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "running-man-16.png"));
+			actionStartTest.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTesterAppWnd.class, "running-man-16.png"));
 			actionStartTest.setAccelerator(SWT.F9);
 		}
 		{
@@ -118,7 +120,7 @@ public class ChabuTester extends ApplicationWindow {
 							+ "Version 1.0");
 				}
 			};
-			actionInfo.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "/chabu/tester/about-16.png"));
+			actionInfo.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTesterAppWnd.class, "/chabu/tester/about-16.png"));
 		}
 		{
 			actionPlay = new Action("New Action") {				public void run() {
@@ -153,7 +155,7 @@ public class ChabuTester extends ApplicationWindow {
 				}
 			};
 			actionPlay.setAccelerator(SWT.F8);
-			actionPlay.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTester.class, "/chabu/tester/play-16.png"));
+			actionPlay.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTesterAppWnd.class, "/chabu/tester/play-16.png"));
 		}
 	}
 
@@ -237,7 +239,7 @@ public class ChabuTester extends ApplicationWindow {
 	public static void mainInternal() {
 		try {
 			
-			ChabuTester wnd = new ChabuTester();
+			ChabuTesterAppWnd wnd = new ChabuTesterAppWnd();
 			wnd.setBlockOnOpen(true);
 			wnd.open();
 		} catch (Exception e) {
@@ -249,7 +251,7 @@ public class ChabuTester extends ApplicationWindow {
 
 	public static Thread mainInternalCreateThread( String threadName) {
 		Thread res = new Thread( ()->{
-			ChabuTester.mainInternal();
+			ChabuTesterAppWnd.mainInternal();
 		}, threadName+"GUI");
 		res.start();
 		return res;

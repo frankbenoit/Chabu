@@ -1,4 +1,4 @@
-package chabu.tester;
+package chabu.tester.dlg;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;

@@ -10,7 +10,7 @@ public class ChabuTestOneJre {
 		final int PORT_DUT0 = 2300;
 		final int PORT_DUT1 = 2310;
 		
-		Thread chabuTester             = ChabuTester.mainInternalCreateThread( "Tester" );
+		Thread chabuTester             = ChabuTesterAppWnd.mainInternalCreateThread( "Tester" );
 		ChabuTestDutNw chabuTesterDut1 = ChabuTestDutNw.mainInternalCreateThread("Dut[0]", PORT_DUT0 );
 //		ChabuTestDutNw chabuTesterDut2 = ChabuTestDutNw.mainInternalCreateThread("Dut[1]", PORT_DUT1 );
 		

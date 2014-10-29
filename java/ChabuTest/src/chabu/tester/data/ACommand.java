@@ -21,18 +21,18 @@ public abstract class ACommand {
 		buf.putInt(123); // fill dummy length
 		cmd.encode(buf);
 		int packetSz = buf.position() - pos - 4;
-		System.out.printf("ACommand.encode packetSz:%s %s\n", packetSz, buf);
+		//System.out.printf("ACommand.encode packetSz:%s %s\n", packetSz, buf);
 		buf.putInt( pos, packetSz ); // now make the length valid
 	}
 	
 	public static ACommand decodeCommand(ByteBuffer buf) {
-		System.out.printf("ACommand.decode %s\n", buf);
+		//System.out.printf("ACommand.decode %s\n", buf);
 		if( buf.remaining() < 4 ) return null;
 		
 		int pos = buf.position();
 		int packetSz = buf.getInt();
 		
-		System.out.printf("ACommand.decode pos:%s sz:%s\n", pos, packetSz);
+		//System.out.printf("ACommand.decode pos:%s sz:%s\n", pos, packetSz);
 		if( buf.remaining() < packetSz ){
 			buf.position(pos);
 			return null;

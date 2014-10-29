@@ -7,14 +7,16 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
+import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Set;
 
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
+import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.ACommand;
-import chabu.tester.data.CmdDutApplicationClose;
+import chabu.tester.data.CmdTimeBroadcast;
 
 public class ChabuTestDutNw {
 
@@ -22,6 +24,11 @@ public class ChabuTestDutNw {
 	private boolean doShutDown;
 	private Selector selector;
 	private Thread thread;
+	
+	private ArrayDeque<ACmdScheduled> commands = new ArrayDeque<>(100);
+	
+	private long syncTimeRemote;
+	private long syncTimeLocal;
 	
 	private CtrlNetwork ctrlNw = new CtrlNetwork();
 	private TestNetwork testNw = new TestNetwork();
@@ -109,7 +116,24 @@ public class ChabuTestDutNw {
 
 			while (!doShutDown) {
 
-				selector.select(0);
+				while( !commands.isEmpty() ){
+					
+					ACmdScheduled cmd = commands.element();
+					
+					long timeLocal = System.nanoTime() - syncTimeLocal;
+					long timeCmd   = cmd.schedTime - syncTimeRemote;
+					
+					if( timeCmd >= timeLocal ){
+						executeSchedCommand( commands.remove() );
+						continue;
+					}
+
+					long diff = timeLocal - timeCmd;
+					long diffMillis = diff / 1_000_000;
+
+					selector.select(diffMillis);
+					break;
+				}
 
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
 
@@ -195,13 +219,58 @@ public class ChabuTestDutNw {
 		}
 	}
 
-	private void consumeCmd(ACommand cmd) throws IOException {
-		System.out.printf("DUT %s: -- %s --\n", name, cmd.getClass().getSimpleName());
-		if( cmd instanceof CmdDutApplicationClose ){
+	private void executeSchedCommand( ACmdScheduled cmd ) throws IOException {
+		
+		System.out.printf("DUT %s:", name, cmd.commandId.name() );
+
+		switch( cmd.commandId ){
+		
+		case TIME_BROADCAST  :  // handled directly in receive part
+		case DUT_CONNECT     :  // used internally in Tester
+		case DUT_DISCONNECT  :  // used internally in Tester
+			Utils.ensure(false);
+			break;
+			
+		case DUT_APPLICATION_CLOSE:
 			ctrlNw.socketChannel.close();
 			shutDown();
+			return;
+		
+		case CONNECTION_AWAIT:
+			break;
+		case CONNECTION_CONNECT:
+			break;
+		case CONNECTION_CLOSE:
+			break;
+		case CHANNEL_ADD:
+			break;
+		case CHANNEL_ACTION:
+			break;
+		case CHANNEL_CREATE_STAT:
+			break;
+		}
+
+		
+	}
+	private void consumeCmd(ACommand cmd) throws IOException {
+
+		System.out.printf("DUT %s: -- %s --\n", name, cmd.getClass().getSimpleName());
+
+		if( cmd instanceof CmdTimeBroadcast ){
+			CmdTimeBroadcast c = (CmdTimeBroadcast)cmd;
+			syncTimeLocal = System.nanoTime();
+			syncTimeRemote = c.time;
+		}
+		else if( cmd instanceof ACmdScheduled ){
+			commands.add( (ACmdScheduled)cmd );
+		}
+		else {
+			Utils.fail("unexpected type %s", cmd );
 		}
 	}
+	
+	
+	
 	public void start() {
 		Utils.ensure( thread == null );
 		thread = new Thread(this::run, name );

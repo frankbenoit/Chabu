@@ -116,25 +116,26 @@ public class ChabuTestDutNw {
 
 			while (!doShutDown) {
 
+				long waitTime = 0;
 				while( !commands.isEmpty() ){
 					
 					ACmdScheduled cmd = commands.element();
 					
-					long timeLocal = System.nanoTime() - syncTimeLocal;
-					long timeCmd   = cmd.schedTime - syncTimeRemote;
+					long timeLocalMs = ( System.nanoTime() - syncTimeLocal  ) / 1000_000;
+					long timeCmdMs   = ( cmd.schedTime     - syncTimeRemote ) / 1000_000;
 					
-					if( timeCmd >= timeLocal ){
-						executeSchedCommand( commands.remove() );
+					long diffMillis = timeLocalMs - timeCmdMs;
+
+					if( diffMillis >= 0 ){
+						executeSchedCommand( diffMillis, commands.remove() );
 						continue;
 					}
 
-					long diff = timeLocal - timeCmd;
-					long diffMillis = diff / 1_000_000;
-
-					selector.select(diffMillis);
+					waitTime = -diffMillis;
 					break;
 				}
 
+				selector.select(waitTime);
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
 
 				ctrlNw.handleRequests();
@@ -219,9 +220,9 @@ public class ChabuTestDutNw {
 		}
 	}
 
-	private void executeSchedCommand( ACmdScheduled cmd ) throws IOException {
+	private void executeSchedCommand( long delay, ACmdScheduled cmd ) throws IOException {
 		
-		System.out.printf("DUT %s:", name, cmd.commandId.name() );
+		System.out.printf("DUT %s: %sms %s\n", name, delay, cmd.commandId.name() );
 
 		switch( cmd.commandId ){
 		

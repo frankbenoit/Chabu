@@ -229,7 +229,7 @@ public class ChabuTestDutNw {
 		case TIME_BROADCAST  :  // handled directly in receive part
 		case DUT_CONNECT     :  // used internally in Tester
 		case DUT_DISCONNECT  :  // used internally in Tester
-			Utils.ensure(false);
+			Utils.fail("Unexpected command at this stage");
 			break;
 			
 		case DUT_APPLICATION_CLOSE:

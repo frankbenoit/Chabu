@@ -8,7 +8,7 @@ public class ChabuTestOneJre {
 	public static void main(String[] args) throws InterruptedException, IOException {
 		
 		final int PORT_DUT0 = 2300;
-		final int PORT_DUT1 = 2310;
+//		final int PORT_DUT1 = 2310;
 		
 		Thread chabuTester             = ChabuTesterAppWnd.mainInternalCreateThread( "Tester" );
 		ChabuTestDutNw chabuTesterDut1 = ChabuTestDutNw.mainInternalCreateThread("Dut[0]", PORT_DUT0 );

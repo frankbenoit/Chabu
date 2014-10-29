@@ -23,5 +23,14 @@ public class CmdChannelAction extends ACmdScheduled {
 		buf.putShort( (short)this.txCount );
 		buf.putShort( (short)this.rxCount );
 	}
-	
+
+	static CmdChannelAction createChannelAction(ByteBuffer buf) {
+		long time     = buf.getLong();
+		int channelId = buf.get() & 0xFFFF;
+		int txCount   = buf.getInt();
+		int rxCount   = buf.getInt();
+		return new CmdChannelAction(time, channelId, txCount, rxCount );
+	}
+
+
 }

@@ -16,4 +16,11 @@ public class CmdConnectionAwait extends ACmdScheduled {
 		super.encode(buf);
 		buf.putShort((short)port);
 	}
+
+	static CmdConnectionAwait createConnectionAwait(ByteBuffer buf) {
+		long time = buf.getLong();
+		int  port = buf.getShort();
+		return new CmdConnectionAwait( time, port );
+	}
+
 }

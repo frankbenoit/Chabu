@@ -16,4 +16,12 @@ public class CmdChannelCreateStat extends ACmdScheduled {
 		super.encode(buf);
 		buf.put( (byte) channelId );
 	}
+	
+	static ACommand createChannelCreateStat(ByteBuffer buf) {
+		long time      = buf.getLong();
+		int  channelId = buf.get() & 0xFF;
+		return new CmdChannelCreateStat(time, channelId );
+	}
+
+
 }

@@ -1,5 +1,7 @@
 package chabu.tester.data;
 
+import java.nio.ByteBuffer;
+
 
 public class CmdDutApplicationClose extends ACmdScheduled {
 
@@ -7,4 +9,9 @@ public class CmdDutApplicationClose extends ACmdScheduled {
 		super( CommandId.DUT_APPLICATION_CLOSE, schedTime );
 	}
 	
+	static CmdDutApplicationClose createDutApplicationClose(ByteBuffer buf) {
+		long time = buf.getLong();
+		return new CmdDutApplicationClose( time );
+	}
+
 }

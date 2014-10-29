@@ -19,4 +19,13 @@ public class CmdConnectionConnect extends ACmdScheduled {
 		ACommand.encodeString( buf, address );
 		buf.putShort( (short)this.port );
 	}
+	
+	static CmdConnectionConnect createConnectionStart(ByteBuffer buf) {
+		long   time    = buf.getLong();
+		String address = ACommand.decodeString( buf );
+		int    port    = buf.getShort();
+		return new CmdConnectionConnect(time, address, port );
+	}
+
+
 }

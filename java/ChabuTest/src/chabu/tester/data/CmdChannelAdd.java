@@ -18,4 +18,13 @@ public class CmdChannelAdd extends ACmdScheduled {
 		buf.put( (byte)channelId );
 		buf.putShort( (short)rxCount );
 	}
+	
+	static CmdChannelAdd createChannelAdd(ByteBuffer buf) {
+		long time      = buf.getLong();
+		int  channelId = buf.get() & 0xFF;
+		int  rxCount   = buf.getInt();
+		return new CmdChannelAdd(time, channelId, rxCount );
+	}
+
+
 }

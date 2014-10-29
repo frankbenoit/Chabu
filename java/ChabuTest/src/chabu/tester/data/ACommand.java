@@ -42,28 +42,28 @@ public abstract class ACommand {
 		try{
 			int cmd = buf.get();
 			if( cmd == CommandId.TIME_BROADCAST.getId() ){
-				res = cmdTimeBroadcast   ( buf );
+				res = CmdTimeBroadcast.createTimeBroadcast(buf);
 			}
 			else if( cmd == CommandId.DUT_APPLICATION_CLOSE.getId() ){
-				res = cmdCloseApplication( buf );
+				res = CmdDutApplicationClose.createDutApplicationClose(buf);
 			}
 			else if( cmd == CommandId.CONNECTION_CLOSE.getId() ){
-				res = cmdCloseConnection ( buf );
+				res = CmdDutApplicationClose.createDutApplicationClose(buf);
 			}
 			else if( cmd == CommandId.CONNECTION_CONNECT.getId() ){
-				res = cmdStartConnection ( buf );
+				res = CmdConnectionConnect.createConnectionStart(buf);
 			}
 			else if( cmd == CommandId.CONNECTION_AWAIT.getId() ){
-				res = cmdAwaitConnection ( buf );
+				res = CmdConnectionAwait.createConnectionAwait(buf);
 			}
 			else if( cmd == CommandId.CHANNEL_ADD.getId() ){
-				res = cmAddChannel   ( buf );
+				res = CmdChannelAdd.createChannelAdd(buf);
 			}
 			else if( cmd == CommandId.CHANNEL_ACTION.getId() ){
-				res = cmdActionChannel   ( buf );
+				res = CmdChannelAction.createChannelAction(buf);
 			}
 			else if( cmd == CommandId.CHANNEL_CREATE_STAT.getId() ){
-				res = cmdCreateChannelStat   ( buf );
+				res = CmdChannelCreateStat.createChannelCreateStat(buf);
 			}
 			else {
 				throw Utils.fail( "unknown command id %d", cmd );
@@ -80,64 +80,33 @@ public abstract class ACommand {
 		return res;
 	}
 
-	private static ACommand cmdCreateChannelStat(ByteBuffer buf) {
-		long time      = buf.getLong();
-		int  channelId = buf.get() & 0xFF;
-		return new CmdChannelCreateStat(time, channelId );
-	}
-
-	private static ACommand cmAddChannel(ByteBuffer buf) {
-		long time      = buf.getLong();
-		int  channelId = buf.get() & 0xFF;
-		int  rxCount   = buf.getInt();
-		return new CmdChannelAdd(time, channelId, rxCount );
-	}
-
-	private static ACommand cmdActionChannel(ByteBuffer buf) {
-		long time     = buf.getLong();
-		int channelId = buf.get() & 0xFFFF;
-		int txCount   = buf.getInt();
-		int rxCount   = buf.getInt();
-		return new CmdChannelAction(time, channelId, txCount, rxCount );
-	}
-
-	private static ACommand cmdCloseConnection(ByteBuffer buf) {
-		long time = buf.getLong();
-		return new CmdConnectionClose(time);
-	}
-
-	private static ACommand cmdStartConnection(ByteBuffer buf) {
-		long   time    = buf.getLong();
-		String address = decodeString( buf );
-		int    port    = buf.getShort();
-		return new CmdConnectionConnect(time, address, port );
-	}
-
-	private static ACommand cmdAwaitConnection(ByteBuffer buf) {
-		long time = buf.getLong();
-		int  port = buf.getShort();
-		return new CmdConnectionAwait( time, port );
-	}
-
-	private static ACommand cmdCloseApplication(ByteBuffer buf) {
-		long time = buf.getLong();
-		return new CmdDutApplicationClose( time );
-	}
-
-	private static ACommand cmdTimeBroadcast(ByteBuffer buf) {
-		long time = buf.getLong();
-		return new CmdTimeBroadcast( time );
-	}
-
-	private static String decodeString( ByteBuffer bb ){
+	/**
+	 * Decode String from a leading length field as short and then the string as UTF-8 coded bytes.
+	 * 
+	 * @param bb
+	 * @return
+	 */
+	protected static String decodeString( ByteBuffer bb ){
 		int len = bb.getShort();
 		byte[] data = new byte[len];
 		bb.get( data );
 		return new String( data, StandardCharsets.UTF_8 );
 	}
 
+	private static final byte[] nullBytes = new byte[0]; 
+	
+	/**
+	 * Encode String to a leading length field as short and then the string as UTF-8 coded bytes.
+	 * @param buf
+	 * @param string
+	 */
 	protected static void encodeString(ByteBuffer buf, String string) {
-		byte[] bytes = string.getBytes(StandardCharsets.UTF_8);
+		
+		byte[] bytes = nullBytes;
+		if( string != null ) {
+			bytes = string.getBytes(StandardCharsets.UTF_8);
+		}
+				
 		buf.putShort((short) bytes.length );
 		buf.put( bytes );
 	}

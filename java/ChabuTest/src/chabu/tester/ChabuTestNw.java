@@ -3,11 +3,10 @@ package chabu.tester;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
-import java.nio.channels.WritableByteChannel;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Set;
@@ -18,6 +17,7 @@ import chabu.INetworkUser;
 import chabu.Utils;
 import chabu.tester.data.ACommand;
 import chabu.tester.data.CmdDutConnect;
+import chabu.tester.data.CmdDutDisconnect;
 
 public class ChabuTestNw {
 	private String name;
@@ -31,8 +31,26 @@ public class ChabuTestNw {
 	private TreeMap<DutId, DutState> dutStates = new TreeMap<>();
 	
 	class DutState {
-		ArrayDeque<ACommand> commands = new ArrayDeque<>(100);
+		
+		final ByteBuffer txBuffer;
+		final ArrayDeque<ACommand> commands;
 		public SocketChannel socketChannel;
+		int registeredInterrestOps = 0;
+		
+		DutState(){
+			commands = new ArrayDeque<>(100);
+			txBuffer = ByteBuffer.allocate(2000);
+			txBuffer.clear();
+		}
+		
+		public void addCommand(ACommand cmd) throws ClosedChannelException {
+			commands.add(cmd);
+			if( (registeredInterrestOps & SelectionKey.OP_WRITE) == 0 ){
+				registeredInterrestOps |= SelectionKey.OP_WRITE;
+				socketChannel.register( selector, registeredInterrestOps, this );
+			}
+		}
+		
 	}
 	
 	class CtrlNetwork extends Network {
@@ -130,10 +148,13 @@ public class ChabuTestNw {
 					iterator.remove();
 					if( key.isValid() ){
 						if (key.isConnectable()) {
-							SocketChannel channel = (SocketChannel)key.channel();
-							if (channel.isConnectionPending()){
-								if( channel.finishConnect() ){
-									channel.register( selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE, key.attachment() );
+							synchronized( this ){
+								DutState ds = (DutState)key.attachment();
+								if (ds.socketChannel.isConnectionPending()){
+									if( ds.socketChannel.finishConnect() ){
+										ds.registeredInterrestOps = SelectionKey.OP_READ;
+										ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
+									}
 								}
 							}
 						}
@@ -153,45 +174,65 @@ public class ChabuTestNw {
 //							}
 //
 //						} 
-						if (key.isWritable() || key.isReadable() ) {
-							System.out.printf("Server selector %s %s %s\n", name, key.isReadable(), key.isWritable());
-							Network nw = (Network)key.attachment();
-							nw.netwRequestRecv = true;
-							if( key.isReadable() ){								
-								nw.rxBuffer.compact();
-								int readSz = ((ReadableByteChannel)key.channel()).read(nw.rxBuffer);
-								if( readSz < 0 ){
-									key.cancel();
-//									nw.connectionClose();
+						if (key.isWritable() ) {
+							synchronized( this ){
+								DutState ds = (DutState)key.attachment();
+								System.out.printf("Tester %s: write p1\n", name );
+								while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
+									System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
+									ACommand cmd = ds.commands.remove();
+									ACommand.encodeCommand(ds.txBuffer, cmd);
 								}
-								nw.rxBuffer.flip();
-								nw.user.evRecv(nw.rxBuffer);
-							}
-							
-							if( key.isValid() && key.isWritable() ) {
-								nw.netwRequestXmit = false;
-								nw.user.evXmit(nw.txBuffer);
-								nw.txBuffer.flip();
-								System.out.printf("%s Xmit %d\n", name, nw.txBuffer.remaining() );
-								((WritableByteChannel)key.channel()).write(nw.txBuffer);
-								if( nw.txBuffer.hasRemaining() ){
-									nw.netwRequestXmit = true;
+								System.out.printf("Tester %s: buf %s\n", name, ds.txBuffer );
+								ds.txBuffer.flip();
+								System.out.printf("Tester %s: write %s bytes\n", name, ds.txBuffer.remaining() );
+								ds.socketChannel.write(ds.txBuffer);
+								if( !ds.txBuffer.hasRemaining() ){
+									ds.registeredInterrestOps &= ~SelectionKey.OP_WRITE;
+									ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
 								}
-								nw.txBuffer.compact();
-							}
-							
-							if( key.isValid()){
-								int interestOps = 0;
-								if( nw.netwRequestRecv ){
-									interestOps |= SelectionKey.OP_READ;
-								}
-								if( nw.netwRequestXmit ){
-									interestOps |= SelectionKey.OP_WRITE;
-								}
-								System.out.printf("%s %x\n", name, interestOps );
-								key.channel().register( selector, interestOps, nw );
+								ds.txBuffer.compact();
 							}
 						}
+//						if (key.isWritable() || key.isReadable() ) {
+//							System.out.printf("Server selector %s %s %s\n", name, key.isReadable(), key.isWritable());
+//							Network nw = (Network)key.attachment();
+//							nw.netwRequestRecv = true;
+//							if( key.isReadable() ){								
+//								nw.rxBuffer.compact();
+//								int readSz = ((ReadableByteChannel)key.channel()).read(nw.rxBuffer);
+//								if( readSz < 0 ){
+//									key.cancel();
+////									nw.connectionClose();
+//								}
+//								nw.rxBuffer.flip();
+//								nw.user.evRecv(nw.rxBuffer);
+//							}
+//							
+//							if( key.isValid() && key.isWritable() ) {
+//								nw.netwRequestXmit = false;
+//								nw.user.evXmit(nw.txBuffer);
+//								nw.txBuffer.flip();
+//								System.out.printf("%s Xmit %d\n", name, nw.txBuffer.remaining() );
+//								((WritableByteChannel)key.channel()).write(nw.txBuffer);
+//								if( nw.txBuffer.hasRemaining() ){
+//									nw.netwRequestXmit = true;
+//								}
+//								nw.txBuffer.compact();
+//							}
+//							
+//							if( key.isValid()){
+//								int interestOps = 0;
+//								if( nw.netwRequestRecv ){
+//									interestOps |= SelectionKey.OP_READ;
+//								}
+//								if( nw.netwRequestXmit ){
+//									interestOps |= SelectionKey.OP_WRITE;
+//								}
+//								System.out.printf("%s %x\n", name, interestOps );
+//								key.channel().register( selector, interestOps, nw );
+//							}
+//						}
 					}
 				}
 			}
@@ -200,13 +241,15 @@ public class ChabuTestNw {
 		} finally {
 
 			try {
-//				if( ctrlNw.socketChannel != null ){
-//					ctrlNw.socketChannel.socket().close();
-//					ctrlNw.socketChannel.close();
-//				}
-//				if( ctrlNw.serverSocket != null ){
-//					ctrlNw.serverSocket.close();
-//				}
+				synchronized(this){
+					for( DutState ds : dutStates.values() ){
+						if( ds.socketChannel != null ){
+							ds.socketChannel.close();
+							ds.socketChannel = null;
+						}
+					}
+					dutStates.clear();
+				}
 				if( selector != null ) {
 					selector.close();
 				}
@@ -214,7 +257,6 @@ public class ChabuTestNw {
 					notifyAll();
 				}
 			} catch (Exception e) {
-				//					startupException = e;
 				e.printStackTrace();
 			}
 		}
@@ -242,8 +284,9 @@ public class ChabuTestNw {
 	public synchronized void addCommand(DutId dut, ACommand cmd) throws IOException {
 		if( dut == DutId.ALL ){
 			Utils.ensure( !(cmd instanceof CmdDutConnect) );
+			Utils.ensure( !(cmd instanceof CmdDutDisconnect) );
 			for( DutState ds : dutStates.values() ){
-				ds.commands.add( cmd );
+				ds.addCommand( cmd );
 			}
 		}
 		else {
@@ -261,8 +304,13 @@ public class ChabuTestNw {
 				ds.socketChannel = socketChannel;
 				socketChannel.register( selector, SelectionKey.OP_CONNECT, ds );
 			}
+			else if( cmd instanceof CmdDutDisconnect ){
+				if( ds.socketChannel != null ) {
+					ds.socketChannel.close();				
+				}
+			}
 			else {
-				ds.commands.add(cmd);
+				ds.addCommand( cmd );
 			}
 		}
 		notifyAll();

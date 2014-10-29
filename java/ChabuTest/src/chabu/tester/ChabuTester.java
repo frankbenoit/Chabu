@@ -24,6 +24,7 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
 
 import chabu.tester.data.CmdChannelCreateStat;
+import chabu.tester.data.CmdDutApplicationClose;
 import chabu.tester.data.CmdDutConnect;
 import chabu.tester.data.CmdDutDisconnect;
 import chabu.tester.data.CmdTimeBroadcast;
@@ -129,15 +130,19 @@ public class ChabuTester extends ApplicationWindow {
 							System.out.println("A connected");
 							//						nw.connect( Dut.B, 2310 );
 							//						System.out.println("B connected");
-							for( int i = 0; i < 10; i++ ){
-								synchronized(this){
+							synchronized(this){
+								for( int i = 0; i < 3; i++ ){
 									nw.addCommand( DutId.A, new CmdTimeBroadcast( System.nanoTime() ));
 									nw.addCommand( DutId.A, new CmdChannelCreateStat( System.nanoTime(), 1 ));
+									System.out.println("loop");
 									wait(400);
 								}
+								wait(4000);
 							}
-							nw.addCommand( DutId.A, new CmdDutDisconnect( System.nanoTime() ) );
+							nw.addCommand( DutId.A, new CmdDutApplicationClose( System.nanoTime() ) );
 							nw.flush(DutId.ALL);
+							System.out.println("disconnecting");
+							nw.addCommand( DutId.A, new CmdDutDisconnect( System.nanoTime() ) );
 							System.out.println("--- Actions finished ---");
 						} catch (Exception e) {
 							// TODO Auto-generated catch block

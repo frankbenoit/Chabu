@@ -8,7 +8,7 @@ public class CmdChannelAdd extends ACmdScheduled {
 	public final int rxCount;
 
 	public CmdChannelAdd(long schedTime, int channelId, int rxCount) {
-		super( CommandId.CHANNEL_ACTION, schedTime );
+		super( CommandId.CHANNEL_ADD, schedTime );
 		this.channelId = channelId;
 		this.rxCount = rxCount;
 	}

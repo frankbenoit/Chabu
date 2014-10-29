@@ -7,7 +7,7 @@ public class CmdChannelCreateStat extends ACmdScheduled {
 	public final int channelId;
 
 	public CmdChannelCreateStat(long schedTime, int channelId) {
-		super( CommandId.CHANNEL_ACTION, schedTime );
+		super( CommandId.CHANNEL_CREATE_STAT, schedTime );
 		this.channelId = channelId;
 	}
 	

@@ -10,10 +10,13 @@ import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 
 import chabu.Chabu;
+import chabu.Channel;
+import chabu.IChannelUser;
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
@@ -23,6 +26,8 @@ import chabu.tester.data.AResult;
 import chabu.tester.data.CmdChannelCreateStat;
 import chabu.tester.data.CmdConnectionAwait;
 import chabu.tester.data.CmdConnectionConnect;
+import chabu.tester.data.CmdSetupActivate;
+import chabu.tester.data.CmdSetupChannelAdd;
 import chabu.tester.data.CmdTimeBroadcast;
 import chabu.tester.data.ResultChannelStat;
 import chabu.tester.data.ResultVersion;
@@ -51,6 +56,22 @@ public class ChabuTestDutNw {
 		ByteBuffer txBuffer = ByteBuffer.allocate(0x10000);
 	}
 
+	
+	class TestChannelUser implements IChannelUser {
+
+		Channel channel;
+		
+		@Override
+		public void evRecv(ByteBuffer buffer, Object attachment) {
+			
+		}
+
+		@Override
+		public boolean evXmit(ByteBuffer buffer, Object attachment) {
+			return false;
+		}
+		
+	}
 	class TestNetwork implements INetwork {
 		
 		ServerSocketChannel serverSocket;
@@ -59,10 +80,12 @@ public class ChabuTestDutNw {
 		ByteBuffer txBuffer = ByteBuffer.allocate(0x10000);
 		
 		Chabu user = new Chabu( ByteOrder.BIG_ENDIAN, 1000 );
+		ArrayList<TestChannelUser> channelUsers = new ArrayList<>(256);
 		boolean userRequestRecv = false;
 		boolean userRequestXmit = false;
 		boolean netwRequestRecv = true;
 		boolean netwRequestXmit = true;
+		public boolean activated = false;
 
 		TestNetwork(){
 //			rxBuffer.clear();
@@ -244,22 +267,22 @@ public class ChabuTestDutNw {
 		System.out.printf("DUT %s: %sms %s\n", name, delay, cmd.commandId.name() );
 
 		switch( cmd.commandId ){
-		
+
 		case TIME_BROADCAST  :  // handled directly in receive part
 		case DUT_CONNECT     :  // used internally in Tester
 		case DUT_DISCONNECT  :  // used internally in Tester
 		{
 			Utils.fail("Unexpected command at this stage");
 		}
-			break;
-			
+		break;
+
 		case DUT_APPLICATION_CLOSE:
 		{
 			ctrlNw.socketChannel.close();
 			shutDown();
 		}
-			return;
-		
+		return;
+
 		case CONNECTION_AWAIT:
 		{
 			CmdConnectionAwait c = (CmdConnectionAwait)cmd;
@@ -270,7 +293,7 @@ public class ChabuTestDutNw {
 			testNw.serverSocket.bind(new InetSocketAddress(c.port));
 			testNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT, testNw );
 		}
-			break;
+		break;
 		case CONNECTION_CONNECT:
 		{
 			CmdConnectionConnect c = (CmdConnectionConnect)cmd;
@@ -281,7 +304,7 @@ public class ChabuTestDutNw {
 			testNw.socketChannel.connect(new InetSocketAddress( c.address, c.port));
 			testNw.socketChannel.register( selector, SelectionKey.OP_CONNECT|SelectionKey.OP_READ|SelectionKey.OP_WRITE, testNw );
 		}
-			break;
+		break;
 		case CONNECTION_CLOSE:
 		{
 			if( testNw.socketChannel != null ){
@@ -290,24 +313,40 @@ public class ChabuTestDutNw {
 				testNw.socketChannel  = null;
 			}
 		}
-			break;
+		break;
 		case SETUP_CHANNEL_ADD:
 		{
-			
+			Utils.ensure( !testNw.activated );
+			CmdSetupChannelAdd c = (CmdSetupChannelAdd)cmd;
+			Utils.ensure( testNw.channelUsers.size() == c.channelId, "Channel ID sequence is not correct, exp %d, but is %d", testNw.channelUsers.size(), c.channelId );
+			TestChannelUser tcu = new TestChannelUser();
+			tcu.channel = new Channel( c.rxCount, tcu );
+			testNw.channelUsers.add( tcu );
 		}
-			break;
+		break;
+		case SETUP_ACTIVATE:
+		{
+			Utils.ensure( !testNw.activated );
+			CmdSetupActivate c = (CmdSetupActivate)cmd;
+			testNw.user = new Chabu( c.byteOrderBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN, c.maxPayloadSize );
+			for( TestChannelUser cu : testNw.channelUsers ){
+				testNw.user.addChannel(cu.channel);
+			}
+			testNw.activated  = true;
+		}
+		break;
 		case CHANNEL_ACTION:
 		{
-			
+
 		}
-			break;
+		break;
 		case CHANNEL_CREATE_STAT:
 		{
 			CmdChannelCreateStat c = (CmdChannelCreateStat)cmd;
 			ResultChannelStat res = new ResultChannelStat( createResultTimeStamp(), c.channelId, 1234, 5678 );
 			enqueueResult( res );
 		}
-			break;
+		break;
 		}
 
 		

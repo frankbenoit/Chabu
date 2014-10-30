@@ -27,6 +27,8 @@ import chabu.tester.data.CmdChannelCreateStat;
 import chabu.tester.data.CmdDutApplicationClose;
 import chabu.tester.data.CmdDutConnect;
 import chabu.tester.data.CmdDutDisconnect;
+import chabu.tester.data.CmdSetupActivate;
+import chabu.tester.data.CmdSetupChannelAdd;
 import chabu.tester.dlg.ConfigureTest;
 import chabu.tester.dlg.ConfigureTestData;
 
@@ -127,6 +129,8 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 					Thread actions = new Thread( ()->{
 						try {
 							long st = System.nanoTime();
+							nw.addCommand( DutId.A, new CmdSetupChannelAdd( st, 0, 10 ));
+							nw.addCommand( DutId.A, new CmdSetupActivate( st, true, 1000 ));
 							nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
 							nw.flush(DutId.ALL);
 							System.out.println("A connected");

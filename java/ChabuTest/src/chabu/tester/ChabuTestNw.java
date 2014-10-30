@@ -174,7 +174,7 @@ public class ChabuTestNw {
 								DutState ds = (DutState)key.attachment();
 //								System.out.printf("Tester %s: write p1\n", name );
 								while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
-									System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
+									//System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
 									ACommand cmd = ds.commands.remove();
 									AXferItem.encodeItem(ds.txBuffer, cmd);
 								}
@@ -182,11 +182,15 @@ public class ChabuTestNw {
 								ds.txBuffer.flip();
 //								System.out.printf("Tester %s: write %s bytes\n", name, ds.txBuffer.remaining() );
 								ds.socketChannel.write(ds.txBuffer);
+								if( ds.commands.isEmpty() && !ds.txBuffer.hasRemaining() ){
+									this.notifyAll();
+								}
 								if( !ds.txBuffer.hasRemaining() ){
 									ds.registeredInterrestOps &= ~SelectionKey.OP_WRITE;
 									ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
 								}
 								ds.txBuffer.compact();
+								this.notifyAll();
 							}
 						}
 						if( key.isReadable() ){

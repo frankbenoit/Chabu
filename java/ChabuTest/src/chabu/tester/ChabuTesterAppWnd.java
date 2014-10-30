@@ -129,9 +129,10 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 					Thread actions = new Thread( ()->{
 						try {
 							long st = System.nanoTime();
+							nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
+							nw.flush(DutId.ALL);
 							nw.addCommand( DutId.A, new CmdSetupChannelAdd( st, 0, 10 ));
 							nw.addCommand( DutId.A, new CmdSetupActivate( st, true, 1000 ));
-							nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
 							nw.flush(DutId.ALL);
 							System.out.println("A connected");
 							//						nw.connect( Dut.B, 2310 );

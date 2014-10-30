@@ -3,6 +3,7 @@ package chabu.tester.dut;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -12,6 +13,7 @@ import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Set;
 
+import chabu.Chabu;
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
@@ -19,6 +21,8 @@ import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.ACommand;
 import chabu.tester.data.AResult;
 import chabu.tester.data.CmdChannelCreateStat;
+import chabu.tester.data.CmdConnectionAwait;
+import chabu.tester.data.CmdConnectionConnect;
 import chabu.tester.data.CmdTimeBroadcast;
 import chabu.tester.data.ResultChannelStat;
 import chabu.tester.data.ResultVersion;
@@ -40,31 +44,31 @@ public class ChabuTestDutNw {
 	private CtrlNetwork ctrlNw = new CtrlNetwork();
 	private TestNetwork testNw = new TestNetwork();
 
-	class CtrlNetwork extends Network {
-	
+	class CtrlNetwork {
+		SocketChannel socketChannel;
+		ServerSocketChannel serverSocket;
+		ByteBuffer rxBuffer = ByteBuffer.allocate(0x10000);
+		ByteBuffer txBuffer = ByteBuffer.allocate(0x10000);
 	}
 
-	class TestNetwork extends Network {
-		
-	}
-	class Network implements INetwork {
+	class TestNetwork implements INetwork {
 		
 		ServerSocketChannel serverSocket;
 		SocketChannel socketChannel;
 		ByteBuffer rxBuffer = ByteBuffer.allocate(0x10000);
 		ByteBuffer txBuffer = ByteBuffer.allocate(0x10000);
 		
-		INetworkUser user;
+		Chabu user = new Chabu( ByteOrder.BIG_ENDIAN, 1000 );
 		boolean userRequestRecv = false;
 		boolean userRequestXmit = false;
 		boolean netwRequestRecv = true;
 		boolean netwRequestXmit = true;
 
-		Network(){
-			rxBuffer.clear();
+		TestNetwork(){
+//			rxBuffer.clear();
 		}
 		public void setNetworkUser(INetworkUser user) {
-			this.user = user;
+			Utils.fail("user internally set");
 		}
 		public void evUserXmitRequest() {
 			userRequestXmit = true;
@@ -90,13 +94,6 @@ public class ChabuTestDutNw {
 			socketChannel.close();
 		}
 	};
-	
-	public void setCtrlNetworkUser(INetworkUser user) {
-		this.ctrlNw.user = user;
-	}
-	public void setTestNetworkUser(INetworkUser user) {
-		this.testNw.user = user;
-	}
 	
 	public ChabuTestDutNw(String name, int ctrlPort ) throws IOException {
 
@@ -145,7 +142,6 @@ public class ChabuTestDutNw {
 				selector.select(waitTime);
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
 
-				ctrlNw.handleRequests();
 				testNw.handleRequests();
 				Iterator<SelectionKey> iterator = readyKeys.iterator();
 				while (iterator.hasNext()) {
@@ -164,7 +160,7 @@ public class ChabuTestDutNw {
 							ctrlNw.socketChannel.configureBlocking(false);
 							ctrlNw.serverSocket.register(selector, SelectionKey.OP_ACCEPT, ctrlNw);
 							ctrlNw.socketChannel.register(selector, SelectionKey.OP_READ, ctrlNw);
-							System.out.printf("DUT %s: ctrl connected\n", name );
+//							System.out.printf("DUT %s: ctrl connected\n", name );
 
 							enqueueResult( new ResultVersion( DUT_VERSION ) );
 
@@ -174,9 +170,9 @@ public class ChabuTestDutNw {
 						}
 
 						if (key.isReadable() ) {
-							System.out.printf("DUT %s: read\n", name );
+//							System.out.printf("DUT %s: read\n", name );
 							int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
-							System.out.printf("DUT %s: %s\n", name, ctrlNw.rxBuffer );
+//							System.out.printf("DUT %s: %s\n", name, ctrlNw.rxBuffer );
 							ctrlNw.rxBuffer.flip();
 							while( true ){
 								ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
@@ -188,16 +184,16 @@ public class ChabuTestDutNw {
 							ctrlNw.rxBuffer.compact();
 
 							if( readSz < 0 ){
-								System.out.printf("DUT %s: closing\n", name );
+//								System.out.printf("DUT %s: closing\n", name );
 								ctrlNw.socketChannel.close();
 							}
-							System.out.printf("DUT %s: read complete\n", name );
+//							System.out.printf("DUT %s: read complete\n", name );
 						}
 						if (key.isWritable() ) {
-							System.out.printf("DUT %s: write\n", name );
-							System.out.printf("DUT %s: %s\n", name, ctrlNw.txBuffer );
+//							System.out.printf("DUT %s: write\n", name );
+//							System.out.printf("DUT %s: %s\n", name, ctrlNw.txBuffer );
 							while( ctrlNw.txBuffer.remaining() > 1000 && !results.isEmpty() ){
-								System.out.printf("Tester %s: loop buf %s\n", name, ctrlNw.txBuffer );
+//								System.out.printf("Tester %s: loop buf %s\n", name, ctrlNw.txBuffer );
 								AResult res = results.remove();
 								AResult.encodeItem(ctrlNw.txBuffer, res);
 							}
@@ -252,23 +248,58 @@ public class ChabuTestDutNw {
 		case TIME_BROADCAST  :  // handled directly in receive part
 		case DUT_CONNECT     :  // used internally in Tester
 		case DUT_DISCONNECT  :  // used internally in Tester
+		{
 			Utils.fail("Unexpected command at this stage");
+		}
 			break;
 			
 		case DUT_APPLICATION_CLOSE:
+		{
 			ctrlNw.socketChannel.close();
 			shutDown();
+		}
 			return;
 		
 		case CONNECTION_AWAIT:
+		{
+			CmdConnectionAwait c = (CmdConnectionAwait)cmd;
+			if( testNw.serverSocket == null ){
+				testNw.serverSocket = ServerSocketChannel.open();
+				testNw.serverSocket.configureBlocking(false);
+			}
+			testNw.serverSocket.bind(new InetSocketAddress(c.port));
+			testNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT, testNw );
+		}
 			break;
 		case CONNECTION_CONNECT:
+		{
+			CmdConnectionConnect c = (CmdConnectionConnect)cmd;
+			if( testNw.socketChannel == null ){
+				testNw.socketChannel = SocketChannel.open();
+				testNw.socketChannel.configureBlocking(false);
+			}
+			testNw.socketChannel.connect(new InetSocketAddress( c.address, c.port));
+			testNw.socketChannel.register( selector, SelectionKey.OP_CONNECT|SelectionKey.OP_READ|SelectionKey.OP_WRITE, testNw );
+		}
 			break;
 		case CONNECTION_CLOSE:
+		{
+			if( testNw.socketChannel != null ){
+				testNw.socketChannel.register( selector, 0 );
+				testNw.socketChannel.close();
+				testNw.socketChannel  = null;
+			}
+		}
 			break;
-		case CHANNEL_ADD:
+		case SETUP_CHANNEL_ADD:
+		{
+			
+		}
 			break;
 		case CHANNEL_ACTION:
+		{
+			
+		}
 			break;
 		case CHANNEL_CREATE_STAT:
 		{

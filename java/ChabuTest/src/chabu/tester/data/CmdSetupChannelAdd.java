@@ -2,13 +2,13 @@ package chabu.tester.data;
 
 import java.nio.ByteBuffer;
 
-public class CmdChannelAdd extends ACmdScheduled {
+public class CmdSetupChannelAdd extends ACmdScheduled {
 
 	public final int channelId;
 	public final int rxCount;
 
-	public CmdChannelAdd(long schedTime, int channelId, int rxCount) {
-		super( CommandId.CHANNEL_ADD, schedTime );
+	public CmdSetupChannelAdd(long schedTime, int channelId, int rxCount) {
+		super( CommandId.SETUP_CHANNEL_ADD, schedTime );
 		this.channelId = channelId;
 		this.rxCount = rxCount;
 	}
@@ -16,14 +16,14 @@ public class CmdChannelAdd extends ACmdScheduled {
 	public void encode(ByteBuffer buf) {
 		super.encode(buf);
 		buf.put( (byte)channelId );
-		buf.putShort( (short)rxCount );
+		buf.putInt( rxCount );
 	}
 	
-	static CmdChannelAdd createChannelAdd(ByteBuffer buf) {
+	static CmdSetupChannelAdd createSetupChannelAdd(ByteBuffer buf) {
 		long time      = buf.getLong();
 		int  channelId = buf.get() & 0xFF;
 		int  rxCount   = buf.getInt();
-		return new CmdChannelAdd(time, channelId, rxCount );
+		return new CmdSetupChannelAdd(time, channelId, rxCount );
 	}
 
 	@Override

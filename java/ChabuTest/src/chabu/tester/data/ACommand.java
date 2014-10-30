@@ -44,8 +44,11 @@ public abstract class ACommand extends AXferItem {
 			else if( cmd == CommandId.CONNECTION_AWAIT.getId() ){
 				res = CmdConnectionAwait.createConnectionAwait(buf);
 			}
-			else if( cmd == CommandId.CHANNEL_ADD.getId() ){
-				res = CmdChannelAdd.createChannelAdd(buf);
+			else if( cmd == CommandId.SETUP_CHANNEL_ADD.getId() ){
+				res = CmdSetupChannelAdd.createSetupChannelAdd(buf);
+			}
+			else if( cmd == CommandId.SETUP_ACTIVATE.getId() ){
+				res = CmdSetupActivate.createSetupActivate(buf);
 			}
 			else if( cmd == CommandId.CHANNEL_ACTION.getId() ){
 				res = CmdChannelAction.createChannelAction(buf);

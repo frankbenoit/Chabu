@@ -19,4 +19,10 @@ public class CmdDutConnect extends ACmdScheduled {
 	public void encode(ByteBuffer buf) {
 		Utils.fail("not implemented");
 	}
+
+	@Override
+	public String toString() {
+		return String.format("Cmd[%s %s]", commandId, schedTime );
+	}
+
 }

@@ -32,5 +32,10 @@ public class CmdChannelAction extends ACmdScheduled {
 		return new CmdChannelAction(time, channelId, txCount, rxCount );
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Cmd[%s %s %s %s %s]", commandId, schedTime, channelId, rxCount, txCount );
+	}
+
 
 }

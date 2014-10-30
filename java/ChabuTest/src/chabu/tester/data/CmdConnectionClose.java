@@ -18,4 +18,9 @@ public class CmdConnectionClose extends ACmdScheduled {
 		return new CmdConnectionClose(time);
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Cmd[%s %s]", commandId, schedTime );
+	}
+
 }

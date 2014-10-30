@@ -23,5 +23,10 @@ public class CmdChannelCreateStat extends ACmdScheduled {
 		return new CmdChannelCreateStat(time, channelId );
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Cmd[%s %s %s]", commandId, schedTime, channelId );
+	}
+
 
 }

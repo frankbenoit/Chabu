@@ -22,4 +22,9 @@ public class ResultVersion extends AResult {
 		return new ResultVersion(version );
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Result[%s %s]", resultId, version );
+	}
+
 }

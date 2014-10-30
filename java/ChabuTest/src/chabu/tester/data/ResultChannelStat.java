@@ -30,5 +30,9 @@ public class ResultChannelStat extends AResult {
 		int    txCount    = buf.getShort() & 0xFFFF;
 		return new ResultChannelStat(time, channelId, rxCount, txCount );
 	}
+	@Override
+	public String toString() {
+		return String.format("Result[%s %s %s %s %s]", resultId, time, channelId, rxCount, txCount );
+	}
 
 }

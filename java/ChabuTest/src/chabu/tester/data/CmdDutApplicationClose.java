@@ -14,4 +14,9 @@ public class CmdDutApplicationClose extends ACmdScheduled {
 		return new CmdDutApplicationClose( time );
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Cmd[%s %s]", commandId, schedTime );
+	}
+
 }

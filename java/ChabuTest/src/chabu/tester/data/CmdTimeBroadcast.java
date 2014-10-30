@@ -21,5 +21,10 @@ public class CmdTimeBroadcast extends ACommand {
 		long time = buf.getLong();
 		return new CmdTimeBroadcast( time );
 	}
+	
+	@Override
+	public String toString() {
+		return String.format("Cmd[%s %s]", commandId, time );
+	}
 
 }

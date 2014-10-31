@@ -155,7 +155,8 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 							nw.addCommand( DutId.ALL, new CmdDutApplicationClose( System.nanoTime() ) );
 							nw.flush(DutId.ALL);
 							System.out.println("disconnecting");
-							nw.addCommand( DutId.ALL, new CmdDutDisconnect( System.nanoTime() ) );
+							nw.addCommand( DutId.A, new CmdDutDisconnect( System.nanoTime() ) );
+							nw.addCommand( DutId.B, new CmdDutDisconnect( System.nanoTime() ) );
 							System.out.println("--- Actions finished ---");
 						} catch (Exception e) {
 							e.printStackTrace();

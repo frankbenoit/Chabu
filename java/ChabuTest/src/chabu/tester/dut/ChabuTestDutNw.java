@@ -20,6 +20,7 @@ import chabu.IChannelUser;
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
+import chabu.tester.SelectorRegisterEntry;
 import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.ACommand;
 import chabu.tester.data.AResult;
@@ -38,6 +39,7 @@ public class ChabuTestDutNw {
 	private String name;
 	private boolean doShutDown;
 	private Selector selector;
+	private final ArrayDeque<SelectorRegisterEntry> selectorRegisterEntries = new ArrayDeque<>(20);
 	private Thread thread;
 	
 	private ArrayDeque<ACmdScheduled> commands = new ArrayDeque<>(100);
@@ -163,6 +165,14 @@ public class ChabuTestDutNw {
 				}
 
 				selector.select(waitTime);
+
+				synchronized(selectorRegisterEntries){
+					while( !selectorRegisterEntries.isEmpty() ){
+						SelectorRegisterEntry entry = selectorRegisterEntries.remove();
+						entry.socketChannel.register( selector, entry.interestOps, entry.attachment );
+					}
+				}
+				
 				Set<SelectionKey> readyKeys = selector.selectedKeys();
 
 				testNw.handleRequests();

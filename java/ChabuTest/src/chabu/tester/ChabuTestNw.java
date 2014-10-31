@@ -25,10 +25,9 @@ public class ChabuTestNw {
 	private String name;
 	private boolean doShutDown;
 	private Selector selector;
-	
+	private final ArrayDeque<SelectorRegisterEntry> selectorRegisterEntries = new ArrayDeque<>(20);
 	private CtrlNetwork ctrlNw = new CtrlNetwork();
 	private Thread thread;
-	private boolean isStarted = false;
 
 	private TreeMap<DutId, DutState> dutStates = new TreeMap<>();
 	
@@ -51,9 +50,12 @@ public class ChabuTestNw {
 		public void addCommand(ACommand cmd) throws ClosedChannelException {
 			commands.add(cmd);
 			if( (registeredInterrestOps & SelectionKey.OP_WRITE) == 0 ){
-				selector.wakeup();
 				registeredInterrestOps |= SelectionKey.OP_WRITE;
-				socketChannel.register( selector, registeredInterrestOps, this );
+				synchronized(selectorRegisterEntries){
+					SelectorRegisterEntry entry = new SelectorRegisterEntry( socketChannel, registeredInterrestOps, this );
+					selectorRegisterEntries.add( entry );
+				}
+				selector.wakeup();
 			}
 		}
 		
@@ -123,121 +125,119 @@ public class ChabuTestNw {
 		
 		thread = new Thread( this::run, name );
 		thread.start();
-		synchronized(this){
-			while( !isStarted ){
-				this.wait();
-			}
-		}
 	}
 	
 	private void run() {
-		try {
-			@SuppressWarnings("unused")
-			int connectionOpenIndex = 0;
+		System.out.println("thread started");
+		synchronized(selector){
+			try {
 
-			synchronized(this){
-				isStarted = true;
-				notifyAll();
-			}
-			
-			while (!doShutDown) {
+				while (!doShutDown) {
 
-				
-//				System.out.printf("%s: selector sleep\n", name );
-				selector.select();
-//				System.out.printf("%s: selector wakeup\n", name );
-				Set<SelectionKey> readyKeys = selector.selectedKeys();
+					System.out.printf("%s: selector sleep\n", name );
+					selector.select();
+					System.out.printf("%s: selector wakeup\n", name );
+					
+					synchronized(selectorRegisterEntries){
+						while( !selectorRegisterEntries.isEmpty() ){
+							SelectorRegisterEntry entry = selectorRegisterEntries.remove();
+							entry.socketChannel.register( selector, entry.interestOps, entry.attachment );
+						}
+					}
+					
+					Set<SelectionKey> readyKeys = selector.selectedKeys();
 
-				ctrlNw.handleRequests();
-				Iterator<SelectionKey> iterator = readyKeys.iterator();
-				while (iterator.hasNext()) {
-					SelectionKey key = iterator.next();
-					iterator.remove();
-//					System.out.printf("%s selector key %s\n", name, key);
-					if( key.isValid() ){
-						if (key.isConnectable()) {
-//							System.out.printf("%s: connecting\n", name );
-							synchronized( this ){
-								DutState ds = (DutState)key.attachment();
-								if (ds.socketChannel.isConnectionPending()){
-									if( ds.socketChannel.finishConnect() ){
-										ds.registeredInterrestOps &= ~SelectionKey.OP_CONNECT;
-										ds.registeredInterrestOps |= SelectionKey.OP_READ;
-										ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
-										System.out.printf("%s: connecting ok\n", name );
+					ctrlNw.handleRequests();
+					Iterator<SelectionKey> iterator = readyKeys.iterator();
+					while (iterator.hasNext()) {
+						SelectionKey key = iterator.next();
+						iterator.remove();
+						//					System.out.printf("%s selector key %s\n", name, key);
+						if( key.isValid() ){
+							if (key.isConnectable()) {
+								//							System.out.printf("%s: connecting\n", name );
+								synchronized( this ){
+									DutState ds = (DutState)key.attachment();
+									if (ds.socketChannel.isConnectionPending()){
+										if( ds.socketChannel.finishConnect() ){
+											ds.registeredInterrestOps &= ~SelectionKey.OP_CONNECT;
+											ds.registeredInterrestOps |= SelectionKey.OP_READ;
+											ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
+											System.out.printf("%s: connecting ok\n", name );
+										}
 									}
 								}
 							}
-						}
-						if (key.isWritable() ) {
-							synchronized( this ){
-								DutState ds = (DutState)key.attachment();
-//								System.out.printf("Tester %s: write p1\n", name );
-								while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
-									//System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
-									ACommand cmd = ds.commands.remove();
-									AXferItem.encodeItem(ds.txBuffer, cmd);
-								}
-//								System.out.printf("Tester %s: buf %s\n", name, ds.txBuffer );
-								ds.txBuffer.flip();
-//								System.out.printf("Tester %s: write %s bytes\n", name, ds.txBuffer.remaining() );
-								ds.socketChannel.write(ds.txBuffer);
-								if( ds.commands.isEmpty() && !ds.txBuffer.hasRemaining() ){
+							if (key.isWritable() ) {
+								synchronized( this ){
+									DutState ds = (DutState)key.attachment();
+									//								System.out.printf("Tester %s: write p1\n", name );
+									while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
+										//System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
+										ACommand cmd = ds.commands.remove();
+										AXferItem.encodeItem(ds.txBuffer, cmd);
+									}
+									//								System.out.printf("Tester %s: buf %s\n", name, ds.txBuffer );
+									ds.txBuffer.flip();
+									//								System.out.printf("Tester %s: write %s bytes\n", name, ds.txBuffer.remaining() );
+									ds.socketChannel.write(ds.txBuffer);
+									if( ds.commands.isEmpty() && !ds.txBuffer.hasRemaining() ){
+										this.notifyAll();
+									}
+									if( !ds.txBuffer.hasRemaining() ){
+										ds.registeredInterrestOps &= ~SelectionKey.OP_WRITE;
+										ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
+									}
+									ds.txBuffer.compact();
 									this.notifyAll();
 								}
-								if( !ds.txBuffer.hasRemaining() ){
-									ds.registeredInterrestOps &= ~SelectionKey.OP_WRITE;
-									ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
-								}
-								ds.txBuffer.compact();
-								this.notifyAll();
 							}
-						}
-						if( key.isReadable() ){
-							synchronized( this ){
-								DutState ds = (DutState)key.attachment();
-								int readSz = ds.socketChannel.read( ds.rxBuffer );
-//								System.out.printf("%s read %d\n", name, readSz );
-								ds.rxBuffer.flip();
-								while( ds.rxBuffer.hasRemaining() ){
-									AResult res = AResult.decodeResult(ds.rxBuffer);
-									if( res == null ) {
-										break;
+							if( key.isReadable() ){
+								synchronized( this ){
+									DutState ds = (DutState)key.attachment();
+									int readSz = ds.socketChannel.read( ds.rxBuffer );
+									//								System.out.printf("%s read %d\n", name, readSz );
+									ds.rxBuffer.flip();
+									while( ds.rxBuffer.hasRemaining() ){
+										AResult res = AResult.decodeResult(ds.rxBuffer);
+										if( res == null ) {
+											break;
+										}
+										consumeResult( res );
 									}
-									consumeResult( res );
-								}
-								ds.rxBuffer.compact();
-								if( readSz < 0 ){
-									ds.socketChannel.close();
-									System.out.printf("%s closed\n", name );
+									ds.rxBuffer.compact();
+									if( readSz < 0 ){
+										ds.socketChannel.close();
+										System.out.printf("%s closed\n", name );
+									}
 								}
 							}
 						}
 					}
-				}
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-
-			try {
-				synchronized(this){
-					for( DutState ds : dutStates.values() ){
-						if( ds.socketChannel != null ){
-							ds.socketChannel.close();
-							ds.socketChannel = null;
-						}
-					}
-					dutStates.clear();
-				}
-				if( selector != null ) {
-					selector.close();
-				}
-				synchronized( this ){
-					notifyAll();
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
+			} finally {
+
+				try {
+					synchronized(this){
+						for( DutState ds : dutStates.values() ){
+							if( ds.socketChannel != null ){
+								ds.socketChannel.close();
+								ds.socketChannel = null;
+							}
+						}
+						dutStates.clear();
+					}
+					if( selector != null ) {
+						selector.close();
+					}
+					synchronized( this ){
+						notifyAll();
+					}
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -287,8 +287,11 @@ public class ChabuTestNw {
 				socketChannel.connect( new InetSocketAddress( cmdDutConnect.address, cmdDutConnect.port ));
 				ds.socketChannel = socketChannel;
 				ds.registeredInterrestOps = SelectionKey.OP_CONNECT;
+				synchronized(selectorRegisterEntries){
+					SelectorRegisterEntry entry = new SelectorRegisterEntry( socketChannel, ds.registeredInterrestOps, ds);
+					selectorRegisterEntries.add( entry );
+				}
 				selector.wakeup();
-				socketChannel.register( selector, ds.registeredInterrestOps, ds );
 				System.out.println("selector wakeup!");
 			}
 			else if( cmd instanceof CmdDutDisconnect ){

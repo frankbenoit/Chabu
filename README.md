@@ -1,4 +1,5 @@
-mctcp
+Chabu
 =====
 
-Multiple Channel over TCP/IP
+The channel bundle.
+Multiple channels over TCP/IP

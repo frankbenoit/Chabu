@@ -12,7 +12,9 @@ import org.eclipse.swt.widgets.TableColumn;
 
 public class ConfigureTestRxBlocks extends WizardPage {
 
+	@SuppressWarnings("unused")
 	private ConfigureTestData data;
+	
 	private Table table;
 
 	/**

@@ -127,7 +127,9 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 			actionInfo.setImageDescriptor(ResourceManager.getImageDescriptor(ChabuTesterAppWnd.class, "/chabu/tester/about-16.png"));
 		}
 		{
-			actionPlay = new Action("New Action") {				public void run() {
+			actionPlay = new Action("New Action") {
+								@SuppressWarnings("unused")
+				public void run() {
 					System.out.println("Start:");
 					Thread actions = new Thread( ()->{
 						try {

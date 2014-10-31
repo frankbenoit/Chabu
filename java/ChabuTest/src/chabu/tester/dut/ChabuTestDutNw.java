@@ -24,6 +24,7 @@ import chabu.tester.SelectorRegisterEntry;
 import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.ACommand;
 import chabu.tester.data.AResult;
+import chabu.tester.data.CmdChannelAction;
 import chabu.tester.data.CmdChannelCreateStat;
 import chabu.tester.data.CmdConnectionAwait;
 import chabu.tester.data.CmdConnectionConnect;
@@ -41,6 +42,7 @@ public class ChabuTestDutNw {
 	private Selector selector;
 	private final ArrayDeque<SelectorRegisterEntry> selectorRegisterEntries = new ArrayDeque<>(20);
 	private Thread thread;
+	private final static TestData testData = new TestData();
 	
 	private ArrayDeque<ACmdScheduled> commands = new ArrayDeque<>(100);
 	private ArrayDeque<AResult>       results = new ArrayDeque<>(100);
@@ -62,15 +64,37 @@ public class ChabuTestDutNw {
 	class TestChannelUser implements IChannelUser {
 
 		Channel channel;
+		public int rxCountRemaining;
+		public int txCountRemaining;
+		public int rxCountDone;
+		public int txCountDone;
+		public int txDataIndex;
+		public int rxDataIndex;
 		
 		@Override
 		public void evRecv(ByteBuffer buffer, Object attachment) {
-			
+			while( buffer.hasRemaining() && rxCountRemaining > 0 ){
+				int value = buffer.get() & 0xff;
+				Utils.ensure( value == testData.get( rxDataIndex ));
+				rxDataIndex++;
+				rxCountDone++;
+				rxCountRemaining--;
+			}
 		}
 
 		@Override
 		public boolean evXmit(ByteBuffer buffer, Object attachment) {
-			return false;
+			boolean flush = false;
+			while( buffer.hasRemaining() && txCountRemaining > 0 ){
+				buffer.put( testData.get( txDataIndex ) );
+				txDataIndex++;
+				txCountDone++;
+				txCountRemaining--;
+				if( txCountRemaining == 0 ){
+					flush = true;
+				}
+			}
+			return flush;
 		}
 		
 	}
@@ -331,6 +355,8 @@ public class ChabuTestDutNw {
 			Utils.ensure( testNw.channelUsers.size() == c.channelId, "Channel ID sequence is not correct, exp %d, but is %d", testNw.channelUsers.size(), c.channelId );
 			TestChannelUser tcu = new TestChannelUser();
 			tcu.channel = new Channel( c.rxCount, tcu );
+			tcu.txDataIndex = c.txInitialOffset;
+			tcu.rxDataIndex = c.rxInitialOffset;
 			testNw.channelUsers.add( tcu );
 		}
 		break;
@@ -347,14 +373,32 @@ public class ChabuTestDutNw {
 		break;
 		case CHANNEL_ACTION:
 		{
-
+			Utils.ensure( testNw.activated );
+			CmdChannelAction c = (CmdChannelAction)cmd;
+			TestChannelUser cu = testNw.channelUsers.get( c.channelId );
+			
+			cu.rxCountRemaining += c.rxCount;
+			cu.txCountRemaining += c.txCount;
+			
+			if( c.rxCount > 0 ){
+				testNw.evUserRecvRequest();
+			}
+			if( c.txCount > 0 ){
+				testNw.evUserXmitRequest();
+			}
+			
 		}
 		break;
 		case CHANNEL_CREATE_STAT:
 		{
+			Utils.ensure( testNw.activated );
 			CmdChannelCreateStat c = (CmdChannelCreateStat)cmd;
-			ResultChannelStat res = new ResultChannelStat( createResultTimeStamp(), c.channelId, 1234, 5678 );
+			TestChannelUser cu = testNw.channelUsers.get( c.channelId );
+			
+			ResultChannelStat res = new ResultChannelStat( createResultTimeStamp(), c.channelId, cu.rxCountDone, cu.txCountDone );
 			enqueueResult( res );
+			cu.rxCountDone = 0;
+			cu.txCountDone = 0;
 		}
 		break;
 		}

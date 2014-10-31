@@ -24,6 +24,9 @@ import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
 
 import chabu.tester.data.CmdChannelCreateStat;
+import chabu.tester.data.CmdConnectionAwait;
+import chabu.tester.data.CmdConnectionClose;
+import chabu.tester.data.CmdConnectionConnect;
 import chabu.tester.data.CmdDutApplicationClose;
 import chabu.tester.data.CmdDutConnect;
 import chabu.tester.data.CmdDutDisconnect;
@@ -129,30 +132,32 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 					Thread actions = new Thread( ()->{
 						try {
 							long st = System.nanoTime();
+							final long MSEC = 1_000_000L;
+							final long SEC = 1_000*MSEC;
 							nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
+							nw.addCommand( DutId.B, new CmdDutConnect( st, "localhost", 2310 ));
 							nw.flush(DutId.ALL);
-							nw.addCommand( DutId.A, new CmdSetupChannelAdd( st, 0, 10 ));
-							nw.addCommand( DutId.A, new CmdSetupActivate( st, true, 1000 ));
+							nw.addCommand( DutId.ALL, new CmdSetupChannelAdd( st, 0, 10 ));
+							nw.addCommand( DutId.ALL, new CmdSetupActivate( st, true, 1000 ));
+							st += 400*MSEC;
+							nw.addCommand( DutId.A, new CmdConnectionAwait( st, 2301 ));
+							nw.addCommand( DutId.B, new CmdConnectionConnect( st, "localhost", 2301 ));
 							nw.flush(DutId.ALL);
-							System.out.println("A connected");
-							//						nw.connect( Dut.B, 2310 );
-							//						System.out.println("B connected");
+							System.out.println("A+B connected");
 							synchronized(this){
 								for( int i = 0; i < 3; i++ ){
-//									nw.addCommand( DutId.A, new CmdTimeBroadcast( System.nanoTime() ));
-									nw.addCommand( DutId.A, new CmdChannelCreateStat( st+(i+1)*1000_000_000L, 1 ));
-									System.out.println("loop");
-									///wait(400);
+									st += 600*MSEC;
+									nw.addCommand( DutId.A, new CmdChannelCreateStat( st, 1 ));
 								}
 								wait(4000);
 							}
-							nw.addCommand( DutId.A, new CmdDutApplicationClose( System.nanoTime() ) );
+							nw.addCommand( DutId.ALL, new CmdConnectionClose( System.nanoTime() ) );
+							nw.addCommand( DutId.ALL, new CmdDutApplicationClose( System.nanoTime() ) );
 							nw.flush(DutId.ALL);
 							System.out.println("disconnecting");
-							nw.addCommand( DutId.A, new CmdDutDisconnect( System.nanoTime() ) );
+							nw.addCommand( DutId.ALL, new CmdDutDisconnect( System.nanoTime() ) );
 							System.out.println("--- Actions finished ---");
 						} catch (Exception e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 					}, "actions" );

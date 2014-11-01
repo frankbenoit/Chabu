@@ -23,15 +23,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
 
-import chabu.tester.data.CmdChannelCreateStat;
-import chabu.tester.data.CmdConnectionAwait;
-import chabu.tester.data.CmdConnectionClose;
-import chabu.tester.data.CmdConnectionConnect;
-import chabu.tester.data.CmdDutApplicationClose;
-import chabu.tester.data.CmdDutConnect;
-import chabu.tester.data.CmdDutDisconnect;
-import chabu.tester.data.CmdSetupActivate;
-import chabu.tester.data.CmdSetupChannelAdd;
 import chabu.tester.dlg.ConfigureTest;
 import chabu.tester.dlg.ConfigureTestData;
 
@@ -133,33 +124,8 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 					System.out.println("Start:");
 					Thread actions = new Thread( ()->{
 						try {
-							long st = System.nanoTime();
-							final long MSEC = 1_000_000L;
-							final long SEC = 1_000*MSEC;
-							nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
-							nw.addCommand( DutId.B, new CmdDutConnect( st, "localhost", 2310 ));
-							nw.flush(DutId.ALL);
-							nw.addCommand( DutId.ALL, new CmdSetupChannelAdd( st, 0, 10, 0, 0 ));
-							nw.addCommand( DutId.ALL, new CmdSetupActivate( st, true, 1000 ));
-							st += 400*MSEC;
-							nw.addCommand( DutId.A, new CmdConnectionAwait( st, 2301 ));
-							nw.addCommand( DutId.B, new CmdConnectionConnect( st, "localhost", 2301 ));
-							nw.flush(DutId.ALL);
-							System.out.println("A+B connected");
-							synchronized(this){
-								for( int i = 0; i < 3; i++ ){
-									st += 600*MSEC;
-									nw.addCommand( DutId.A, new CmdChannelCreateStat( st, 1 ));
-								}
-								wait(4000);
-							}
-							nw.addCommand( DutId.ALL, new CmdConnectionClose( System.nanoTime() ) );
-							nw.addCommand( DutId.ALL, new CmdDutApplicationClose( System.nanoTime() ) );
-							nw.flush(DutId.ALL);
-							System.out.println("disconnecting");
-							nw.addCommand( DutId.A, new CmdDutDisconnect( System.nanoTime() ) );
-							nw.addCommand( DutId.B, new CmdDutDisconnect( System.nanoTime() ) );
-							System.out.println("--- Actions finished ---");
+							ITestTask task = new SimpleTest();
+							task.task( nw );
 						} catch (Exception e) {
 							e.printStackTrace();
 						}

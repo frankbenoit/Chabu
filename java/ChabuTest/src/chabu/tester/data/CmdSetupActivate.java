@@ -28,7 +28,7 @@ public class CmdSetupActivate extends ACmdScheduled {
 
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s %s %s]", commandId, schedTime, byteOrderBigEndian, maxPayloadSize );
+		return String.format("Cmd[%s %s %s %s]", commandId, timeStr(schedTime), byteOrderBigEndian, maxPayloadSize );
 	}
 
 

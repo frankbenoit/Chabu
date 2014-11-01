@@ -36,7 +36,7 @@ public class CmdSetupChannelAdd extends ACmdScheduled {
 
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s %s %s %s %s]", commandId, schedTime, channelId, rxCount, rxInitialOffset, txInitialOffset );
+		return String.format("Cmd[%s %s %s %s %s %s]", commandId, timeStr(schedTime), channelId, rxCount, rxInitialOffset, txInitialOffset );
 	}
 
 

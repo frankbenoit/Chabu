@@ -19,14 +19,14 @@ public class CmdChannelAction extends ACmdScheduled {
 	public void encode(ByteBuffer buf) {
 		buf.put( (byte)this.commandId.getId() );
 		buf.putLong( this.schedTime );
-		buf.put( (byte)this.channelId );
-		buf.putShort( (short)this.txCount );
-		buf.putShort( (short)this.rxCount );
+		buf.putInt( (byte)this.channelId );
+		buf.putInt( (short)this.txCount );
+		buf.putInt( (short)this.rxCount );
 	}
 
 	static CmdChannelAction createChannelAction(ByteBuffer buf) {
 		long time     = buf.getLong();
-		int channelId = buf.get() & 0xFFFF;
+		int channelId = buf.getInt();
 		int txCount   = buf.getInt();
 		int rxCount   = buf.getInt();
 		return new CmdChannelAction(time, channelId, txCount, rxCount );
@@ -34,7 +34,7 @@ public class CmdChannelAction extends ACmdScheduled {
 
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s %s %s %s]", commandId, schedTime, channelId, rxCount, txCount );
+		return String.format("Cmd[%s %s %s %s %s]", commandId, timeStr(schedTime), channelId, rxCount, txCount );
 	}
 
 

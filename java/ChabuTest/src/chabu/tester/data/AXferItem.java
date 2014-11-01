@@ -5,6 +5,8 @@ import java.nio.charset.StandardCharsets;
 
 public abstract class AXferItem {
 	
+	public static long relativeTimeForToString = System.nanoTime();
+	
 	protected abstract void encode( ByteBuffer buf );
 
 	public static void encodeItem( ByteBuffer buf, AXferItem item ){
@@ -47,4 +49,8 @@ public abstract class AXferItem {
 		buf.put( bytes );
 	}
 
+	protected String timeStr(long time){
+		long t = time - relativeTimeForToString;
+		return String.format("%5d.%09d", t / 1000000000L, t % 1000000000L );
+	}
 }

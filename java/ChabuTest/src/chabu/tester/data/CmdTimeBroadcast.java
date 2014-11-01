@@ -24,7 +24,7 @@ public class CmdTimeBroadcast extends ACommand {
 	
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s]", commandId, time );
+		return String.format("Cmd[%s %s]", commandId, timeStr(time) );
 	}
 
 }

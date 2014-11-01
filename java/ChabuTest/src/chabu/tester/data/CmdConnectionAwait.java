@@ -25,7 +25,7 @@ public class CmdConnectionAwait extends ACmdScheduled {
 
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s %s]", commandId, schedTime, port );
+		return String.format("Cmd[%s %s %s]", commandId, timeStr(schedTime), port );
 	}
 
 }

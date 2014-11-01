@@ -32,7 +32,7 @@ public class ResultChannelStat extends AResult {
 	}
 	@Override
 	public String toString() {
-		return String.format("Result[%s %s %s %s %s]", resultId, time, channelId, rxCount, txCount );
+		return String.format("Result[%s %s %s %s %s]", resultId, timeStr(time), channelId, rxCount, txCount );
 	}
 
 }

@@ -22,7 +22,7 @@ public class CmdDutConnect extends ACmdScheduled {
 
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s]", commandId, schedTime );
+		return String.format("Cmd[%s %s]", commandId, timeStr(schedTime) );
 	}
 
 }

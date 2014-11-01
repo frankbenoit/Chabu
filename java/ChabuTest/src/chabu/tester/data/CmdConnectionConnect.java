@@ -29,7 +29,7 @@ public class CmdConnectionConnect extends ACmdScheduled {
 
 	@Override
 	public String toString() {
-		return String.format("Cmd[%s %s %s %s]", commandId, schedTime, address, port );
+		return String.format("Cmd[%s %s %s %s]", commandId, timeStr(schedTime), address, port );
 	}
 
 

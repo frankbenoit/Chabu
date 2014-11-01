@@ -27,8 +27,9 @@ public abstract class ACommand extends AXferItem {
 		}
 		
 		ACommand res = null;
+		int cmd = -1;
 		try{
-			int cmd = buf.get();
+			cmd = buf.get();
 			if( cmd == CommandId.TIME_BROADCAST.getId() ){
 				res = CmdTimeBroadcast.createTimeBroadcast(buf);
 			}
@@ -62,7 +63,7 @@ public abstract class ACommand extends AXferItem {
 		}
 		finally{
 			if( res != null ){
-				Utils.ensure( pos + packetSz + 4 == buf.position(), "%d %d +4 == %s", pos, packetSz, buf );
+				Utils.ensure( pos + packetSz + 4 == buf.position(), "cmd:%d pos:%d packetSz:%d +4 == %s", cmd, pos, packetSz, buf );
 			}
 			else {
 				buf.position(pos);

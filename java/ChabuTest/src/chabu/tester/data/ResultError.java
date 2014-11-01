@@ -29,6 +29,6 @@ public class ResultError extends AResult {
 
 	@Override
 	public String toString() {
-		return String.format("Result[%s %s %s %s]", resultId, time, code, message );
+		return String.format("Result[%s %s %s %s]", resultId, timeStr(time), code, message );
 	}
 }

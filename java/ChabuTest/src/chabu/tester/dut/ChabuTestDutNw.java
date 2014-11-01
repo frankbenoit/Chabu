@@ -115,6 +115,7 @@ public class ChabuTestDutNw {
 
 		TestNetwork(){
 //			rxBuffer.clear();
+			rxBuffer.limit(0);
 		}
 		public void setNetworkUser(INetworkUser user) {
 			Utils.fail("user internally set");
@@ -262,6 +263,49 @@ public class ChabuTestDutNw {
 							ctrlNw.txBuffer.compact();
 						}
 					}
+					else if( key.attachment() == testNw ){
+						if (key.isAcceptable()) {
+							Utils.ensure(testNw.socketChannel == null , "invalid state" );
+							testNw.socketChannel = testNw.serverSocket.accept();
+							testNw.socketChannel.configureBlocking(false);
+							testNw.serverSocket.register( selector, 0 );
+							synchronized(this){
+								notifyAll();
+							}
+						} else if (key.isWritable() || key.isReadable() ) {
+							System.out.printf("Server selector %s %s %s\n", name, key.isReadable(), key.isWritable());
+							testNw.netwRequestRecv = true;
+							if( key.isReadable() ){								
+								testNw.rxBuffer.compact();
+								testNw.socketChannel.read(testNw.rxBuffer);
+								testNw.rxBuffer.flip();
+								testNw.user.evRecv(testNw.rxBuffer);
+							}
+							
+							//if( key.isWritable() )
+							{
+								testNw.netwRequestXmit = false;
+								testNw.user.evXmit(testNw.txBuffer);
+								testNw.txBuffer.flip();
+								System.out.printf("%s Xmit %d\n", name, testNw.txBuffer.remaining() );
+								testNw.socketChannel.write(testNw.txBuffer);
+								if( testNw.txBuffer.hasRemaining() ){
+									testNw.netwRequestXmit = true;
+								}
+								testNw.txBuffer.compact();
+							}
+							int interestOps = 0;
+							if( testNw.netwRequestRecv ){
+								interestOps |= SelectionKey.OP_READ;
+							}
+							if( testNw.netwRequestXmit ){
+								interestOps |= SelectionKey.OP_WRITE;
+							}
+							System.out.printf("%s %x\n", name, interestOps );
+							testNw.socketChannel.register( selector, interestOps );
+							
+						}
+					}
 				}
 			}
 		} catch (Exception e) {
@@ -368,6 +412,7 @@ public class ChabuTestDutNw {
 			for( TestChannelUser cu : testNw.channelUsers ){
 				testNw.user.addChannel(cu.channel);
 			}
+			testNw.user.activate();
 			testNw.activated  = true;
 		}
 		break;

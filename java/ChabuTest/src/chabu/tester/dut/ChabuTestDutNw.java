@@ -79,7 +79,8 @@ public class ChabuTestDutNw {
 			int p = buffer.remaining();
 			while( buffer.hasRemaining() && rxCountRemaining > 0 ){
 				int value = buffer.get() & 0xff;
-				Utils.ensure( value == testData.get( rxDataIndex ));
+				int expt = testData.get( rxDataIndex ) & 0xFF;
+				Utils.ensure( value == expt, "Data mismatch: read:%02X expt:%02X", value, expt );
 				rxDataIndex++;
 				rxCountDone++;
 				rxCountRemaining--;
@@ -288,25 +289,40 @@ public class ChabuTestDutNw {
 								testNw.socketChannel.register( selector, SelectionKey.OP_READ, testNw );
 								testNw.serverSocket.register( selector, 0, testNw );
 								notifyAll();
+							} else if ( key.isConnectable() ){
+								if (testNw.socketChannel.isConnectionPending()){
+									if( testNw.socketChannel.finishConnect() ){
+										testNw.socketChannel.register( selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE, testNw );
+										logger.printfln("%s: connect finished ok", name );
+									}
+									else {
+										logger.printfln("%s: connect finished FAIL", name );
+									}
+								}
 							} else if (key.isWritable() || key.isReadable() ) {
-								logger.printfln("Server selector %s %s %s", name, key.isReadable(), key.isWritable());
+								logger.printfln("Server selector can rd:%s wr:%s", key.isReadable(), key.isWritable());
 								testNw.netwRequestRecv = true;
 								if( key.isReadable() ){								
 									testNw.rxBuffer.compact();
-									testNw.socketChannel.read(testNw.rxBuffer);
+									int readSz = testNw.socketChannel.read(testNw.rxBuffer);
 									testNw.rxBuffer.flip();
+									logger.printfln( "SocketRead %d bytes", readSz );
+									if( readSz < 0 ){
+										logger.printfln( "SocketClosed");
+									}
 									testNw.chabu.evRecv(testNw.rxBuffer);
 								}
 
-								//if( key.isWritable() )
-								{
+								if( key.isWritable() ) {
 									testNw.netwRequestXmit = false;
 									testNw.chabu.evXmit(testNw.txBuffer);
 									testNw.txBuffer.flip();
-									logger.printfln("%s Xmit %d", name, testNw.txBuffer.remaining() );
-									testNw.socketChannel.write(testNw.txBuffer);
 									if( testNw.txBuffer.hasRemaining() ){
-										testNw.netwRequestXmit = true;
+										int writeSz = testNw.socketChannel.write(testNw.txBuffer);
+										logger.printfln("SocketWrite %d bytes", writeSz );
+										if( testNw.txBuffer.hasRemaining() ){
+											testNw.netwRequestXmit = true;
+										}
 									}
 									testNw.txBuffer.compact();
 								}
@@ -317,13 +333,13 @@ public class ChabuTestDutNw {
 								if( testNw.netwRequestXmit ){
 									interestOps |= SelectionKey.OP_WRITE;
 								}
-								logger.printfln("%s %x", name, interestOps );
+								logger.printfln("InterestOps rd:%s wr:%s", testNw.netwRequestRecv, testNw.netwRequestXmit );
 								testNw.socketChannel.register( selector, interestOps, testNw );
 
 							}
 						}
 						else {
-							System.out.println("ChabuTestDutNw.run() unknown attachment "+key.attachment());
+							logger.printfln(">>>>>>> ChabuTestDutNw.run() unknown attachment %s", key.attachment());
 						}
 					}
 				}
@@ -463,10 +479,10 @@ public class ChabuTestDutNw {
 			CmdChannelCreateStat c = (CmdChannelCreateStat)cmd;
 			TestChannelUser cu = testNw.channelUsers.get( c.channelId );
 			
-			ResultChannelStat res = new ResultChannelStat( createResultTimeStamp(), c.channelId, cu.rxCountDone, cu.txCountDone );
-			enqueueResult( res );
+			ResultChannelStat res = new ResultChannelStat( createResultTimeStamp(), c.channelId, cu.txCountDone, cu.rxCountDone );
 			cu.rxCountDone = 0;
 			cu.txCountDone = 0;
+			enqueueResult( res );
 		}
 		break;
 		}

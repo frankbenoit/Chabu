@@ -8,7 +8,7 @@ public class ResultChannelStat extends AResult {
 	public final int rxCount;
 	public final int txCount;
 
-	public ResultChannelStat(long time, int channelId, int rxCount, int txCount ) {
+	public ResultChannelStat(long time, int channelId, int txCount, int rxCount ) {
 		super(ResultId.CHANNEL_STAT, time);
 		this.channelId = channelId;
 		this.rxCount = rxCount;
@@ -19,20 +19,20 @@ public class ResultChannelStat extends AResult {
 	public void encode(ByteBuffer buf) {
 		super.encode(buf);
 		buf.put( (byte)this.channelId );
-		buf.putShort( (short)this.rxCount );
 		buf.putShort( (short)this.txCount );
+		buf.putShort( (short)this.rxCount );
 	}
 	
 	static ResultChannelStat createResultChannelStat(ByteBuffer buf) {
 		long   time       = buf.getLong();
 		int    channelId  = buf.get() & 0xFF;
-		int    rxCount    = buf.getShort() & 0xFFFF;
 		int    txCount    = buf.getShort() & 0xFFFF;
+		int    rxCount    = buf.getShort() & 0xFFFF;
 		return new ResultChannelStat(time, channelId, rxCount, txCount );
 	}
 	@Override
 	public String toString() {
-		return String.format("Result[%s %s %s %s %s]", resultId, timeStr(time), channelId, rxCount, txCount );
+		return String.format("Result[%s %s ch:%s tx:%5s rx:%5s]", resultId, timeStr(time), channelId, txCount, rxCount );
 	}
 
 }

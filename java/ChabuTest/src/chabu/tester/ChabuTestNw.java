@@ -34,20 +34,22 @@ public class ChabuTestNw {
 	
 	class DutState {
 		
+		DutId dutId;
 		final ByteBuffer txBuffer;
 		final ArrayDeque<ACommand> commands;
 		public SocketChannel socketChannel;
 		int registeredInterrestOps = 0;
 		public ByteBuffer rxBuffer;
 		
-		DutState(){
+		DutState(DutId dut) {
 			commands = new ArrayDeque<>(100);
 			txBuffer = ByteBuffer.allocate(2000);
 			rxBuffer = ByteBuffer.allocate(2000);
 			txBuffer.clear();
 			rxBuffer.clear();
+			this.dutId = dut;
 		}
-		
+
 		public void addCommand(ACommand cmd) throws ClosedChannelException {
 			commands.add(cmd);
 			if( (registeredInterrestOps & SelectionKey.OP_WRITE) == 0 ){
@@ -203,7 +205,7 @@ public class ChabuTestNw {
 										if( res == null ) {
 											break;
 										}
-										consumeResult( res );
+										consumeResult( ds.dutId, res );
 									}
 									ds.rxBuffer.compact();
 									if( readSz < 0 ){
@@ -242,8 +244,8 @@ public class ChabuTestNw {
 		}
 	}
 
-	private void consumeResult(AResult res) {
-		logger.printfln("%s: recv %s", name, res );
+	private void consumeResult(DutId dut, AResult res) {
+		logger.printfln("recv %s %s", dut, res );
 	}
 
 	public void start() {
@@ -275,7 +277,7 @@ public class ChabuTestNw {
 		}
 		else {
 			if( !dutStates.containsKey(dut)){
-				dutStates.put( dut, new DutState());
+				dutStates.put( dut, new DutState(dut));
 			}
 			DutState ds = dutStates.get(dut);
 			

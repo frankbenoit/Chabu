@@ -6,6 +6,7 @@ import java.util.Collections;
 
 import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.CmdChannelAction;
+import chabu.tester.data.CmdChannelCreateStat;
 import chabu.tester.data.CmdConnectionAwait;
 import chabu.tester.data.CmdConnectionClose;
 import chabu.tester.data.CmdConnectionConnect;
@@ -54,21 +55,21 @@ public class SimpleTest implements ITestTask {
 		nw.flush(DutId.ALL);
 		st = System.nanoTime();
 		int millis1 = 0;
-//		for( int i = 0; i < 10; i++ ){
+		for( int i = 0; i < 10; i++ ){
 			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
 			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
 			millis1 += 400;
-//		}
-//		int millis2 = 0;
-//		while( millis2 <= millis1+500 ){
-//			addToList( DutId.ALL, new CmdChannelCreateStat( st+millis2*MSEC, 0 ));
-//			millis2 += 250;
-//		}
+		}
+		int millis2 = 0;
+		while( millis2 <= millis1+500 ){
+			addToList( DutId.ALL, new CmdChannelCreateStat( st+millis2*MSEC, 0 ));
+			millis2 += 250;
+		}
 		enqueueList(nw);
 		nw.flush(DutId.ALL);
 		
-		waitUntil( st+2000*MSEC );
-//		waitUntil( st+millis2*MSEC );
+//		waitUntil( st+2000*MSEC );
+		waitUntil( st+millis2*MSEC );
 		
 		nw.addCommand( DutId.ALL, new CmdConnectionClose( System.nanoTime() ) );
 		nw.addCommand( DutId.ALL, new CmdDutApplicationClose( System.nanoTime() ) );

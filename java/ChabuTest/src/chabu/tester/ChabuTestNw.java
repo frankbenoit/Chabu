@@ -56,8 +56,8 @@ public class ChabuTestNw {
 					SelectorRegisterEntry entry = new SelectorRegisterEntry( socketChannel, registeredInterrestOps, this );
 					selectorRegisterEntries.add( entry );
 				}
-				selector.wakeup();
 			}
+			selector.wakeup();
 		}
 		
 	}
@@ -135,9 +135,9 @@ public class ChabuTestNw {
 
 				while (!doShutDown) {
 
-					logger.printfln("%s: selector sleep", name );
+					//logger.printfln("%s: selector sleep", name );
 					selector.select();
-					logger.printfln("%s: selector wakeup", name );
+					//logger.printfln("%s: selector wakeup", name );
 					
 					synchronized(selectorRegisterEntries){
 						while( !selectorRegisterEntries.isEmpty() ){
@@ -154,10 +154,10 @@ public class ChabuTestNw {
 						SelectionKey key = iterator.next();
 						iterator.remove();
 						//					logger.printfln("%s selector key %s", name, key);
-						if( key.isValid() ){
-							if (key.isConnectable()) {
-								//							logger.printfln("%s: connecting", name );
-								synchronized( this ){
+						synchronized( this ){
+							if( key.isValid() ){
+								if (key.isConnectable()) {
+									//							logger.printfln("%s: connecting", name );
 									DutState ds = (DutState)key.attachment();
 									if (ds.socketChannel.isConnectionPending()){
 										if( ds.socketChannel.finishConnect() ){
@@ -168,19 +168,17 @@ public class ChabuTestNw {
 										}
 									}
 								}
-							}
-							if (key.isWritable() ) {
-								synchronized( this ){
+								if (key.isWritable() ) {
 									DutState ds = (DutState)key.attachment();
-									//								logger.printfln("Tester %s: write p1", name );
+									//logger.printfln("Tester %s: write p1", name );
 									while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
 										//logger.printfln("Tester %s: loop buf %s", name, ds.txBuffer );
 										ACommand cmd = ds.commands.remove();
 										AXferItem.encodeItem(ds.txBuffer, cmd);
 									}
-									//								logger.printfln("Tester %s: buf %s", name, ds.txBuffer );
+									logger.printfln("Tester %s: buf %s", name, ds.txBuffer );
 									ds.txBuffer.flip();
-									//								logger.printfln("Tester %s: write %s bytes", name, ds.txBuffer.remaining() );
+									logger.printfln("Tester %s: write %s bytes", name, ds.txBuffer.remaining() );
 									ds.socketChannel.write(ds.txBuffer);
 									if( ds.commands.isEmpty() && !ds.txBuffer.hasRemaining() ){
 										this.notifyAll();
@@ -192,12 +190,13 @@ public class ChabuTestNw {
 									ds.txBuffer.compact();
 									this.notifyAll();
 								}
-							}
-							if( key.isReadable() ){
-								synchronized( this ){
+								if( key.isReadable() ){
 									DutState ds = (DutState)key.attachment();
-									int readSz = ds.socketChannel.read( ds.rxBuffer );
-									//								logger.printfln("%s read %d", name, readSz );
+									int readSz = -1;
+									if( ds.socketChannel.isOpen() ){
+										readSz = ds.socketChannel.read( ds.rxBuffer );
+									}
+									//logger.printfln("%s read %d", name, readSz );
 									ds.rxBuffer.flip();
 									while( ds.rxBuffer.hasRemaining() ){
 										AResult res = AResult.decodeResult(ds.rxBuffer);

@@ -10,6 +10,7 @@ import chabu.Utils;
 
 public class Logger {
 
+	private final static long startTs = System.nanoTime();
 	public final static HashMap<String, Logger> loggers = new HashMap<>();
 	
 	public final String      name;
@@ -40,7 +41,15 @@ public class Logger {
 		
 	}
 
+	private void printTs(){
+		long diff = System.nanoTime() - startTs;
+		int secs = (int)(diff / 1000000000L);
+		int frac = ((int)(diff % 1000000000L)) / 1000;
+		pw.printf("%2d.%06d: ", secs, frac );
+		
+	}
 	public void printfln(String fmt, Object ... args ) {
+		printTs();
 		pw.printf(fmt, args);
 		pw.println();
 	}

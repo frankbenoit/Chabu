@@ -17,6 +17,7 @@ import java.util.Set;
 import chabu.Chabu;
 import chabu.Channel;
 import chabu.IChannelUser;
+import chabu.ILogConsumer;
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
@@ -75,6 +76,7 @@ public class ChabuTestDutNw {
 		
 		@Override
 		public void evRecv(ByteBuffer buffer, Object attachment) {
+			int p = buffer.remaining();
 			while( buffer.hasRemaining() && rxCountRemaining > 0 ){
 				int value = buffer.get() & 0xff;
 				Utils.ensure( value == testData.get( rxDataIndex ));
@@ -82,11 +84,13 @@ public class ChabuTestDutNw {
 				rxCountDone++;
 				rxCountRemaining--;
 			}
+			logger.printfln("channel evRecv %d", p - buffer.remaining() );
 		}
 
 		@Override
 		public boolean evXmit(ByteBuffer buffer, Object attachment) {
 			boolean flush = false;
+			int p = buffer.remaining();
 			while( buffer.hasRemaining() && txCountRemaining > 0 ){
 				buffer.put( testData.get( txDataIndex ) );
 				txDataIndex++;
@@ -96,6 +100,7 @@ public class ChabuTestDutNw {
 					flush = true;
 				}
 			}
+			logger.printfln("channel evXmit %d %s %s", p - buffer.remaining(), buffer, txCountRemaining );
 			return flush;
 		}
 		
@@ -107,7 +112,7 @@ public class ChabuTestDutNw {
 		ByteBuffer rxBuffer = ByteBuffer.allocate(0x10000);
 		ByteBuffer txBuffer = ByteBuffer.allocate(0x10000);
 		
-		Chabu user = new Chabu( ByteOrder.BIG_ENDIAN, 1000 );
+		Chabu chabu;
 		ArrayList<TestChannelUser> channelUsers = new ArrayList<>(256);
 		boolean userRequestRecv = false;
 		boolean userRequestXmit = false;
@@ -118,6 +123,13 @@ public class ChabuTestDutNw {
 		TestNetwork(){
 //			rxBuffer.clear();
 			rxBuffer.limit(0);
+		}
+		public void setUser(Chabu chabu) {
+			this.chabu = chabu;
+			chabu.setLogConsumer( this::chabuLog );
+		}
+		private void chabuLog( ILogConsumer.Category cat, String inst, String fmt, Object ... args ){
+			logger.printfln( "%s:%s %s", cat.name(), inst, String.format( fmt, args ));
 		}
 		public void setNetworkUser(INetworkUser user) {
 			Utils.fail("user internally set");
@@ -135,11 +147,11 @@ public class ChabuTestDutNw {
 		public void handleRequests() {
 			if( userRequestRecv ){
 				userRequestRecv = false;
-				user.evRecv(rxBuffer);
+				chabu.evRecv(rxBuffer);
 			}
 			if( userRequestXmit ){
 				userRequestXmit = false;
-				user.evXmit(txBuffer);
+				chabu.evXmit(txBuffer);
 			}
 		}
 		public void connectionClose() throws IOException {
@@ -209,104 +221,109 @@ public class ChabuTestDutNw {
 					
 					SelectionKey key = iterator.next();
 					iterator.remove();
-					Utils.ensure( key.isValid() );
-					
-					if( key.attachment() == ctrlNw ){
-						if (key.isAcceptable()) {
-							SocketChannel acceptedChannel = ctrlNw.serverSocket.accept();
-							if( ctrlNw.socketChannel != null ){
-								ctrlNw.socketChannel.close();
-							}
-							ctrlNw.socketChannel = acceptedChannel;
-							ctrlNw.socketChannel.configureBlocking(false);
-							ctrlNw.serverSocket.register(selector, SelectionKey.OP_ACCEPT, ctrlNw);
-							ctrlNw.socketChannel.register(selector, SelectionKey.OP_READ, ctrlNw);
-//							logger.printfln("DUT %s: ctrl connected", name );
-
-							enqueueResult( new ResultVersion( DUT_VERSION ) );
-
-						}
-						synchronized(this){
-							notifyAll();
-						}
-
-						if (key.isReadable() ) {
-//							logger.printfln("DUT %s: read", name );
-							int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
-//							logger.printfln("DUT %s: %s", name, ctrlNw.rxBuffer );
-							ctrlNw.rxBuffer.flip();
-							while( true ){
-								ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
-								if( cmd == null ){
-									break;
-								}
-								consumeCmd( cmd );
-							}
-							ctrlNw.rxBuffer.compact();
-
-							if( readSz < 0 ){
-//								logger.printfln("DUT %s: closing", name );
-								ctrlNw.socketChannel.close();
-							}
-//							logger.printfln("DUT %s: read complete", name );
-						}
-						if (key.isWritable() ) {
-//							logger.printfln("DUT %s: write", name );
-//							logger.printfln("DUT %s: %s", name, ctrlNw.txBuffer );
-							while( ctrlNw.txBuffer.remaining() > 1000 && !results.isEmpty() ){
-//								logger.printfln("Tester %s: loop buf %s", name, ctrlNw.txBuffer );
-								AResult res = results.remove();
-								AResult.encodeItem(ctrlNw.txBuffer, res);
-							}
-							ctrlNw.txBuffer.flip();
-							ctrlNw.socketChannel.write( ctrlNw.txBuffer );
-							if( !ctrlNw.txBuffer.hasRemaining() ){
-								ctrlNw.socketChannel.register( selector, SelectionKey.OP_READ, ctrlNw );
-							}
-							ctrlNw.txBuffer.compact();
-						}
+					if( !key.isValid() ){
+						continue;
 					}
-					else if( key.attachment() == testNw ){
-						if (key.isAcceptable()) {
-							Utils.ensure(testNw.socketChannel == null , "invalid state" );
-							testNw.socketChannel = testNw.serverSocket.accept();
-							testNw.socketChannel.configureBlocking(false);
-							testNw.serverSocket.register( selector, 0 );
-							synchronized(this){
-								notifyAll();
-							}
-						} else if (key.isWritable() || key.isReadable() ) {
-							logger.printfln("Server selector %s %s %s", name, key.isReadable(), key.isWritable());
-							testNw.netwRequestRecv = true;
-							if( key.isReadable() ){								
-								testNw.rxBuffer.compact();
-								testNw.socketChannel.read(testNw.rxBuffer);
-								testNw.rxBuffer.flip();
-								testNw.user.evRecv(testNw.rxBuffer);
-							}
-							
-							//if( key.isWritable() )
-							{
-								testNw.netwRequestXmit = false;
-								testNw.user.evXmit(testNw.txBuffer);
-								testNw.txBuffer.flip();
-								logger.printfln("%s Xmit %d", name, testNw.txBuffer.remaining() );
-								testNw.socketChannel.write(testNw.txBuffer);
-								if( testNw.txBuffer.hasRemaining() ){
-									testNw.netwRequestXmit = true;
+
+					synchronized(this){
+						if( key.attachment() == ctrlNw ){
+							if (key.isAcceptable()) {
+								SocketChannel acceptedChannel = ctrlNw.serverSocket.accept();
+								if( ctrlNw.socketChannel != null ){
+									ctrlNw.socketChannel.close();
 								}
-								testNw.txBuffer.compact();
+								ctrlNw.socketChannel = acceptedChannel;
+								ctrlNw.socketChannel.configureBlocking(false);
+								ctrlNw.serverSocket.register(selector, SelectionKey.OP_ACCEPT, ctrlNw);
+								ctrlNw.socketChannel.register(selector, SelectionKey.OP_READ, ctrlNw);
+								
+								logger.printfln("ctrl connected" );
+
+								enqueueResult( new ResultVersion( DUT_VERSION ) );
+
 							}
-							int interestOps = 0;
-							if( testNw.netwRequestRecv ){
-								interestOps |= SelectionKey.OP_READ;
+							notifyAll();
+
+							if (key.isReadable() ) {
+								//logger.printfln("DUT %s: read", name );
+								int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
+								//logger.printfln("reading %s %s", readSz, ctrlNw.rxBuffer );
+								ctrlNw.rxBuffer.flip();
+								while( true ){
+									ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
+									if( cmd == null ){
+										break;
+									}
+									recvCmd( cmd );
+								}
+								ctrlNw.rxBuffer.compact();
+
+								if( readSz < 0 ){
+									//logger.printfln("DUT %s: closing", name );
+									ctrlNw.socketChannel.close();
+								}
+								//logger.printfln("DUT %s: read complete", name );
 							}
-							if( testNw.netwRequestXmit ){
-								interestOps |= SelectionKey.OP_WRITE;
+							if (key.isWritable() ) {
+								//logger.printfln("write" );
+								//logger.printfln("%s", ctrlNw.txBuffer );
+								while( ctrlNw.txBuffer.remaining() > 1000 && !results.isEmpty() ){
+									//								logger.printfln("Tester %s: loop buf %s", name, ctrlNw.txBuffer );
+									AResult res = results.remove();
+									AResult.encodeItem(ctrlNw.txBuffer, res);
+								}
+								ctrlNw.txBuffer.flip();
+								ctrlNw.socketChannel.write( ctrlNw.txBuffer );
+								if( !ctrlNw.txBuffer.hasRemaining() ){
+									ctrlNw.socketChannel.register( selector, SelectionKey.OP_READ, ctrlNw );
+								}
+								ctrlNw.txBuffer.compact();
 							}
-							logger.printfln("%s %x", name, interestOps );
-							testNw.socketChannel.register( selector, interestOps );
-							
+						}
+						else if( key.attachment() == testNw ){
+							if (key.isAcceptable()) {
+								Utils.ensure(testNw.socketChannel == null , "invalid state" );
+								testNw.socketChannel = testNw.serverSocket.accept();
+								testNw.socketChannel.configureBlocking(false);
+								testNw.socketChannel.register( selector, SelectionKey.OP_READ, testNw );
+								testNw.serverSocket.register( selector, 0, testNw );
+								notifyAll();
+							} else if (key.isWritable() || key.isReadable() ) {
+								logger.printfln("Server selector %s %s %s", name, key.isReadable(), key.isWritable());
+								testNw.netwRequestRecv = true;
+								if( key.isReadable() ){								
+									testNw.rxBuffer.compact();
+									testNw.socketChannel.read(testNw.rxBuffer);
+									testNw.rxBuffer.flip();
+									testNw.chabu.evRecv(testNw.rxBuffer);
+								}
+
+								//if( key.isWritable() )
+								{
+									testNw.netwRequestXmit = false;
+									testNw.chabu.evXmit(testNw.txBuffer);
+									testNw.txBuffer.flip();
+									logger.printfln("%s Xmit %d", name, testNw.txBuffer.remaining() );
+									testNw.socketChannel.write(testNw.txBuffer);
+									if( testNw.txBuffer.hasRemaining() ){
+										testNw.netwRequestXmit = true;
+									}
+									testNw.txBuffer.compact();
+								}
+								int interestOps = 0;
+								if( testNw.netwRequestRecv ){
+									interestOps |= SelectionKey.OP_READ;
+								}
+								if( testNw.netwRequestXmit ){
+									interestOps |= SelectionKey.OP_WRITE;
+								}
+								logger.printfln("%s %x", name, interestOps );
+								testNw.socketChannel.register( selector, interestOps, testNw );
+
+							}
+						}
+						else {
+							System.out.println("ChabuTestDutNw.run() unknown attachment "+key.attachment());
 						}
 					}
 				}
@@ -345,7 +362,7 @@ public class ChabuTestDutNw {
 
 	private void executeSchedCommand( long delay, ACmdScheduled cmd ) throws IOException {
 		
-		logger.printfln("DUT %s: %sms %s", name, delay, cmd.commandId.name() );
+		logger.printfln("Exec %s %sms", cmd.commandId.name(), delay );
 
 		switch( cmd.commandId ){
 
@@ -383,7 +400,8 @@ public class ChabuTestDutNw {
 				testNw.socketChannel.configureBlocking(false);
 			}
 			testNw.socketChannel.connect(new InetSocketAddress( c.address, c.port));
-			testNw.socketChannel.register( selector, SelectionKey.OP_CONNECT|SelectionKey.OP_READ|SelectionKey.OP_WRITE, testNw );
+			testNw.socketChannel.register( selector, 
+					SelectionKey.OP_CONNECT|SelectionKey.OP_READ|SelectionKey.OP_WRITE, testNw );
 		}
 		break;
 		case CONNECTION_CLOSE:
@@ -411,11 +429,11 @@ public class ChabuTestDutNw {
 		{
 			Utils.ensure( !testNw.activated );
 			CmdSetupActivate c = (CmdSetupActivate)cmd;
-			testNw.user = new Chabu( c.byteOrderBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN, c.maxPayloadSize );
+			testNw.setUser( new Chabu( c.byteOrderBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN, c.maxPayloadSize ));
 			for( TestChannelUser cu : testNw.channelUsers ){
-				testNw.user.addChannel(cu.channel);
+				testNw.chabu.addChannel(cu.channel);
 			}
-			testNw.user.activate();
+			testNw.chabu.activate();
 			testNw.activated  = true;
 		}
 		break;
@@ -424,14 +442,16 @@ public class ChabuTestDutNw {
 			Utils.ensure( testNw.activated );
 			CmdChannelAction c = (CmdChannelAction)cmd;
 			TestChannelUser cu = testNw.channelUsers.get( c.channelId );
-			
 			cu.rxCountRemaining += c.rxCount;
 			cu.txCountRemaining += c.txCount;
 			
 			if( c.rxCount > 0 ){
+				cu.channel.evUserReadRequest();
 				testNw.evUserRecvRequest();
 			}
 			if( c.txCount > 0 ){
+				System.out.printf("tx %d %d\n", c.txCount, cu.txCountRemaining );
+				cu.channel.evUserWriteRequest();
 				testNw.evUserXmitRequest();
 			}
 			
@@ -460,9 +480,7 @@ public class ChabuTestDutNw {
 		results.add( res );
 		ctrlNw.socketChannel.register( selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE, ctrlNw );
 	}
-	private void consumeCmd(ACommand cmd) throws IOException {
-
-		logger.printfln("DUT %s: -- %s --", name, cmd.getClass().getSimpleName());
+	private void recvCmd(ACommand cmd) throws IOException {
 
 		if( cmd instanceof CmdTimeBroadcast ){
 			CmdTimeBroadcast c = (CmdTimeBroadcast)cmd;

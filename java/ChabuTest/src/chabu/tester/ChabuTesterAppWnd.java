@@ -47,9 +47,21 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 		addMenuBar();
 		addStatusLine();
 		
-		nw = new ChabuTestNw("Tester");
 	}
 
+	@Override
+	public int open() {
+		try {
+			nw = new ChabuTestNw("Tester");
+			int res = super.open();
+			nw.shutDown();
+			return res;
+		} catch (IOException | InterruptedException e) {
+			e.printStackTrace();
+			return Window.CANCEL;
+		}
+	}
+	
 	/**
 	 * Create contents of the application window.
 	 * @param parent

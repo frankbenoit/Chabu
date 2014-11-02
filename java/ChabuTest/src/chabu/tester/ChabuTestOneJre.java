@@ -16,6 +16,8 @@ public class ChabuTestOneJre {
 		
 		
 		chabuTester    .join(); System.out.println("-- Tester terminated --");
+		chabuTesterDut1.shutDown();
+		chabuTesterDut2.shutDown();
 		chabuTesterDut1.join(); System.out.println("-- Dut[0] terminated --");
 		chabuTesterDut2.join(); System.out.println("-- Dut[1] terminated --");
 		

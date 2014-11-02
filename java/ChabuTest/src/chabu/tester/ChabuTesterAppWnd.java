@@ -131,7 +131,6 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 		}
 		{
 			actionPlay = new Action("New Action") {
-								@SuppressWarnings("unused")
 				public void run() {
 					System.out.println("Start:");
 					Thread actions = new Thread( ()->{

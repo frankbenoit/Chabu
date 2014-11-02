@@ -177,7 +177,7 @@ public final class Channel implements IChannel {
 	}
 	
 	public String toString(){
-		return String.format("Channel[%s %s %s %s %s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
+		return String.format("Channel[%s recvS:%s recvA:%s xmitS:%s xmitA:%s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
 	}
 	
 }

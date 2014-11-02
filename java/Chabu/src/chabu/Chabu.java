@@ -64,7 +64,7 @@ public class Chabu implements INetworkUser {
 	}
 	
 	public void evRecv(ByteBuffer buf) {
-		log("Chabu.evRecv() "+instanceName);
+		log("evRecv()");
 		int rxBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
@@ -140,7 +140,7 @@ public class Chabu implements INetworkUser {
 	}
 
 	public void evXmit(ByteBuffer buf) {
-		log("Chabu.evXmit() "+instanceName);
+		log("evXmit()");
 		int txBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){

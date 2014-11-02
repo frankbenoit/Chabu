@@ -7,7 +7,7 @@ import java.util.ArrayDeque;
 
 public final class Channel implements IChannel {
 
-	private int   channelId;
+	private int   channelId = -1;
 	private Chabu chabu;
 	private final IChannelUser user;
 	private final Object       attachment;
@@ -23,6 +23,7 @@ public final class Channel implements IChannel {
 	private ArrayDeque<ByteBuffer> recvBuffers;
 	private int                    recvSeq = 0xFFFF;
 	private int                    recvArm = 0xFFFF;
+	private String instanceName;
 	
 	public Channel(int rxBlocks, IChannelUser user ) {
 		this( rxBlocks, user, null );
@@ -36,7 +37,7 @@ public final class Channel implements IChannel {
 		
 		this.recvArm = ( this.recvArm + rxBlocks ) & 0xFFFF;
 		xmitArmValid = true;
-		
+		instanceName = "ChabuChannel[<not yet active>]";
 	}
 
 	void activate(Chabu chabu, int channelId ){
@@ -44,16 +45,18 @@ public final class Channel implements IChannel {
 		this.channelId  = channelId;
 		this.xmitBuffer = ByteBuffer.allocate(chabu.maxPayloadSize);
 		this.xmitBuffer.order( chabu.byteOrder );
+		instanceName = String.format("%s.ch%d", chabu.instanceName, channelId );
 	}
 	public void evUserReadRequest(){
-		Utils.ensure( false, "Not implemented" );
+		log("evUserReadRequest()");
+		//Utils.ensure( false, "Not implemented" );
 	}
 	public void evUserWriteRequest(){
+		log("evUserWriteRequest()");
 		chabu.evUserWriteRequest(channelId);
 	}
 
 	void handleRecv( Block block ) {
-		System.out.println("Channel.handleRecv()");
 		boolean xmitInterest = false;
 		if( this.xmitArm != block.arm ){
 			xmitInterest = true;
@@ -87,12 +90,18 @@ public final class Channel implements IChannel {
 			}
 		}
 		if( xmitAllowed() || xmitInterest ){
-			System.out.println("Channel.handleRecv() -> WriteRequest");
+			log("Channel.handleRecv() -> WriteRequest");
 			chabu.evUserWriteRequest(channelId);
+		}
+		log( "handleRecv() %s", toString() );
+	}
+	private void log( String fmt, Object ... args ){
+		ILogConsumer log = chabu.log;
+		if( log != null ){
+			log.log( ILogConsumer.Category.CHANNEL, instanceName, fmt, args );
 		}
 	}
 	void handleXmit( Block block ) {
-		System.out.println("Channel.handleXmit()");
 		if( !xmitDataValid ){
 			checkUserXmitData();
 		}
@@ -107,6 +116,7 @@ public final class Channel implements IChannel {
 				chabu.evUserWriteRequest(channelId);
 			}
 		}
+		log( "handleXmit() %s", toString() );
 	}
 
 	private boolean xmitAllowed() {
@@ -138,7 +148,7 @@ public final class Channel implements IChannel {
 //		if( xmitBuffer != null ){
 //			sz = xmitBuffer.position();
 //		}
-//		System.out.printf("Channel.xmitData check %d %d %d\n", xmitArm, xmitSeq, sz);
+//		log("Channel.xmitData check %d %d %d\n", xmitArm, xmitSeq, sz);
 //	}
 		if( xmitDataAllowed() ){
 			
@@ -165,4 +175,9 @@ public final class Channel implements IChannel {
 		xmitDataValid = false;
 		
 	}
+	
+	public String toString(){
+		return String.format("Channel[%s %s %s %s %s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
+	}
+	
 }

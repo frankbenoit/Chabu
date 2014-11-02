@@ -7,6 +7,7 @@ import java.util.BitSet;
 
 public class Chabu implements INetworkUser {
 
+	ILogConsumer log;
 	private int txBytes;
 	private int rxBytes;
 	private ArrayList<Channel> channels = new ArrayList<>(256);
@@ -27,7 +28,7 @@ public class Chabu implements INetworkUser {
 	private Block recvBlock = new Block();
 
 	private Block xmitBlock = new Block();
-	String instanceName = "";
+	String instanceName = "Chabu";
 	
 	
 	public Chabu( ByteOrder byteOrder, int maxPayloadSize ){
@@ -37,6 +38,9 @@ public class Chabu implements INetworkUser {
 				Constants.BYTEORDER_BIG_ENDIAN : Constants.BYTEORDER_LITTLE_ENDIAN );
 	}
 	
+	public void setLogConsumer( ILogConsumer log ){
+		this.log = log;
+	}
 	public void addChannel( Channel channel ){
 		Utils.ensure( startupRx && startupTx );
 		Utils.ensure( !activated );
@@ -60,7 +64,7 @@ public class Chabu implements INetworkUser {
 	}
 	
 	public void evRecv(ByteBuffer buf) {
-		System.out.println("Chabu.evRecv() "+instanceName);
+		log("Chabu.evRecv() "+instanceName);
 		int rxBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
@@ -119,16 +123,24 @@ public class Chabu implements INetworkUser {
 	}
 
 	void evUserReadRequest(int channelId){
-		
+		log("Chabu.evUserReadRequest()");
 	}
+	private void log(String fmt, Object ... args ) {
+		ILogConsumer log = this.log;
+		if( log != null ){
+			log.log( ILogConsumer.Category.CHABU, instanceName, fmt, args);
+		}
+	}
+
 	void evUserWriteRequest(int channelId){
+		log("Chabu.evUserWriteRequest()");
 		synchronized(this){
 			xmitChannelRequest.set( channelId );
 		}
 	}
 
 	public void evXmit(ByteBuffer buf) {
-		System.out.println("Chabu.evXmit() "+instanceName);
+		log("Chabu.evXmit() "+instanceName);
 		int txBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
@@ -158,7 +170,7 @@ public class Chabu implements INetworkUser {
 	boolean logPackets = true;
 	private void log( Block block, boolean isXmit ){
 		if(logPackets){
-			System.out.printf("%s-Packet-%s @%d [C:%d P:%-4d S:0x%04X A:0x%04X]\n",
+			log("%s-Packet-%s @%d [C:%d P:%-4d S:0x%04X A:0x%04X]",
 					instanceName            ,
 					isXmit ? "Xmit" : "Recv", 
 					isXmit ? txBytes : rxBytes,

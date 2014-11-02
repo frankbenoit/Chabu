@@ -11,8 +11,8 @@ public class ChabuTestOneJre {
 		final int PORT_DUT1 = 2310;
 		
 		Thread chabuTester             = ChabuTesterAppWnd.mainInternalCreateThread( "Tester" );
-		ChabuTestDutNw chabuTesterDut1 = ChabuTestDutNw.mainInternalCreateThread("Dut[0]", PORT_DUT0 );
-		ChabuTestDutNw chabuTesterDut2 = ChabuTestDutNw.mainInternalCreateThread("Dut[1]", PORT_DUT1 );
+		ChabuTestDutNw chabuTesterDut1 = ChabuTestDutNw.mainInternalCreateThread("Dut0", PORT_DUT0 );
+		ChabuTestDutNw chabuTesterDut2 = ChabuTestDutNw.mainInternalCreateThread("Dut1", PORT_DUT1 );
 		
 		
 		chabuTester    .join(); System.out.println("-- Tester terminated --");

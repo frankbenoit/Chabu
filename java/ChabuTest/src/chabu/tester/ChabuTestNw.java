@@ -30,6 +30,7 @@ public class ChabuTestNw {
 	private Thread thread;
 
 	private TreeMap<DutId, DutState> dutStates = new TreeMap<>();
+	private Logger logger;
 	
 	class DutState {
 		
@@ -114,7 +115,7 @@ public class ChabuTestNw {
 	}
 	
 	public ChabuTestNw(String name) throws IOException, InterruptedException {
-
+		logger = Logger.getLogger("Tester");
 		this.name = name;
 		
 		selector = Selector.open();
@@ -128,15 +129,15 @@ public class ChabuTestNw {
 	}
 	
 	private void run() {
-		System.out.println("thread started");
+		logger.printfln("thread started");
 		synchronized(selector){
 			try {
 
 				while (!doShutDown) {
 
-					System.out.printf("%s: selector sleep\n", name );
+					logger.printfln("%s: selector sleep", name );
 					selector.select();
-					System.out.printf("%s: selector wakeup\n", name );
+					logger.printfln("%s: selector wakeup", name );
 					
 					synchronized(selectorRegisterEntries){
 						while( !selectorRegisterEntries.isEmpty() ){
@@ -152,10 +153,10 @@ public class ChabuTestNw {
 					while (iterator.hasNext()) {
 						SelectionKey key = iterator.next();
 						iterator.remove();
-						//					System.out.printf("%s selector key %s\n", name, key);
+						//					logger.printfln("%s selector key %s", name, key);
 						if( key.isValid() ){
 							if (key.isConnectable()) {
-								//							System.out.printf("%s: connecting\n", name );
+								//							logger.printfln("%s: connecting", name );
 								synchronized( this ){
 									DutState ds = (DutState)key.attachment();
 									if (ds.socketChannel.isConnectionPending()){
@@ -163,7 +164,7 @@ public class ChabuTestNw {
 											ds.registeredInterrestOps &= ~SelectionKey.OP_CONNECT;
 											ds.registeredInterrestOps |= SelectionKey.OP_READ;
 											ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
-											System.out.printf("%s: connecting ok\n", name );
+											logger.printfln("%s: connecting ok", name );
 										}
 									}
 								}
@@ -171,15 +172,15 @@ public class ChabuTestNw {
 							if (key.isWritable() ) {
 								synchronized( this ){
 									DutState ds = (DutState)key.attachment();
-									//								System.out.printf("Tester %s: write p1\n", name );
+									//								logger.printfln("Tester %s: write p1", name );
 									while( ds.txBuffer.remaining() > 1000 && !ds.commands.isEmpty() ){
-										//System.out.printf("Tester %s: loop buf %s\n", name, ds.txBuffer );
+										//logger.printfln("Tester %s: loop buf %s", name, ds.txBuffer );
 										ACommand cmd = ds.commands.remove();
 										AXferItem.encodeItem(ds.txBuffer, cmd);
 									}
-									//								System.out.printf("Tester %s: buf %s\n", name, ds.txBuffer );
+									//								logger.printfln("Tester %s: buf %s", name, ds.txBuffer );
 									ds.txBuffer.flip();
-									//								System.out.printf("Tester %s: write %s bytes\n", name, ds.txBuffer.remaining() );
+									//								logger.printfln("Tester %s: write %s bytes", name, ds.txBuffer.remaining() );
 									ds.socketChannel.write(ds.txBuffer);
 									if( ds.commands.isEmpty() && !ds.txBuffer.hasRemaining() ){
 										this.notifyAll();
@@ -196,7 +197,7 @@ public class ChabuTestNw {
 								synchronized( this ){
 									DutState ds = (DutState)key.attachment();
 									int readSz = ds.socketChannel.read( ds.rxBuffer );
-									//								System.out.printf("%s read %d\n", name, readSz );
+									//								logger.printfln("%s read %d", name, readSz );
 									ds.rxBuffer.flip();
 									while( ds.rxBuffer.hasRemaining() ){
 										AResult res = AResult.decodeResult(ds.rxBuffer);
@@ -208,7 +209,7 @@ public class ChabuTestNw {
 									ds.rxBuffer.compact();
 									if( readSz < 0 ){
 										ds.socketChannel.close();
-										System.out.printf("%s closed\n", name );
+										logger.printfln("%s closed", name );
 									}
 								}
 							}
@@ -243,7 +244,7 @@ public class ChabuTestNw {
 	}
 
 	private void consumeResult(AResult res) {
-		System.out.printf("%s: recv %s\n", name, res );
+		logger.printfln("%s: recv %s", name, res );
 	}
 
 	public void start() {
@@ -292,7 +293,7 @@ public class ChabuTestNw {
 					selectorRegisterEntries.add( entry );
 				}
 				selector.wakeup();
-				System.out.println("selector wakeup!");
+				logger.printfln("selector wakeup!");
 			}
 			else if( cmd instanceof CmdDutDisconnect ){
 				if( ds.socketChannel != null ) {

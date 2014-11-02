@@ -20,6 +20,7 @@ import chabu.IChannelUser;
 import chabu.INetwork;
 import chabu.INetworkUser;
 import chabu.Utils;
+import chabu.tester.Logger;
 import chabu.tester.SelectorRegisterEntry;
 import chabu.tester.data.ACmdScheduled;
 import chabu.tester.data.ACommand;
@@ -52,6 +53,7 @@ public class ChabuTestDutNw {
 	
 	private CtrlNetwork ctrlNw = new CtrlNetwork();
 	private TestNetwork testNw = new TestNetwork();
+	private Logger logger;
 
 	class CtrlNetwork {
 		SocketChannel socketChannel;
@@ -147,6 +149,7 @@ public class ChabuTestDutNw {
 	
 	public ChabuTestDutNw(String name, int ctrlPort ) throws IOException {
 
+		this.logger = Logger.getLogger(name);
 		this.name = name;
 		ctrlNw.serverSocket = ServerSocketChannel.open();
 		ctrlNw.serverSocket.configureBlocking(false);
@@ -218,7 +221,7 @@ public class ChabuTestDutNw {
 							ctrlNw.socketChannel.configureBlocking(false);
 							ctrlNw.serverSocket.register(selector, SelectionKey.OP_ACCEPT, ctrlNw);
 							ctrlNw.socketChannel.register(selector, SelectionKey.OP_READ, ctrlNw);
-//							System.out.printf("DUT %s: ctrl connected\n", name );
+//							logger.printfln("DUT %s: ctrl connected", name );
 
 							enqueueResult( new ResultVersion( DUT_VERSION ) );
 
@@ -228,9 +231,9 @@ public class ChabuTestDutNw {
 						}
 
 						if (key.isReadable() ) {
-//							System.out.printf("DUT %s: read\n", name );
+//							logger.printfln("DUT %s: read", name );
 							int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
-//							System.out.printf("DUT %s: %s\n", name, ctrlNw.rxBuffer );
+//							logger.printfln("DUT %s: %s", name, ctrlNw.rxBuffer );
 							ctrlNw.rxBuffer.flip();
 							while( true ){
 								ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
@@ -242,16 +245,16 @@ public class ChabuTestDutNw {
 							ctrlNw.rxBuffer.compact();
 
 							if( readSz < 0 ){
-//								System.out.printf("DUT %s: closing\n", name );
+//								logger.printfln("DUT %s: closing", name );
 								ctrlNw.socketChannel.close();
 							}
-//							System.out.printf("DUT %s: read complete\n", name );
+//							logger.printfln("DUT %s: read complete", name );
 						}
 						if (key.isWritable() ) {
-//							System.out.printf("DUT %s: write\n", name );
-//							System.out.printf("DUT %s: %s\n", name, ctrlNw.txBuffer );
+//							logger.printfln("DUT %s: write", name );
+//							logger.printfln("DUT %s: %s", name, ctrlNw.txBuffer );
 							while( ctrlNw.txBuffer.remaining() > 1000 && !results.isEmpty() ){
-//								System.out.printf("Tester %s: loop buf %s\n", name, ctrlNw.txBuffer );
+//								logger.printfln("Tester %s: loop buf %s", name, ctrlNw.txBuffer );
 								AResult res = results.remove();
 								AResult.encodeItem(ctrlNw.txBuffer, res);
 							}
@@ -273,7 +276,7 @@ public class ChabuTestDutNw {
 								notifyAll();
 							}
 						} else if (key.isWritable() || key.isReadable() ) {
-							System.out.printf("Server selector %s %s %s\n", name, key.isReadable(), key.isWritable());
+							logger.printfln("Server selector %s %s %s", name, key.isReadable(), key.isWritable());
 							testNw.netwRequestRecv = true;
 							if( key.isReadable() ){								
 								testNw.rxBuffer.compact();
@@ -287,7 +290,7 @@ public class ChabuTestDutNw {
 								testNw.netwRequestXmit = false;
 								testNw.user.evXmit(testNw.txBuffer);
 								testNw.txBuffer.flip();
-								System.out.printf("%s Xmit %d\n", name, testNw.txBuffer.remaining() );
+								logger.printfln("%s Xmit %d", name, testNw.txBuffer.remaining() );
 								testNw.socketChannel.write(testNw.txBuffer);
 								if( testNw.txBuffer.hasRemaining() ){
 									testNw.netwRequestXmit = true;
@@ -301,7 +304,7 @@ public class ChabuTestDutNw {
 							if( testNw.netwRequestXmit ){
 								interestOps |= SelectionKey.OP_WRITE;
 							}
-							System.out.printf("%s %x\n", name, interestOps );
+							logger.printfln("%s %x", name, interestOps );
 							testNw.socketChannel.register( selector, interestOps );
 							
 						}
@@ -342,7 +345,7 @@ public class ChabuTestDutNw {
 
 	private void executeSchedCommand( long delay, ACmdScheduled cmd ) throws IOException {
 		
-		System.out.printf("DUT %s: %sms %s\n", name, delay, cmd.commandId.name() );
+		logger.printfln("DUT %s: %sms %s", name, delay, cmd.commandId.name() );
 
 		switch( cmd.commandId ){
 
@@ -459,7 +462,7 @@ public class ChabuTestDutNw {
 	}
 	private void consumeCmd(ACommand cmd) throws IOException {
 
-		System.out.printf("DUT %s: -- %s --\n", name, cmd.getClass().getSimpleName());
+		logger.printfln("DUT %s: -- %s --", name, cmd.getClass().getSimpleName());
 
 		if( cmd instanceof CmdTimeBroadcast ){
 			CmdTimeBroadcast c = (CmdTimeBroadcast)cmd;

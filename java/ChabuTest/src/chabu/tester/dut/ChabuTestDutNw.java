@@ -85,7 +85,7 @@ public class ChabuTestDutNw {
 				rxCountDone++;
 				rxCountRemaining--;
 			}
-			logger.printfln("channel evRecv %d", p - buffer.remaining() );
+			logger.printfln("DutNw channel evRecv %d bytes", p - buffer.remaining() );
 		}
 
 		@Override
@@ -101,7 +101,7 @@ public class ChabuTestDutNw {
 					flush = true;
 				}
 			}
-			logger.printfln("channel evXmit %d %s %s", p - buffer.remaining(), buffer, txCountRemaining );
+			logger.printfln("DutNw channel evXmit %d bytes %s %s remaining", p - buffer.remaining(), buffer, txCountRemaining );
 			return flush;
 		}
 		
@@ -115,7 +115,7 @@ public class ChabuTestDutNw {
 		
 		Chabu chabu;
 		ArrayList<TestChannelUser> channelUsers = new ArrayList<>(256);
-		boolean userRequestRecv = false;
+		boolean userRequestRun = false;
 		boolean userRequestXmit = false;
 		boolean netwRequestRecv = true;
 		boolean netwRequestXmit = true;
@@ -137,26 +137,51 @@ public class ChabuTestDutNw {
 		}
 		public void evUserXmitRequest() {
 			userRequestXmit = true;
-			netwRequestRecv = true;
-			selector.wakeup();
-		}
-		public void evUserRecvRequest() {
-			userRequestRecv = true;
 			netwRequestXmit = true;
 			selector.wakeup();
 		}
-		public void handleRequests() {
-			if( userRequestRecv ){
-				userRequestRecv = false;
-				chabu.evRecv(rxBuffer);
+		public void evUserRecvRequest() {
+			userRequestRun = true;
+			netwRequestRecv = true;
+			selector.wakeup();
+		}
+		public void handleRequests() throws IOException {
+			if( socketChannel == null ) return;
+			if( !socketChannel.isConnected() ) return;
+			if( userRequestRun ){
+				userRequestRun = false;
+				handleRecv();
 			}
 			if( userRequestXmit ){
 				userRequestXmit = false;
-				chabu.evXmit(txBuffer);
+				handleXmit();
 			}
 		}
 		public void connectionClose() throws IOException {
 			socketChannel.close();
+		}
+		public void handleRecv() throws IOException{
+			rxBuffer.compact();
+			int readSz = socketChannel.read(rxBuffer);
+			rxBuffer.flip();
+			logger.printfln( "NwSocket Read %d bytes", readSz );
+			if( readSz < 0 ){
+				logger.printfln( "SocketClosed");
+			}
+			chabu.evRecv(testNw.rxBuffer);
+		}
+		public void handleXmit() throws IOException {
+			netwRequestXmit = false;
+			chabu.evXmit(testNw.txBuffer);
+			txBuffer.flip();
+			if( txBuffer.hasRemaining() ){
+				int writeSz = socketChannel.write(txBuffer);
+				logger.printfln("NwSocket Write %d bytes", writeSz );
+				if( txBuffer.hasRemaining() ){
+					netwRequestXmit = true;
+				}
+			}
+			testNw.txBuffer.compact();
 		}
 	};
 	
@@ -302,30 +327,21 @@ public class ChabuTestDutNw {
 							} else if (key.isWritable() || key.isReadable() ) {
 								logger.printfln("Server selector can rd:%s wr:%s", key.isReadable(), key.isWritable());
 								testNw.netwRequestRecv = true;
-								if( key.isReadable() ){								
-									testNw.rxBuffer.compact();
-									int readSz = testNw.socketChannel.read(testNw.rxBuffer);
-									testNw.rxBuffer.flip();
-									logger.printfln( "SocketRead %d bytes", readSz );
-									if( readSz < 0 ){
-										logger.printfln( "SocketClosed");
-									}
-									testNw.chabu.evRecv(testNw.rxBuffer);
+								
+								if( key.isReadable() ){
+									testNw.handleRecv();
+								}
+								else {
+									logger.printfln( "NwSocket Read None" );
 								}
 
-								if( key.isWritable() ) {
-									testNw.netwRequestXmit = false;
-									testNw.chabu.evXmit(testNw.txBuffer);
-									testNw.txBuffer.flip();
-									if( testNw.txBuffer.hasRemaining() ){
-										int writeSz = testNw.socketChannel.write(testNw.txBuffer);
-										logger.printfln("SocketWrite %d bytes", writeSz );
-										if( testNw.txBuffer.hasRemaining() ){
-											testNw.netwRequestXmit = true;
-										}
-									}
-									testNw.txBuffer.compact();
+								//if( key.isWritable() ) 
+								{
+									testNw.handleXmit();
 								}
+//								else {
+//									logger.printfln("NwSocket Write None" );
+//								}
 								int interestOps = 0;
 								if( testNw.netwRequestRecv ){
 									interestOps |= SelectionKey.OP_READ;
@@ -378,7 +394,7 @@ public class ChabuTestDutNw {
 
 	private void executeSchedCommand( long delay, ACmdScheduled cmd ) throws IOException {
 		
-		logger.printfln("Exec %s %sms", cmd.commandId.name(), delay );
+		logger.printfln("%s %sms", cmd, delay );
 
 		switch( cmd.commandId ){
 
@@ -449,6 +465,7 @@ public class ChabuTestDutNw {
 			for( TestChannelUser cu : testNw.channelUsers ){
 				testNw.chabu.addChannel(cu.channel);
 			}
+			testNw.chabu.setNetwork(testNw);
 			testNw.chabu.activate();
 			testNw.activated  = true;
 		}

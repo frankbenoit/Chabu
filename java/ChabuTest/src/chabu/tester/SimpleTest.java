@@ -53,17 +53,21 @@ public class SimpleTest implements ITestTask {
 		nw.addCommand( DutId.A, new CmdConnectionAwait( st, 2301 ));
 		nw.addCommand( DutId.B, new CmdConnectionConnect( st, "localhost", 2301 ));
 		nw.flush(DutId.ALL);
+		waitUntil( System.nanoTime()+1000*MSEC );
 		st = System.nanoTime();
 		int millis1 = 0;
-		for( int i = 0; i < 10; i++ ){
+		for( int i = 0; i < 6; i++ ){
 			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
 			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
+			millis1 += 200;
+			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
+			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
 			millis1 += 400;
 		}
 		int millis2 = 0;
 		while( millis2 <= millis1+500 ){
 			addToList( DutId.ALL, new CmdChannelCreateStat( st+millis2*MSEC, 0 ));
-			millis2 += 250;
+			millis2 += 150;
 		}
 		enqueueList(nw);
 		nw.flush(DutId.ALL);

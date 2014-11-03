@@ -3,6 +3,8 @@ package chabu;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 
+import chabu.ILogConsumer.Category;
+
 
 
 public final class Channel implements IChannel {
@@ -48,26 +50,29 @@ public final class Channel implements IChannel {
 		instanceName = String.format("%s.ch%d", chabu.instanceName, channelId );
 	}
 	public void evUserReadRequest(){
-		log("evUserReadRequest()");
+		log(Category.CHABU_USER, "evUserReadRequest()");
 		//Utils.ensure( false, "Not implemented" );
 	}
 	public void evUserWriteRequest(){
-		log("evUserWriteRequest()");
+		log(Category.CHABU_USER, "evUserWriteRequest()");
 		chabu.evUserWriteRequest(channelId);
 	}
 
 	void handleRecv( Block block ) {
+		log(Category.CHANNEL_INT, "ChRecv %s %s", this, block );
 		boolean xmitInterest = false;
-		if( this.xmitArm != block.arm ){
-			xmitInterest = true;
-		}
-		this.xmitArm = block.arm;
-		if( block.payloadSize > 0 ){
-			Utils.ensure( 1 == (short)( block.seq - this.recvSeq ), "Seq not inc 1: stored SEQ %d, recv SEQ %d", recvSeq, block.seq );
-			Utils.ensure( (short)( this.recvArm - block.seq ) >= 0 );
-			this.recvSeq = block.seq;
-			recvBuffers.addLast( block.payload );
-			block.payload = null;
+		if( block != null ){
+			if( this.xmitArm != block.arm ){
+				xmitInterest = true;
+			}
+			this.xmitArm = block.arm;
+			if( block.payloadSize > 0 ){
+				Utils.ensure( 1 == (short)( block.seq - this.recvSeq ), "Seq not inc 1: stored SEQ %d, recv SEQ %d", recvSeq, block.seq );
+				Utils.ensure( (short)( this.recvArm - block.seq ) >= 0 );
+				this.recvSeq = block.seq;
+				recvBuffers.addLast( block.payload );
+				block.payload = null;
+			}
 		}
 		
 		// transfer data to user
@@ -75,7 +80,9 @@ public final class Channel implements IChannel {
 		ByteBuffer userBuf = recvBuffers.peek();
 		while( userBuf != null && oldRem != userBuf.remaining() ){
 			oldRem = userBuf.remaining();
+			log(Category.CHABU_USER, "ChRecvCallingUser %s: %s bytes available", this, userBuf.remaining() );
 			user.evRecv( userBuf, attachment );
+			log(Category.CHABU_USER, "ChRecvCalledUser %s: %s bytes consumed", this, oldRem - userBuf.remaining() );
 			if( !userBuf.hasRemaining() ){
 				
 				// remove the buffer, now space for receive
@@ -90,18 +97,18 @@ public final class Channel implements IChannel {
 			}
 		}
 		if( xmitAllowed() || xmitInterest ){
-			log("Channel.handleRecv() -> WriteRequest");
+			log(Category.CHANNEL_INT, "ChRecvWriteRequest");
 			chabu.evUserWriteRequest(channelId);
 		}
-		log( "handleRecv() %s", toString() );
 	}
-	private void log( String fmt, Object ... args ){
+	private void log( Category cat, String fmt, Object ... args ){
 		ILogConsumer log = chabu.log;
 		if( log != null ){
-			log.log( ILogConsumer.Category.CHANNEL, instanceName, fmt, args );
+			log.log( cat, instanceName, fmt, args );
 		}
 	}
 	void handleXmit( Block block ) {
+		log( Category.CHANNEL_INT, "ChXmit %s", toString() );
 		if( !xmitDataValid ){
 			checkUserXmitData();
 		}
@@ -113,10 +120,16 @@ public final class Channel implements IChannel {
 		if( !xmitDataValid ){
 			checkUserXmitData();
 			if( xmitAllowed() ){
+				log(Category.CHANNEL_INT, "ChXmitWriteRequest");
 				chabu.evUserWriteRequest(channelId);
 			}
 		}
-		log( "handleXmit() %s", toString() );
+		if( block.valid ){
+			log( Category.CHANNEL_INT, "ChXmitXmitting %s %s", toString(), block );
+		}
+		else {
+			log( Category.CHANNEL_INT, "ChXmitXmittingNone %s", toString() );			
+		}
 	}
 
 	private boolean xmitAllowed() {

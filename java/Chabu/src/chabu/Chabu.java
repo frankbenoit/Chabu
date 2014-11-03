@@ -5,12 +5,20 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.BitSet;
 
+import chabu.ILogConsumer.Category;
+
 public class Chabu implements INetworkUser {
 
 	ILogConsumer log;
 	private int txBytes;
 	private int rxBytes;
+	
 	private ArrayList<Channel> channels = new ArrayList<>(256);
+	private BitSet xmitChannelRequest;
+	private int    xmitChannelIdx = 0;
+	private BitSet recvChannelRequest;
+	private int    recvChannelIdx = 0;
+	
 	private INetwork nw;
 	private boolean startupRx = true;
 	private boolean startupTx = true;
@@ -21,8 +29,6 @@ public class Chabu implements INetworkUser {
 	
 	private BufferPool bufferPool;
 	private boolean activated = false;
-	private BitSet xmitChannelRequest;
-	private int    xmitChannelIdx = 0;
 	
 	private int   recvIdx   = 0;
 	private Block recvBlock = new Block();
@@ -56,17 +62,29 @@ public class Chabu implements INetworkUser {
 			ch.activate(this, i );
 		}
 		bufferPool = new BufferPool( byteOrder, maxPayloadSize, bufferCount );
+		
 		xmitChannelRequest = new BitSet(channels.size());
 		xmitChannelRequest.set(0, channels.size() );
+		
+		recvChannelRequest = new BitSet(channels.size());
+		recvChannelRequest.set(0, channels.size() );
+		
 		maxChannelId = channels.size() -1;
 		xmitBlock.payload = bufferPool.allocBuffer();
 		activated = true;
 	}
 	
 	public void evRecv(ByteBuffer buf) {
-		log("evRecv()");
+		log(Category.NW_CHABU, "evRecv()");
 		int rxBytes = buf.remaining();
 		int oldRemaining = -1;
+		
+		while( calcNextRecvChannel() ){
+			Channel ch = channels.get(recvChannelIdx);
+			log( Category.CHABU_INT, "Ch[%s]Recv null", recvChannelIdx );
+			ch.handleRecv(null);
+		}
+		
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
 			oldRemaining = buf.remaining();
 			
@@ -82,7 +100,6 @@ public class Chabu implements INetworkUser {
 				recvBlock.seq         = buf.getShort() & 0xFFFF;
 				recvBlock.arm         = buf.getShort() & 0xFFFF;
 				recvIdx               = Constants.HEADER_SIZE;
-				log( recvBlock, false );
 				Utils.ensure( recvBlock.payloadSize <= maxPayloadSize    );
 				Utils.ensure( recvBlock.channelId   <= channels.size() );
 
@@ -112,7 +129,10 @@ public class Chabu implements INetworkUser {
 						recvBlock.payload.flip();
 					}
 					
+					log( recvBlock, false );
+					
 					// when consuming the buffer, ch.handleRecv will do recvBlock.payload = null;
+					log( Category.CHABU_INT, "Ch[%s]Recv %s", recvBlock, recvChannelIdx );
 					ch.handleRecv( recvBlock );
 					recvIdx = 0;
 				}
@@ -122,25 +142,31 @@ public class Chabu implements INetworkUser {
 		this.rxBytes += rxBytes;
 	}
 
-	void evUserReadRequest(int channelId){
-		log("Chabu.evUserReadRequest()");
-	}
-	private void log(String fmt, Object ... args ) {
-		ILogConsumer log = this.log;
-		if( log != null ){
-			log.log( ILogConsumer.Category.CHABU, instanceName, fmt, args);
+	void evUserRecvRequest(int channelId){
+		log(Category.CHABU_INT, "evUserRunRequest");
+		synchronized(this){
+			recvChannelRequest.set( channelId );
 		}
+		nw.evUserRecvRequest();
 	}
 
 	void evUserWriteRequest(int channelId){
-		log("Chabu.evUserWriteRequest()");
+		log(Category.CHABU_INT, "evUserWriteRequest");
 		synchronized(this){
 			xmitChannelRequest.set( channelId );
+		}
+		nw.evUserXmitRequest();
+	}
+
+	private void log(ILogConsumer.Category cat, String fmt, Object ... args ) {
+		ILogConsumer log = this.log;
+		if( log != null ){
+			log.log( cat, instanceName, fmt, args);
 		}
 	}
 
 	public void evXmit(ByteBuffer buf) {
-		log("evXmit()");
+		log(Category.NW_CHABU, "evXmit()");
 		int txBytes = buf.remaining();
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
@@ -170,7 +196,7 @@ public class Chabu implements INetworkUser {
 	boolean logPackets = true;
 	private void log( Block block, boolean isXmit ){
 		if(logPackets){
-			log("%s-Packet-%s @%d [C:%d P:%-4d S:0x%04X A:0x%04X]",
+			log(Category.CHABU_INT, "%s Packet %s @%d [C:%d P:%-4d S:0x%04X A:0x%04X]",
 					instanceName            ,
 					isXmit ? "Xmit" : "Recv", 
 					isXmit ? txBytes : rxBytes,
@@ -184,7 +210,6 @@ public class Chabu implements INetworkUser {
 	private void xmitData(ByteBuffer buf) {
 		if( xmitBlock.codingIdx < Constants.HEADER_SIZE ){
 			if( xmitBlock.codingIdx == 0 && buf.remaining() >= 1 ){
-				log( xmitBlock, true );
 				buf.put( (byte)xmitBlock.channelId );
 				xmitBlock.codingIdx += 1;
 			}
@@ -202,7 +227,7 @@ public class Chabu implements INetworkUser {
 			}
 		}
 		if( xmitBlock.codingIdx >= Constants.HEADER_SIZE ){
-			boolean finished = xmitBlock.payloadSize == 0;
+			boolean finished = (xmitBlock.payloadSize == 0);
 			if( !finished ){
 				buf.put(xmitBlock.payload);
 				if( !xmitBlock.payload.hasRemaining() ){
@@ -213,6 +238,7 @@ public class Chabu implements INetworkUser {
 			if( finished ){
 				xmitBlock.valid = false;
 				xmitBlock.codingIdx = 0;
+				log( xmitBlock, true );
 			}
 		}
 	}
@@ -235,6 +261,24 @@ public class Chabu implements INetworkUser {
 		}
 	}
 
+	private boolean calcNextRecvChannel() {
+		synchronized(this){
+			int idx = -1;
+			idx = recvChannelRequest.nextSetBit(recvChannelIdx);
+			if( idx < 0 ){
+				idx = recvChannelRequest.nextSetBit(0);
+			}
+			if( idx >= 0 ){
+				recvChannelIdx = idx;
+				recvChannelRequest.clear(idx);
+				return true;
+			}
+			else {
+				return false;
+			}
+		}
+	}
+	
 	public void setNetwork(INetwork nw) {
 		Utils.ensure( this.nw == null && nw != null );
 		this.nw = nw;

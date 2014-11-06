@@ -16,6 +16,6 @@ public interface INetworkUser {
 	 * Event to pass data to the network.
 	 * @param bufferToFill
 	 */
-	public void evXmit( ByteBuffer bufferToFill );
+	public boolean evXmit( ByteBuffer bufferToFill );
 	
 }

@@ -1,192 +1,179 @@
 package chabu;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayDeque;
 
 import chabu.ILogConsumer.Category;
 
 
 
-public final class Channel implements IChannel {
+public final class Channel implements INetwork {
 
-	private int   channelId = -1;
-	private Chabu chabu;
-	private final IChannelUser user;
-	private final Object       attachment;
+	private static final int PACKETFLAG_ARM = 0x0001;
+	private static final int PACKETFLAG_SEQ = 0x0002;
+
+	private int     channelId    = -1;
+	private String  instanceName = "ChabuChannel[<not yet active>]";
 	
-	final int rxBlocks; // used in chabu
+	private Chabu        chabu;
+	private INetworkUser user;
 	
 	private ByteBuffer xmitBuffer;
 	private int        xmitSeq = 0;
-	private int        xmitArm = 0xFFFF;
-	private boolean    xmitDataValid;
-	private boolean    xmitArmValid;
+	private int        xmitArm = 0;
 	
-	private ArrayDeque<ByteBuffer> recvBuffers;
-	private int                    recvSeq = 0xFFFF;
-	private int                    recvArm = 0xFFFF;
-	private String instanceName;
+	private boolean    recvArmShouldBeXmit  = false;
 	
-	public Channel(int rxBlocks, IChannelUser user ) {
-		this( rxBlocks, user, null );
-	}
-
-	public Channel(int rxBlocks, IChannelUser user, Object attachment ) {
-		this.rxBlocks    = rxBlocks;
-		this.user        = user;
-		this.attachment  = attachment;
-		this.recvBuffers     = new ArrayDeque<>(rxBlocks);
+	private ByteBuffer recvBuffer;
+	private int        recvSeq = 0;
+	private int        recvArm = 0;
+	
+	
+	public Channel(int recvBufferSize, int xmitBufferSize ) {
 		
-		this.recvArm = ( this.recvArm + rxBlocks ) & 0xFFFF;
-		xmitArmValid = true;
-		instanceName = "ChabuChannel[<not yet active>]";
+		this.recvBuffer  = ByteBuffer.allocate(recvBufferSize);
+		
+		this.recvArm = recvBufferSize;
+		this.recvArmShouldBeXmit = true;
 	}
 
 	void activate(Chabu chabu, int channelId ){
 		this.chabu      = chabu;
 		this.channelId  = channelId;
-		this.xmitBuffer = ByteBuffer.allocate(chabu.maxPayloadSize);
-		this.xmitBuffer.order( chabu.byteOrder );
-		instanceName = String.format("%s.ch%d", chabu.instanceName, channelId );
+		this.instanceName = String.format("%s.ch%d", chabu.instanceName, channelId );
 	}
-	public void evUserReadRequest(){
-		log(Category.CHABU_USER, "evUserReadRequest()");
-		//Utils.ensure( false, "Not implemented" );
+	
+	@Override
+	public void setNetworkUser(INetworkUser user) {
+		this.user = user;
 	}
-	public void evUserWriteRequest(){
-		log(Category.CHABU_USER, "evUserWriteRequest()");
+	
+	@Override
+	public void evUserRecvRequest(){
+		log(Category.CHABU_USER, "evUserRecvRequest()");
+	}
+
+	@Override
+	public void evUserXmitRequest(){
+		log(Category.CHABU_USER, "evUserXmitRequest()");
 		chabu.evUserWriteRequest(channelId);
 	}
 
-	void handleRecv( Block block ) {
-		log(Category.CHANNEL_INT, "ChRecv %s %s", this, block );
-		boolean xmitInterest = false;
-		if( block != null ){
-			if( this.xmitArm != block.arm ){
-				xmitInterest = true;
-			}
-			this.xmitArm = block.arm;
-			if( block.payloadSize > 0 ){
-				Utils.ensure( 1 == (short)( block.seq - this.recvSeq ), "Seq not inc 1: stored SEQ %d, recv SEQ %d", recvSeq, block.seq );
-				Utils.ensure( (short)( this.recvArm - block.seq ) >= 0 );
-				this.recvSeq = block.seq;
-				recvBuffers.addLast( block.payload );
-				block.payload = null;
-			}
+	void handleRecv( ByteBuffer buf ) {
+		log(Category.CHANNEL_INT, "ChRecv %s %s", this, buf );
+		if( recvBuffer.position() > 0 ){
+			callUserToTakeRecvData();
 		}
-		
-		// transfer data to user
-		int oldRem = -1;
-		ByteBuffer userBuf = recvBuffers.peek();
-		while( userBuf != null && oldRem != userBuf.remaining() ){
-			oldRem = userBuf.remaining();
-			log(Category.CHABU_USER, "ChRecvCallingUser %s: %s bytes available", this, userBuf.remaining() );
-			user.evRecv( userBuf, attachment );
-			log(Category.CHABU_USER, "ChRecvCalledUser %s: %s bytes consumed", this, oldRem - userBuf.remaining() );
-			if( !userBuf.hasRemaining() ){
-				
-				// remove the buffer, now space for receive
-				this.recvBuffers.remove();
-				chabu.freeBlock( userBuf );
-				this.recvArm = ( this.recvArm + 1 ) & 0xFFFF;
-				this.xmitArmValid = true;
-
-				// check for more recv data to transfer to user
-				userBuf = this.recvBuffers.peek();
-				oldRem = -1;
-			}
+		if( buf.remaining() < 8 ){
+			return;
 		}
-		if( xmitAllowed() || xmitInterest ){
-			log(Category.CHANNEL_INT, "ChRecvWriteRequest");
+		int pkf = buf.getShort(2) & 0xFFFF;
+		if( pkf == PACKETFLAG_ARM ){
+			handleRecvArm( buf.getInt(4) );
+			buf.position( buf.position() + 8 );
+			return;
+		}
+		else if( pkf == PACKETFLAG_SEQ ){
+			
+			if( buf.remaining() < 10 ){
+				return;
+			}
+			int pls = buf.getShort(8) & 0xFFFF;
+			if( buf.remaining() < 10+pls ){
+				return;
+			}
+			int seq = buf.getInt(4) & 0xFFFF;
+			Utils.ensure( this.recvSeq == seq );
+			buf.position( buf.position() + 10 );
+			if( pls > 0 ){
+				int oldLimit = buf.limit();
+				buf.limit( buf.position() + pls );
+				recvBuffer.put( buf );
+				buf.limit( oldLimit );
+				this.recvSeq += pls;
+				callUserToTakeRecvData();
+			}
+			return;
+		}
+		else{
+			throw Utils.fail("Unknown PKF %04X", pkf );
+		}
+	}
+	private void callUserToTakeRecvData() {
+		recvBuffer.flip();
+		int avail = recvBuffer.remaining();
+		log(Category.CHABU_USER, "ChRecvCallingUser %s: %s bytes available", this, avail );
+		user.evRecv( recvBuffer );
+		int consumed = avail - recvBuffer.remaining();
+		log(Category.CHABU_USER, "ChRecvCalledUser %s: %s bytes consumed", this, consumed  );
+		recvBuffer.compact();
+		if( consumed > 0 ){
+			this.recvArm += consumed;
+			this.recvArmShouldBeXmit = true;
 			chabu.evUserWriteRequest(channelId);
 		}
 	}
+
+	private void handleRecvArm(int arm) {
+		if( this.xmitArm != arm ){
+			chabu.evUserWriteRequest(channelId);
+		}
+		this.xmitArm = arm;
+	}
+
 	private void log( Category cat, String fmt, Object ... args ){
 		ILogConsumer log = chabu.log;
 		if( log != null ){
 			log.log( cat, instanceName, fmt, args );
 		}
 	}
-	void handleXmit( Block block ) {
+
+	void handleXmit( ByteBuffer buf ) {
 		log( Category.CHANNEL_INT, "ChXmit %s", toString() );
-		if( !xmitDataValid ){
-			checkUserXmitData();
-		}
 
-		if( xmitAllowed() ){
-			xmitData(block);
+		int startPos = buf.position();
+		
+		if( recvArmShouldBeXmit && buf.remaining() >= 8 ){
+			recvArmShouldBeXmit = false;
+			buf.putShort( (short)channelId );      // CID
+			buf.putShort( (short)PACKETFLAG_ARM ); // PKF
+			buf.putInt( recvArm );                 // ARM
+			log( Category.CHANNEL_INT, "ChXmit recvArm=%d", recvArm );
 		}
 		
-		if( !xmitDataValid ){
-			checkUserXmitData();
-			if( xmitAllowed() ){
-				log(Category.CHANNEL_INT, "ChXmitWriteRequest");
-				chabu.evUserWriteRequest(channelId);
-			}
+		if( xmitBuffer == null ){
+			xmitBuffer = ByteBuffer.allocate( chabu.getMaxXmitPayloadSize() );
+			xmitBuffer.order( chabu.getByteOrder() );
 		}
-		if( block.valid ){
-			log( Category.CHANNEL_INT, "ChXmitXmitting %s %s", toString(), block );
-		}
-		else {
-			log( Category.CHANNEL_INT, "ChXmitXmittingNone %s", toString() );			
-		}
-	}
-
-	private boolean xmitAllowed() {
-		if( xmitArmValid ) return true;
-		return xmitDataAllowed();
-	}
-
-	private boolean xmitDataAllowed() {
-		if( !xmitDataValid ) return false;
-		int diff = (short) ( xmitArm - xmitSeq );
-		return diff >= 0;
-	}
-
-	private void checkUserXmitData() {
-		boolean flush = user.evXmit( xmitBuffer, attachment);
-		if( flush || xmitBuffer.position() > 0 ){
-			xmitDataValid = true;
-		}
-	}
-
-	private void xmitData(Block block) {
-		
-		block.channelId   = channelId;
-		block.arm         = recvArm;
-		block.valid       = true;
-		
-//	if( xmitDataValid && !xmitDataAllowed() ){
-//		int sz = -1;
-//		if( xmitBuffer != null ){
-//			sz = xmitBuffer.position();
-//		}
-//		log("Channel.xmitData check %d %d %d\n", xmitArm, xmitSeq, sz);
-//	}
-		if( xmitDataAllowed() ){
+		if( xmitBuffer.position() > 0 ){
 			
 			xmitBuffer.flip();
 			
-			block.payloadSize = xmitBuffer.remaining();
-			block.seq         = xmitSeq;
-			
-			xmitSeq = ( xmitSeq + 1 ) & 0xFFFF;
-			
-			// swap the buffers
-			ByteBuffer buf = block.payload;
-			block.payload = xmitBuffer;
-			xmitBuffer = buf;
-			
-			xmitBuffer.clear();
-		}
-		else {
-			block.payloadSize = 0;
-			block.seq         = ( xmitSeq -1 ) & 0xFFFF;
+			int pls = buf.remaining() - 10;
+			if( pls > 0 ){
+				if( pls > xmitBuffer.remaining() ){
+					pls = xmitBuffer.remaining();
+				}
+				if( pls > 0xFFFF ){
+					pls = 0xFFFF;
+				}
+				buf.putShort( (short) channelId );      // CID
+				buf.putShort( (short) PACKETFLAG_SEQ ); // PKF
+				buf.putInt( xmitSeq );                  // SEQ
+				buf.putShort( (short)pls );             // PLS
+				int oldLimit = xmitBuffer.limit();
+				xmitBuffer.limit( xmitBuffer.position() + pls );
+				buf.put( xmitBuffer );
+				xmitBuffer.limit( oldLimit );
+				log( Category.CHANNEL_INT, "ChXmit xmitSeq=%5d pls=%5d", xmitSeq, pls );
+				xmitSeq += pls;
+			}
+			xmitBuffer.compact();
 		}
 		
-		xmitArmValid  = false;
-		xmitDataValid = false;
-		
+		int xmitSz = buf.position() - startPos;
+		if( xmitSz == 0 ){
+			log( Category.CHANNEL_INT, "handleXmit no-action" );
+		}
 	}
 	
 	public String toString(){

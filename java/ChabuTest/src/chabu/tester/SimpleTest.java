@@ -47,7 +47,7 @@ public class SimpleTest implements ITestTask {
 		nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
 		nw.addCommand( DutId.B, new CmdDutConnect( st, "localhost", 2310 ));
 		nw.flush(DutId.ALL);
-		nw.addCommand( DutId.ALL, new CmdSetupChannelAdd( st, 0, 10, 0, 0 ));
+		nw.addCommand( DutId.ALL, new CmdSetupChannelAdd( st, 0, 1000, 1100, 0, 0 ));
 		nw.addCommand( DutId.ALL, new CmdSetupActivate( st, true, 1000 ));
 		st += 400*MSEC;
 		nw.addCommand( DutId.A, new CmdConnectionAwait( st, 2301 ));

@@ -48,6 +48,7 @@ public class Logger {
 		pw.printf("%2d.%06d: ", secs, frac );
 		
 	}
+	
 	public void printfln(String fmt, Object ... args ) {
 		printTs();
 		pw.printf(fmt, args);

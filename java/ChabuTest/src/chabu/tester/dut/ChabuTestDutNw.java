@@ -3,7 +3,6 @@ package chabu.tester.dut;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -15,8 +14,8 @@ import java.util.Iterator;
 import java.util.Set;
 
 import chabu.Chabu;
+import chabu.ChabuConnectingInfo;
 import chabu.Channel;
-import chabu.IChannelUser;
 import chabu.ILogConsumer;
 import chabu.INetwork;
 import chabu.INetworkUser;
@@ -64,7 +63,7 @@ public class ChabuTestDutNw {
 	}
 
 	
-	class TestChannelUser implements IChannelUser {
+	class TestChannelUser implements INetworkUser {
 
 		Channel channel;
 		public int rxCountRemaining;
@@ -75,7 +74,7 @@ public class ChabuTestDutNw {
 		public int rxDataIndex;
 		
 		@Override
-		public void evRecv(ByteBuffer buffer, Object attachment) {
+		public void evRecv(ByteBuffer buffer) {
 			int p = buffer.remaining();
 			while( buffer.hasRemaining() && rxCountRemaining > 0 ){
 				int value = buffer.get() & 0xff;
@@ -89,7 +88,7 @@ public class ChabuTestDutNw {
 		}
 
 		@Override
-		public boolean evXmit(ByteBuffer buffer, Object attachment) {
+		public boolean evXmit(ByteBuffer buffer) {
 			boolean flush = false;
 			int p = buffer.remaining();
 			while( buffer.hasRemaining() && txCountRemaining > 0 ){
@@ -105,6 +104,9 @@ public class ChabuTestDutNw {
 			return flush;
 		}
 		
+		@Override
+		public void setNetwork(INetwork nw) {
+		}
 	}
 	class TestNetwork implements INetwork {
 		
@@ -193,21 +195,14 @@ public class ChabuTestDutNw {
 		ctrlNw.serverSocket.configureBlocking(false);
 		ctrlNw.serverSocket.bind(new InetSocketAddress(ctrlPort));
 		
-//		testNw.serverSocket = ServerSocketChannel.open();
-//		testNw.serverSocket.configureBlocking(false);
-//		testNw.serverSocket.bind(new InetSocketAddress(testPort));
-		
 		selector = Selector.open();
 		ctrlNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT, ctrlNw );
-//		testNw.serverSocket.register( selector, SelectionKey.OP_ACCEPT );
 		
 	}
 	
 	private void run() {
 		System.out.println("ChabuTestDutNw.run()");
 		try {
-			@SuppressWarnings("unused")
-			int connectionOpenIndex = 0;
 
 			while (!doShutDown) {
 
@@ -386,7 +381,6 @@ public class ChabuTestDutNw {
 					notifyAll();
 				}
 			} catch (Exception e) {
-				//					startupException = e;
 				e.printStackTrace();
 			}
 		}
@@ -451,7 +445,8 @@ public class ChabuTestDutNw {
 			CmdSetupChannelAdd c = (CmdSetupChannelAdd)cmd;
 			Utils.ensure( testNw.channelUsers.size() == c.channelId, "Channel ID sequence is not correct, exp %d, but is %d", testNw.channelUsers.size(), c.channelId );
 			TestChannelUser tcu = new TestChannelUser();
-			tcu.channel = new Channel( c.rxCount, tcu );
+			tcu.channel = new Channel( c.rxCount, c.txCount );
+			tcu.channel.setNetworkUser(tcu);
 			tcu.txDataIndex = c.txInitialOffset;
 			tcu.rxDataIndex = c.rxInitialOffset;
 			testNw.channelUsers.add( tcu );
@@ -461,7 +456,15 @@ public class ChabuTestDutNw {
 		{
 			Utils.ensure( !testNw.activated );
 			CmdSetupActivate c = (CmdSetupActivate)cmd;
-			testNw.setUser( new Chabu( c.byteOrderBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN, c.maxPayloadSize ));
+			
+			ChabuConnectingInfo info = new ChabuConnectingInfo();
+			info.applicationName = "";
+			info.applicationVersion = 0x01000123;
+			info.receiveCannelCount = 1;
+			info.maxReceivePayloadSize = c.maxPayloadSize;
+			info.byteOrderBigEndian = c.byteOrderBigEndian;  
+			
+			testNw.setUser( new Chabu( info ));
 			for( TestChannelUser cu : testNw.channelUsers ){
 				testNw.chabu.addChannel(cu.channel);
 			}
@@ -479,12 +482,12 @@ public class ChabuTestDutNw {
 			cu.txCountRemaining += c.txCount;
 			
 			if( c.rxCount > 0 ){
-				cu.channel.evUserReadRequest();
+				cu.channel.evUserRecvRequest();
 				testNw.evUserRecvRequest();
 			}
 			if( c.txCount > 0 ){
 				System.out.printf("tx %d %d\n", c.txCount, cu.txCountRemaining );
-				cu.channel.evUserWriteRequest();
+				cu.channel.evUserXmitRequest();
 				testNw.evUserXmitRequest();
 			}
 			

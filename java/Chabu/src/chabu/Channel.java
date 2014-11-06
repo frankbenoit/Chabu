@@ -55,7 +55,7 @@ public final class Channel implements INetwork {
 	@Override
 	public void evUserXmitRequest(){
 		log(Category.CHABU_USER, "evUserXmitRequest()");
-		chabu.evUserWriteRequest(channelId);
+		chabu.evUserXmitRequest(channelId);
 	}
 
 	void handleRecv( ByteBuffer buf ) {
@@ -63,12 +63,17 @@ public final class Channel implements INetwork {
 		if( recvBuffer.position() > 0 ){
 			callUserToTakeRecvData();
 		}
+		user.evRecv( null );
+		if( buf == null ){
+			return;
+		}
+		
 		if( buf.remaining() < 8 ){
 			return;
 		}
-		int pkf = buf.getShort(2) & 0xFFFF;
+		int pkf = buf.getShort(buf.position()+2) & 0xFFFF;
 		if( pkf == PACKETFLAG_ARM ){
-			handleRecvArm( buf.getInt(4) );
+			handleRecvArm( buf.getInt(buf.position()+4) );
 			buf.position( buf.position() + 8 );
 			return;
 		}
@@ -77,13 +82,20 @@ public final class Channel implements INetwork {
 			if( buf.remaining() < 10 ){
 				return;
 			}
-			int pls = buf.getShort(8) & 0xFFFF;
-			if( buf.remaining() < 10+pls ){
-				return;
-			}
-			int seq = buf.getInt(4) & 0xFFFF;
+			int seq = buf.getInt  (buf.position()+4);
+			int pls = buf.getShort(buf.position()+8) & 0xFFFF;
+			
 			Utils.ensure( this.recvSeq == seq );
+			
+			if( buf.remaining() < 10+pls ){
+				return; // packet not yet complete
+			}
+			if( recvBuffer.remaining() < pls ){
+				return; // cannot take all payload, yet
+			}
+			
 			buf.position( buf.position() + 10 );
+			
 			if( pls > 0 ){
 				int oldLimit = buf.limit();
 				buf.limit( buf.position() + pls );
@@ -101,30 +113,27 @@ public final class Channel implements INetwork {
 	private void callUserToTakeRecvData() {
 		recvBuffer.flip();
 		int avail = recvBuffer.remaining();
-		log(Category.CHABU_USER, "ChRecvCallingUser %s: %s bytes available", this, avail );
+		log(Category.CHABU_USER, "ChRecvCallingUser %5s bytes avail", avail );
 		user.evRecv( recvBuffer );
 		int consumed = avail - recvBuffer.remaining();
-		log(Category.CHABU_USER, "ChRecvCalledUser %s: %s bytes consumed", this, consumed  );
+		log(Category.CHABU_USER, "ChRecvCalledUser  %5s bytes consu", consumed  );
 		recvBuffer.compact();
 		if( consumed > 0 ){
 			this.recvArm += consumed;
 			this.recvArmShouldBeXmit = true;
-			chabu.evUserWriteRequest(channelId);
+			chabu.evUserXmitRequest(channelId);
 		}
 	}
 
 	private void handleRecvArm(int arm) {
 		if( this.xmitArm != arm ){
-			chabu.evUserWriteRequest(channelId);
+			chabu.evUserXmitRequest(channelId);
 		}
 		this.xmitArm = arm;
 	}
 
 	private void log( Category cat, String fmt, Object ... args ){
-		ILogConsumer log = chabu.log;
-		if( log != null ){
-			log.log( cat, instanceName, fmt, args );
-		}
+		chabu.logHelper(cat, instanceName, fmt, args);
 	}
 
 	void handleXmit( ByteBuffer buf ) {
@@ -144,6 +153,15 @@ public final class Channel implements INetwork {
 			xmitBuffer = ByteBuffer.allocate( chabu.getMaxXmitPayloadSize() );
 			xmitBuffer.order( chabu.getByteOrder() );
 		}
+		
+		if( xmitBuffer.hasRemaining() ){
+			int avail = xmitBuffer.remaining();
+			log(Category.CHABU_USER, "ChXmitCallingUser %5s bytes free", avail );
+			user.evXmit(xmitBuffer);
+			int consumed = avail - xmitBuffer.remaining();
+			log(Category.CHABU_USER, "ChXmitCalledUser  %5s bytes fill", consumed );
+		}
+		
 		if( xmitBuffer.position() > 0 ){
 			
 			xmitBuffer.flip();

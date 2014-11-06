@@ -82,7 +82,7 @@ public class Chabu implements INetworkUser {
 				Utils.ensure( activated );
 				ChabuConnectingInfo info = recvProtocolParameterSpecification(buf);
 				if( info != null ){
-					startupRx = true;	
+					startupRx = false;	
 					this.infoRemote = info;
 					continue;
 				}
@@ -92,7 +92,8 @@ public class Chabu implements INetworkUser {
 			if( buf.remaining() < 8 ){
 				break;
 			}
-			int channelId = buf.getShort(2) & 0xFFFF;
+			log( Category.CHABU_INT, "Recv pos %d", buf.position() );
+			int channelId = buf.getShort(buf.position()+0) & 0xFFFF;
 			Channel channel = channels.get(channelId);
 			channel.handleRecv(buf);
 			
@@ -107,7 +108,7 @@ public class Chabu implements INetworkUser {
 		nw.evUserRecvRequest();
 	}
 
-	void evUserWriteRequest(int channelId){
+	void evUserXmitRequest(int channelId){
 		log(Category.CHABU_INT, "evUserWriteRequest");
 		synchronized(this){
 			xmitChannelRequest.set( channelId );
@@ -115,11 +116,20 @@ public class Chabu implements INetworkUser {
 		nw.evUserXmitRequest();
 	}
 
-	private void log(ILogConsumer.Category cat, String fmt, Object ... args ) {
+	void logHelper(ILogConsumer.Category cat, String instanceName, String fmt, Object ... args ) {
 		ILogConsumer log = this.log;
+		
+		if( cat == Category.NW_CHABU ) return;
+		if( cat == Category.CHABU_INT ) return;
+		if( cat == Category.CHANNEL_INT ) return;
+//		if( cat == Category.CHABU_USER ) return;
+		
 		if( log != null ){
 			log.log( cat, instanceName, fmt, args);
 		}
+	}
+	private void log(ILogConsumer.Category cat, String fmt, Object ... args ) {
+		logHelper( cat, instanceName, fmt, args );
 	}
 
 	public boolean evXmit(ByteBuffer buf) {
@@ -132,6 +142,9 @@ public class Chabu implements INetworkUser {
 				startupTx = false;
 				xmitProtocolParameterSpecification(buf);
 				continue;
+			}
+			if( startupRx ){
+				break;
 			}
 
 			while( true ){
@@ -199,6 +212,7 @@ public class Chabu implements INetworkUser {
 		Utils.ensure( anlBytes.length <= 255 );
 		buf.put( (byte)anlBytes.length );
 		buf.put( anlBytes );
+		log(Category.CHABU_INT, "Protocol info local xmit");
 	}
 
 	private ChabuConnectingInfo recvProtocolParameterSpecification(ByteBuffer buf) {
@@ -219,6 +233,11 @@ public class Chabu implements INetworkUser {
 		}
 
 		info.byteOrderBigEndian    = ( buf.get(1) != 0 );
+		
+		if( info.byteOrderBigEndian != infoLocal.byteOrderBigEndian ){
+			throw new ChabuConnectionAbortedException(String.format("Chabu protocol byte-order mismatch. local %s, remote %s", infoLocal.byteOrderBigEndian, info.byteOrderBigEndian ));
+		}
+		
 		info.maxReceivePayloadSize = buf.getShort(2) & 0xFFFF;
 		info.receiveCannelCount    = buf.getShort(4) & 0xFFFF;
 		info.applicationVersion    = buf.getInt(6);
@@ -233,6 +252,7 @@ public class Chabu implements INetworkUser {
 		byte[] anlBytes = new byte[anl];
 		buf.get( anlBytes );
 		info.applicationName = new String( anlBytes, StandardCharsets.UTF_8 );
+		log(Category.CHABU_INT, "Protocol info remote recv");
 		return info;
 		
 	}

@@ -11,5 +11,6 @@
 	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.equinox.common_3.6.200.v20130402-1505.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Chabu"/>
 	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.osgi_3.10.1.v20140909-1633.jar"/>
+	<classpathentry kind="lib" path="lib/jfreechart-1.0.19-swt.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

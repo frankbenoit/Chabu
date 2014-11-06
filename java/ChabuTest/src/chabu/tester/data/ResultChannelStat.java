@@ -18,16 +18,16 @@ public class ResultChannelStat extends AResult {
 	@Override
 	public void encode(ByteBuffer buf) {
 		super.encode(buf);
-		buf.put( (byte)this.channelId );
-		buf.putShort( (short)this.txCount );
-		buf.putShort( (short)this.rxCount );
+		buf.putShort( (short)this.channelId );
+		buf.putInt( this.txCount );
+		buf.putInt( this.rxCount );
 	}
 	
 	static ResultChannelStat createResultChannelStat(ByteBuffer buf) {
 		long   time       = buf.getLong();
-		int    channelId  = buf.get() & 0xFF;
-		int    txCount    = buf.getShort() & 0xFFFF;
-		int    rxCount    = buf.getShort() & 0xFFFF;
+		int    channelId  = buf.getShort() & 0xFFFF;
+		int    txCount    = buf.getInt();
+		int    rxCount    = buf.getInt();
 		return new ResultChannelStat(time, channelId, rxCount, txCount );
 	}
 	@Override

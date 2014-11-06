@@ -75,6 +75,9 @@ public class ChabuTestDutNw {
 		
 		@Override
 		public void evRecv(ByteBuffer buffer) {
+			if( buffer == null ){
+				return;
+			}
 			int p = buffer.remaining();
 			while( buffer.hasRemaining() && rxCountRemaining > 0 ){
 				int value = buffer.get() & 0xff;
@@ -84,7 +87,7 @@ public class ChabuTestDutNw {
 				rxCountDone++;
 				rxCountRemaining--;
 			}
-			logger.printfln("DutNw channel evRecv %d bytes", p - buffer.remaining() );
+			testLog("DutNw channel evRecv %d bytes", p - buffer.remaining() );
 		}
 
 		@Override
@@ -92,7 +95,8 @@ public class ChabuTestDutNw {
 			boolean flush = false;
 			int p = buffer.remaining();
 			while( buffer.hasRemaining() && txCountRemaining > 0 ){
-				buffer.put( testData.get( txDataIndex ) );
+				byte value = testData.get( txDataIndex );
+				buffer.put( value );
 				txDataIndex++;
 				txCountDone++;
 				txCountRemaining--;
@@ -100,7 +104,7 @@ public class ChabuTestDutNw {
 					flush = true;
 				}
 			}
-			logger.printfln("DutNw channel evXmit %d bytes %s %s remaining", p - buffer.remaining(), buffer, txCountRemaining );
+			testLog("DutNw channel evXmit %d bytes %s %s remaining", p - buffer.remaining(), buffer, txCountRemaining );
 			return flush;
 		}
 		
@@ -166,9 +170,9 @@ public class ChabuTestDutNw {
 			rxBuffer.compact();
 			int readSz = socketChannel.read(rxBuffer);
 			rxBuffer.flip();
-			logger.printfln( "NwSocket Read %d bytes", readSz );
+			testLog( "NwSocket Read %d bytes", readSz );
 			if( readSz < 0 ){
-				logger.printfln( "SocketClosed");
+				testLog( "SocketClosed");
 			}
 			chabu.evRecv(testNw.rxBuffer);
 		}
@@ -178,7 +182,7 @@ public class ChabuTestDutNw {
 			txBuffer.flip();
 			if( txBuffer.hasRemaining() ){
 				int writeSz = socketChannel.write(txBuffer);
-				logger.printfln("NwSocket Write %d bytes", writeSz );
+				testLog("NwSocket Write %d bytes", writeSz );
 				if( txBuffer.hasRemaining() ){
 					netwRequestXmit = true;
 				}
@@ -258,7 +262,7 @@ public class ChabuTestDutNw {
 								ctrlNw.serverSocket.register(selector, SelectionKey.OP_ACCEPT, ctrlNw);
 								ctrlNw.socketChannel.register(selector, SelectionKey.OP_READ, ctrlNw);
 								
-								logger.printfln("ctrl connected" );
+								testLog("ctrl connected" );
 
 								enqueueResult( new ResultVersion( DUT_VERSION ) );
 
@@ -266,9 +270,9 @@ public class ChabuTestDutNw {
 							notifyAll();
 
 							if (key.isReadable() ) {
-								//logger.printfln("DUT %s: read", name );
+								//testLog("DUT %s: read", name );
 								int readSz = ctrlNw.socketChannel.read( ctrlNw.rxBuffer );
-								//logger.printfln("reading %s %s", readSz, ctrlNw.rxBuffer );
+								//testLog("reading %s %s", readSz, ctrlNw.rxBuffer );
 								ctrlNw.rxBuffer.flip();
 								while( true ){
 									ACommand cmd = ACommand.decodeCommand( ctrlNw.rxBuffer );
@@ -280,16 +284,16 @@ public class ChabuTestDutNw {
 								ctrlNw.rxBuffer.compact();
 
 								if( readSz < 0 ){
-									//logger.printfln("DUT %s: closing", name );
+									//testLog("DUT %s: closing", name );
 									ctrlNw.socketChannel.close();
 								}
-								//logger.printfln("DUT %s: read complete", name );
+								//testLog("DUT %s: read complete", name );
 							}
 							if (key.isWritable() ) {
-								//logger.printfln("write" );
-								//logger.printfln("%s", ctrlNw.txBuffer );
+								//testLog("write" );
+								//testLog("%s", ctrlNw.txBuffer );
 								while( ctrlNw.txBuffer.remaining() > 1000 && !results.isEmpty() ){
-									//								logger.printfln("Tester %s: loop buf %s", name, ctrlNw.txBuffer );
+									//								testLog("Tester %s: loop buf %s", name, ctrlNw.txBuffer );
 									AResult res = results.remove();
 									AResult.encodeItem(ctrlNw.txBuffer, res);
 								}
@@ -313,21 +317,21 @@ public class ChabuTestDutNw {
 								if (testNw.socketChannel.isConnectionPending()){
 									if( testNw.socketChannel.finishConnect() ){
 										testNw.socketChannel.register( selector, SelectionKey.OP_READ|SelectionKey.OP_WRITE, testNw );
-										logger.printfln("%s: connect finished ok", name );
+										testLog("%s: connect finished ok", name );
 									}
 									else {
-										logger.printfln("%s: connect finished FAIL", name );
+										testLog("%s: connect finished FAIL", name );
 									}
 								}
 							} else if (key.isWritable() || key.isReadable() ) {
-								logger.printfln("Server selector can rd:%s wr:%s", key.isReadable(), key.isWritable());
+								testLog("Server selector can rd:%s wr:%s", key.isReadable(), key.isWritable());
 								testNw.netwRequestRecv = true;
 								
 								if( key.isReadable() ){
 									testNw.handleRecv();
 								}
 								else {
-									logger.printfln( "NwSocket Read None" );
+									testLog( "NwSocket Read None" );
 								}
 
 								//if( key.isWritable() ) 
@@ -335,7 +339,7 @@ public class ChabuTestDutNw {
 									testNw.handleXmit();
 								}
 //								else {
-//									logger.printfln("NwSocket Write None" );
+//									testLog("NwSocket Write None" );
 //								}
 								int interestOps = 0;
 								if( testNw.netwRequestRecv ){
@@ -344,13 +348,13 @@ public class ChabuTestDutNw {
 								if( testNw.netwRequestXmit ){
 									interestOps |= SelectionKey.OP_WRITE;
 								}
-								logger.printfln("InterestOps rd:%s wr:%s", testNw.netwRequestRecv, testNw.netwRequestXmit );
+								testLog("InterestOps rd:%s wr:%s", testNw.netwRequestRecv, testNw.netwRequestXmit );
 								testNw.socketChannel.register( selector, interestOps, testNw );
 
 							}
 						}
 						else {
-							logger.printfln(">>>>>>> ChabuTestDutNw.run() unknown attachment %s", key.attachment());
+							testLog(">>>>>>> ChabuTestDutNw.run() unknown attachment %s", key.attachment());
 						}
 					}
 				}
@@ -385,10 +389,13 @@ public class ChabuTestDutNw {
 			}
 		}
 	}
+	private void testLog( String fmt, Object ... args ){
+		//logger.printfln( "Test %s", String.format( fmt, args ));
+	}
 
 	private void executeSchedCommand( long delay, ACmdScheduled cmd ) throws IOException {
 		
-		logger.printfln("%s %sms", cmd, delay );
+		testLog("%s %sms", cmd, delay );
 
 		switch( cmd.commandId ){
 
@@ -486,7 +493,7 @@ public class ChabuTestDutNw {
 				testNw.evUserRecvRequest();
 			}
 			if( c.txCount > 0 ){
-				System.out.printf("tx %d %d\n", c.txCount, cu.txCountRemaining );
+				System.out.printf("tx [%d] %d %d\n", c.channelId, c.txCount, cu.txCountRemaining );
 				cu.channel.evUserXmitRequest();
 				testNw.evUserXmitRequest();
 			}

@@ -47,7 +47,10 @@ public class SimpleTest implements ITestTask {
 		nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
 		nw.addCommand( DutId.B, new CmdDutConnect( st, "localhost", 2310 ));
 		nw.flush(DutId.ALL);
-		nw.addCommand( DutId.ALL, new CmdSetupChannelAdd( st, 0, 1000, 1100, 0, 0 ));
+		nw.addCommand( DutId.A, new CmdSetupChannelAdd( st, 0, 2000, 2000, 237, 645 ));
+		nw.addCommand( DutId.B, new CmdSetupChannelAdd( st, 0, 2000, 2000, 645, 237 ));
+		nw.addCommand( DutId.A, new CmdSetupChannelAdd( st, 1, 2000, 2000, 728, 967 ));
+		nw.addCommand( DutId.B, new CmdSetupChannelAdd( st, 1, 2000, 2000, 967, 728 ));
 		nw.addCommand( DutId.ALL, new CmdSetupActivate( st, true, 1000 ));
 		st += 400*MSEC;
 		nw.addCommand( DutId.A, new CmdConnectionAwait( st, 2301 ));
@@ -56,18 +59,26 @@ public class SimpleTest implements ITestTask {
 		waitUntil( System.nanoTime()+1000*MSEC );
 		st = System.nanoTime();
 		int millis1 = 0;
+		addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 0, 1000_000 ));
+		addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 1, 0, 1000_000 ));
+		addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 0, 1000_000 ));
+		addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 1, 0, 1000_000 ));
+
 		for( int i = 0; i < 6; i++ ){
-			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
-			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
-			millis1 += 200;
-			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
-			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
+			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
+			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 1, 100000, 0 ));
+			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
+			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 1, 100000, 0 ));
+
+//			millis1 += 200;
+//			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
+//			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
 			millis1 += 400;
 		}
 		int millis2 = 0;
 		while( millis2 <= millis1+500 ){
 			addToList( DutId.ALL, new CmdChannelCreateStat( st+millis2*MSEC, 0 ));
-			millis2 += 150;
+			millis2 += 100;
 		}
 		enqueueList(nw);
 		nw.flush(DutId.ALL);

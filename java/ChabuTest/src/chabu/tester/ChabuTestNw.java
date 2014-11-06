@@ -8,6 +8,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeMap;
@@ -20,6 +21,7 @@ import chabu.tester.data.AResult;
 import chabu.tester.data.AXferItem;
 import chabu.tester.data.CmdDutConnect;
 import chabu.tester.data.CmdDutDisconnect;
+import chabu.tester.data.ResultChannelStat;
 
 public class ChabuTestNw {
 	private String name;
@@ -244,8 +246,54 @@ public class ChabuTestNw {
 		}
 	}
 
-	private void consumeResult(DutId dut, AResult res) {
-		logger.printfln("recv %s %s", dut, res );
+	static class StatsData {
+		long  time;
+		int txCount;
+		int rxCount;
+		
+		long timeDelta;
+		int txCountDelta;
+		int rxCountDelta;
+	}
+	ArrayList<StatsData> statsValues = new ArrayList<StatsData>(100);
+	private void consumeResult(DutId dut, AResult res) throws IOException {
+		if( res instanceof ResultChannelStat ){
+			ResultChannelStat cs = (ResultChannelStat)res;
+			
+			int idx = cs.channelId*2;
+			
+			Logger log = ( dut == DutId.A ) ? Logger.getLogger("statsA") : Logger.getLogger("statsB");
+
+			if( dut == DutId.B ){
+				idx++;
+			}
+			while( statsValues.size() <= idx ){
+				statsValues.add( new StatsData() );
+			}
+			StatsData sd = statsValues.get(idx);
+			sd.txCountDelta = cs.txCount;
+			sd.rxCountDelta = cs.rxCount;
+			sd.timeDelta = cs.time - sd.time;
+			
+			sd.txCount += cs.txCount;
+			sd.rxCount += cs.rxCount;
+			sd.time = cs.time;
+
+			int txRate = -1;
+			int rxRate = -1;
+			if( sd.timeDelta > 0 ){
+				txRate = (int)(( cs.txCount * 1000_000_000L ) / sd.timeDelta);
+				rxRate = (int)(( cs.rxCount * 1000_000_000L ) / sd.timeDelta);
+			}
+			long td = ( cs.time - AXferItem.relativeTimeForToString ) / 1000000;
+			System.out.printf("%s %s %s\n", cs.txCount, txRate, td );
+			log.printfln("%s\t%s\t%s\t%s\t%s\t%s", dut,
+					td, 
+					sd.txCount, txRate, sd.rxCount, rxRate );
+		}
+		else {
+			logger.printfln("recv %s %s", dut, res );
+		}
 	}
 
 	public void start() {

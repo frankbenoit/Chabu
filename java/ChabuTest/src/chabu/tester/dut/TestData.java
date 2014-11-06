@@ -13,7 +13,7 @@ public class TestData {
 	}
 	
 	public byte get( int index ){
-		return data[ index % SIZE ];
+		return data[ index & (SIZE-1) ];
 	}
 	
 	public static void main(String[] args) {

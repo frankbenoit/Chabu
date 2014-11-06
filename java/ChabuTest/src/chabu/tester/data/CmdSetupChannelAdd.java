@@ -21,7 +21,7 @@ public class CmdSetupChannelAdd extends ACmdScheduled {
 	@Override
 	public void encode(ByteBuffer buf) {
 		super.encode(buf);
-		buf.put( (byte)channelId );
+		buf.putShort( (short)channelId );
 		buf.putInt( rxCount );
 		buf.putInt( txCount );
 		buf.putInt( rxInitialOffset );
@@ -29,10 +29,10 @@ public class CmdSetupChannelAdd extends ACmdScheduled {
 	}
 	
 	static CmdSetupChannelAdd createSetupChannelAdd(ByteBuffer buf) {
-		long time      = buf.getLong();
-		int  channelId = buf.get() & 0xFF;
-		int  rxCount   = buf.getInt();
-		int  txCount   = buf.getInt();
+		long time            = buf.getLong();
+		int  channelId       = buf.getShort() & 0xFFFF;
+		int  rxCount         = buf.getInt();
+		int  txCount         = buf.getInt();
 		int  rxInitialOffset = buf.getInt();
 		int  txInitialOffset = buf.getInt();
 		return new CmdSetupChannelAdd(time, channelId, rxCount, txCount, rxInitialOffset, txInitialOffset );

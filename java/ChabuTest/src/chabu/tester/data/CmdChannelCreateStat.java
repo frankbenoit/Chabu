@@ -14,12 +14,12 @@ public class CmdChannelCreateStat extends ACmdScheduled {
 	@Override
 	public void encode(ByteBuffer buf) {
 		super.encode(buf);
-		buf.put( (byte) channelId );
+		buf.putShort( (short) channelId );
 	}
 	
 	static ACommand createChannelCreateStat(ByteBuffer buf) {
 		long time      = buf.getLong();
-		int  channelId = buf.get() & 0xFF;
+		int  channelId = buf.getShort() & 0xFFFF;
 		return new CmdChannelCreateStat(time, channelId );
 	}
 

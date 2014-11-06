@@ -19,14 +19,14 @@ public class CmdChannelAction extends ACmdScheduled {
 	public void encode(ByteBuffer buf) {
 		buf.put( (byte)this.commandId.getId() );
 		buf.putLong( this.schedTime );
-		buf.putInt( (byte)this.channelId );
-		buf.putInt( (short)this.txCount );
-		buf.putInt( (short)this.rxCount );
+		buf.putShort( (short)this.channelId );
+		buf.putInt( this.txCount );
+		buf.putInt( this.rxCount );
 	}
 
 	static CmdChannelAction createChannelAction(ByteBuffer buf) {
 		long time     = buf.getLong();
-		int channelId = buf.getInt();
+		int channelId = buf.getShort() & 0xFFFF;
 		int txCount   = buf.getInt();
 		int rxCount   = buf.getInt();
 		return new CmdChannelAction(time, channelId, txCount, rxCount );

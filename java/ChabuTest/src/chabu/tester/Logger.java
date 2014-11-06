@@ -49,7 +49,7 @@ public class Logger {
 		
 	}
 	
-	public void printfln(String fmt, Object ... args ) {
+	public void printfln( String fmt, Object ... args ) {
 		printTs();
 		pw.printf(fmt, args);
 		pw.println();

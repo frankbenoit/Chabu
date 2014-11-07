@@ -10,6 +10,8 @@ import chabu.ILogConsumer.Category;
 
 public class Chabu implements INetworkUser {
 
+	public static final int PROTOCOL_VERSION = 1;
+
 	ILogConsumer log;
 	
 	private ArrayList<Channel> channels = new ArrayList<>(256);
@@ -224,8 +226,8 @@ public class Chabu implements INetworkUser {
 		ChabuConnectingInfo info = new ChabuConnectingInfo();
 		info.chabuProtocolVersion = buf.get(0) & 0xFF;
 		
-		if( info.chabuProtocolVersion != Constants.PROTOCOL_VERSION ){
-			throw new ChabuConnectionAbortedException(String.format("Chabu protocol version mismatch. Expected %d, received %d", Constants.PROTOCOL_VERSION, info.chabuProtocolVersion ));
+		if( info.chabuProtocolVersion != PROTOCOL_VERSION ){
+			throw new ChabuConnectionAbortedException(String.format("Chabu protocol version mismatch. Expected %d, received %d", PROTOCOL_VERSION, info.chabuProtocolVersion ));
 		}
 		
 		if( buf.remaining() < 11 ){

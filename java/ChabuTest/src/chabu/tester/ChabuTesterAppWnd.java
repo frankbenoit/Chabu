@@ -90,7 +90,7 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 			listViewer.setLabelProvider( new LabelProvider() {
 				@Override
 				public String getText(Object element) {
-					ChartData cs = (ChartData)element;
+					StreamStats cs = (StreamStats)element;
 					return String.format("[%s] %s -> %s", cs.tx.channelId, cs.tx.dutId, cs.rx.dutId );
 				}
 			});
@@ -124,41 +124,35 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 	        chart.getAxisSet().adjustRange();
 
 		}
-		
+		getShell().getDisplay().timerExec( 2000, this::updateStats );
 		return sf;
 	}
 
-	class ChartData {
-		ChannelStats rx;
-		ChannelStats tx;
+	public void updateStats(){
+		fillData();
+		updateChart();
+		getShell().getDisplay().timerExec( 400, this::updateStats );
 	}
 	
 	public void fillData() {
-//		private static final String PLOT_A_TX = "A TX";
-//		private static final String PLOT_A_RX = "A RX";
-//		private static final String PLOT_B_TX = "B TX";
-//		private static final String PLOT_B_RX = "B RX";
-		ArrayList<ChannelStats> statsValues = nw.getStatsValues();
-		final ChartData[] chartData = new ChartData[ statsValues.size() / 2 ];
-		for (int i = 0; i < chartData.length; i+=2) {
-			chartData[i  ] = new ChartData();
-			chartData[i+1] = new ChartData();
-			chartData[i  ].tx = statsValues.get( i*2 +0 );
-			chartData[i  ].rx = statsValues.get( i*2 +3 );
-			chartData[i+1].tx = statsValues.get( i*2 +2 );
-			chartData[i+1].rx = statsValues.get( i*2 +1 );
-		}
+		final ArrayList<StreamStats> statsValues = nw.getStatsValues();
 		Display.getDefault().syncExec( ()->{
-			listViewer.setInput( chartData );
+			if( listViewer.getList().getItemCount() != statsValues.size() ){
+				listViewer.setInput( statsValues.toArray() );
+			}
 		});
 	}
 	public void plotSelection(SelectionChangedEvent event) {
-		if( event.getSelection().isEmpty() ){
+		updateChart();
+	}
+
+	private void updateChart() {
+		if( listViewer.getSelection().isEmpty() ){
 			return;
 		}
-		IStructuredSelection sel = (IStructuredSelection)event.getSelection();
-		ChartData cd = (ChartData)sel.getFirstElement();
-		System.out.printf("[%s] %s -> %s\n", cd.rx.channelId, cd.tx.dutId, cd.rx.dutId );
+		IStructuredSelection sel = (IStructuredSelection)listViewer.getSelection();
+		StreamStats cd = (StreamStats)sel.getFirstElement();
+//		System.out.printf("[%s] %s -> %s\n", cd.rx.channelId, cd.tx.dutId, cd.rx.dutId );
 		{
 			ILineSeries ls = (ILineSeries) chart.getSeriesSet().getSeries(PLOT_TX);
 			ls.setXSeries( Arrays.copyOf( cd.tx.time, cd.tx.count ));

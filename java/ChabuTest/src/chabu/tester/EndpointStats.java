@@ -1,6 +1,6 @@
 package chabu.tester;
 
-public class ChannelStats {
+public class EndpointStats {
 
 	int channelId;
 	DutId dutId;

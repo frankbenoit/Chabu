@@ -247,9 +247,9 @@ public class ChabuTestNw {
 		}
 	}
 
-	ArrayList<ChannelStats> statsValues = new ArrayList<ChannelStats>(100);
+	ArrayList<StreamStats> statsValues = new ArrayList<StreamStats>(100);
 	
-	public ArrayList<ChannelStats> getStatsValues() {
+	public ArrayList<StreamStats> getStatsValues() {
 		return statsValues;
 	}
 	
@@ -257,18 +257,31 @@ public class ChabuTestNw {
 		if( res instanceof ResultChannelStat ){
 			ResultChannelStat cs = (ResultChannelStat)res;
 			
-			int idx = cs.channelId*4;
+			int idx = cs.channelId*2;
 			
 			Logger log = ( dut == DutId.A ) ? Logger.getLogger("statsA") : Logger.getLogger("statsB");
 
-			if( dut == DutId.B ){
-				idx += 2;
+//			if( dut == DutId.B ){
+//				idx += 1;
+//			}
+			while( statsValues.size() < cs.channelId*2+2 ){
+				StreamStats ss = new StreamStats();
+				ss.rx = new EndpointStats();
+				ss.rx.channelId = statsValues.size() / 2;
+				ss.rx.dutId = (statsValues.size() % 2 == 0 ) ? DutId.B : DutId.A;
+				ss.tx = new EndpointStats();
+				ss.tx.channelId = statsValues.size() / 2;
+				ss.tx.dutId = (statsValues.size() % 2 == 0 ) ? DutId.A : DutId.B;
+				statsValues.add( ss );
 			}
-			while( statsValues.size() <= idx+1 ){
-				statsValues.add( new ChannelStats() );
+			if( dut == DutId.A ){
+				fillStats(dut, cs, statsValues.get(idx+0).tx, log, true  );
+				fillStats(dut, cs, statsValues.get(idx+1).rx, log, false );
 			}
-			fillStats(dut, cs, idx  , log, true  );
-			fillStats(dut, cs, idx+1, log, false );
+			else {
+				fillStats(dut, cs, statsValues.get(idx+1).tx, log, true  );
+				fillStats(dut, cs, statsValues.get(idx+0).rx, log, false );
+			}
 			
 //			log.printfln("%s\t%s\t%s\t%s\t%s\t%s\t%s", dut, cs.channelId,
 //					td, 
@@ -280,8 +293,7 @@ public class ChabuTestNw {
 		}
 	}
 
-	private void fillStats(DutId dut, ResultChannelStat cs, int idx, Logger log, boolean isTx ) {
-		ChannelStats chStats = statsValues.get(idx);
+	private void fillStats(DutId dut, ResultChannelStat cs, EndpointStats chStats, Logger log, boolean isTx ) {
 		chStats.dutId = dut;
 		chStats.channelId = cs.channelId;
 		chStats.isTx = isTx;

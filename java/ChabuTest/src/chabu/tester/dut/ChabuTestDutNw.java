@@ -58,8 +58,8 @@ public class ChabuTestDutNw {
 	class CtrlNetwork {
 		SocketChannel socketChannel;
 		ServerSocketChannel serverSocket;
-		ByteBuffer rxBuffer = ByteBuffer.allocate(0x10000);
-		ByteBuffer txBuffer = ByteBuffer.allocate(0x10000);
+		ByteBuffer rxBuffer = ByteBuffer.allocate(1_000_000);
+		ByteBuffer txBuffer = ByteBuffer.allocate(1_000_000);
 	}
 
 	

@@ -7,12 +7,10 @@ import chabu.tester.dut.ChabuTestDutNw;
 public class ChabuTestOneJre {
 	public static void main(String[] args) throws InterruptedException, IOException {
 		
-		final int PORT_DUT0 = 2300;
-		final int PORT_DUT1 = 2310;
 		
 		Thread chabuTester             = ChabuTesterAppWnd.mainInternalCreateThread( "Tester" );
-		ChabuTestDutNw chabuTesterDut1 = ChabuTestDutNw.mainInternalCreateThread("Dut0", PORT_DUT0 );
-		ChabuTestDutNw chabuTesterDut2 = ChabuTestDutNw.mainInternalCreateThread("Dut1", PORT_DUT1 );
+		ChabuTestDutNw chabuTesterDut1 = ChabuTestDutNw.mainInternalCreateThread("Dut0", Constants.PORT_DUT0 );
+		ChabuTestDutNw chabuTesterDut2 = ChabuTestDutNw.mainInternalCreateThread("Dut1", Constants.PORT_DUT1 );
 		
 		
 		chabuTester    .join(); System.out.println("-- Tester terminated --");

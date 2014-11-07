@@ -1,6 +1,8 @@
 package chabu.tester;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.eclipse.jface.action.Action;
 import org.eclipse.jface.action.CoolBarManager;
@@ -8,33 +10,45 @@ import org.eclipse.jface.action.MenuManager;
 import org.eclipse.jface.action.StatusLineManager;
 import org.eclipse.jface.action.ToolBarManager;
 import org.eclipse.jface.dialogs.MessageDialog;
-import org.eclipse.jface.viewers.TableViewer;
+import org.eclipse.jface.viewers.ArrayContentProvider;
+import org.eclipse.jface.viewers.IStructuredSelection;
+import org.eclipse.jface.viewers.LabelProvider;
+import org.eclipse.jface.viewers.ListViewer;
+import org.eclipse.jface.viewers.SelectionChangedEvent;
 import org.eclipse.jface.window.ApplicationWindow;
 import org.eclipse.jface.window.Window;
 import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.SashForm;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.layout.GridData;
-import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Shell;
-import org.eclipse.swt.widgets.Table;
 import org.eclipse.wb.swt.ResourceManager;
+import org.swtchart.Chart;
+import org.swtchart.ILineSeries;
+import org.swtchart.ISeries.SeriesType;
 
 import chabu.tester.dlg.ConfigureTest;
 import chabu.tester.dlg.ConfigureTestData;
 
 
 public class ChabuTesterAppWnd extends ApplicationWindow {
-	private Table table;
 	private Action actionStartTest;
 	private Action actionInfo;
 	ChabuTestNw nw;
 	private Action actionPlay;
+	private Chart chart;
 
-	/**
+	private static final String PLOT_TX = "TX";
+	private static final String PLOT_RX = "RX";
+	
+	private ListViewer listViewer;
+
+    /**
 	 * Create the application window,
 	 * @throws IOException 
 	 * @throws InterruptedException 
@@ -46,7 +60,6 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 		addCoolBar(SWT.FLAT);
 		addMenuBar();
 		addStatusLine();
-		
 	}
 
 	@Override
@@ -68,15 +81,96 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 	 */
 	@Override
 	protected Control createContents(Composite parent) {
-		Composite container = new Composite(parent, SWT.NONE);
-		container.setLayout(new GridLayout(1, false));
+		SashForm sf = new SashForm(parent, SWT.NONE);
+		
+		//container.setLayout(new GridLayout(2, false));
 		{
-			TableViewer tableViewer = new TableViewer(container, SWT.BORDER | SWT.FULL_SELECTION);
-			table = tableViewer.getTable();
-			table.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
+			listViewer = new ListViewer(sf, SWT.BORDER | SWT.V_SCROLL);
+			listViewer.setContentProvider( new ArrayContentProvider() );
+			listViewer.setLabelProvider( new LabelProvider() {
+				@Override
+				public String getText(Object element) {
+					ChartData cs = (ChartData)element;
+					return String.format("[%s] %s -> %s", cs.tx.channelId, cs.tx.dutId, cs.rx.dutId );
+				}
+			});
+			listViewer.addSelectionChangedListener( this::plotSelection );
+			List list = listViewer.getList();
+			list.setLayoutData(new GridData(SWT.FILL, SWT.FILL, false, true, 1, 1));
 		}
+		
+		chart = new Chart(sf, SWT.NONE);
+		chart.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, true, 1, 1));
+		sf.setWeights(new int[] {1, 3});
+		{
+	        // set titles
+	        chart.getTitle().setText("Bandwidth of channel");
+	        chart.getAxisSet().getXAxis(0).getTitle().setText("Time [ms]");
+	        chart.getAxisSet().getYAxis(0).getTitle().setText("Data Rate [kB/s]");
 
-		return container;
+	        // create line series
+	        {
+				ILineSeries lineSeries = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, PLOT_TX);
+		        lineSeries.setLineColor( Display.getCurrent().getSystemColor(SWT.COLOR_RED ));
+		        lineSeries.setSymbolSize(2);
+	        }
+	        {
+	        	ILineSeries lineSeries = (ILineSeries) chart.getSeriesSet().createSeries(SeriesType.LINE, PLOT_RX);
+	        	lineSeries.setLineColor( Display.getCurrent().getSystemColor(SWT.COLOR_BLUE ));
+	        	lineSeries.setSymbolSize(2);
+	        }
+
+	        // adjust the axis range
+	        chart.getAxisSet().adjustRange();
+
+		}
+		
+		return sf;
+	}
+
+	class ChartData {
+		ChannelStats rx;
+		ChannelStats tx;
+	}
+	
+	public void fillData() {
+//		private static final String PLOT_A_TX = "A TX";
+//		private static final String PLOT_A_RX = "A RX";
+//		private static final String PLOT_B_TX = "B TX";
+//		private static final String PLOT_B_RX = "B RX";
+		ArrayList<ChannelStats> statsValues = nw.getStatsValues();
+		final ChartData[] chartData = new ChartData[ statsValues.size() / 2 ];
+		for (int i = 0; i < chartData.length; i+=2) {
+			chartData[i  ] = new ChartData();
+			chartData[i+1] = new ChartData();
+			chartData[i  ].tx = statsValues.get( i*2 +0 );
+			chartData[i  ].rx = statsValues.get( i*2 +3 );
+			chartData[i+1].tx = statsValues.get( i*2 +2 );
+			chartData[i+1].rx = statsValues.get( i*2 +1 );
+		}
+		Display.getDefault().syncExec( ()->{
+			listViewer.setInput( chartData );
+		});
+	}
+	public void plotSelection(SelectionChangedEvent event) {
+		if( event.getSelection().isEmpty() ){
+			return;
+		}
+		IStructuredSelection sel = (IStructuredSelection)event.getSelection();
+		ChartData cd = (ChartData)sel.getFirstElement();
+		System.out.printf("[%s] %s -> %s\n", cd.rx.channelId, cd.tx.dutId, cd.rx.dutId );
+		{
+			ILineSeries ls = (ILineSeries) chart.getSeriesSet().getSeries(PLOT_TX);
+			ls.setXSeries( Arrays.copyOf( cd.tx.time, cd.tx.count ));
+			ls.setYSeries( Arrays.copyOf( cd.tx.rate, cd.tx.count ));
+		}
+		{
+			ILineSeries ls = (ILineSeries) chart.getSeriesSet().getSeries(PLOT_RX);
+			ls.setXSeries( Arrays.copyOf( cd.rx.time, cd.rx.count ));
+			ls.setYSeries( Arrays.copyOf( cd.rx.rate, cd.rx.count ));
+		}
+		chart.redraw();
+		chart.getAxisSet().adjustRange();
 	}
 
 	/**
@@ -137,6 +231,7 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 						try {
 							ITestTask task = new SimpleTest();
 							task.task( nw );
+							fillData();
 						} catch (Exception e) {
 							e.printStackTrace();
 						}
@@ -214,7 +309,7 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 	 */
 	@Override
 	protected Point getInitialSize() {
-		return new Point(450, 300);
+		return new Point(761, 596);
 	}
 
 	/**
@@ -228,7 +323,6 @@ public class ChabuTesterAppWnd extends ApplicationWindow {
 
 	public static void mainInternal() {
 		try {
-			
 			ChabuTesterAppWnd wnd = new ChabuTesterAppWnd();
 			wnd.setBlockOnOpen(true);
 			wnd.open();

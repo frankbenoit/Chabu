@@ -18,6 +18,8 @@ import chabu.tester.data.CmdSetupChannelAdd;
 
 public class SimpleTest implements ITestTask {
 
+	private static final int PORT_CHABU = 9197;
+
 	static class DutCmd {
 		DutId    dut;
 		ACmdScheduled cmd;
@@ -44,8 +46,8 @@ public class SimpleTest implements ITestTask {
 	@Override
 	public synchronized void task(ChabuTestNw nw) throws Exception {
 		long st = System.nanoTime();
-		nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", 2300 ));
-		nw.addCommand( DutId.B, new CmdDutConnect( st, "localhost", 2310 ));
+		nw.addCommand( DutId.A, new CmdDutConnect( st, "localhost", Constants.PORT_DUT0 ));
+		nw.addCommand( DutId.B, new CmdDutConnect( st, "localhost", Constants.PORT_DUT1 ));
 		nw.flush(DutId.ALL);
 		nw.addCommand( DutId.A, new CmdSetupChannelAdd( st, 0, 2000, 2000, 237, 645 ));
 		nw.addCommand( DutId.B, new CmdSetupChannelAdd( st, 0, 2000, 2000, 645, 237 ));
@@ -53,8 +55,9 @@ public class SimpleTest implements ITestTask {
 		nw.addCommand( DutId.B, new CmdSetupChannelAdd( st, 1, 2000, 2000, 967, 728 ));
 		nw.addCommand( DutId.ALL, new CmdSetupActivate( st, true, 1000 ));
 		st += 400*MSEC;
-		nw.addCommand( DutId.A, new CmdConnectionAwait( st, 2301 ));
-		nw.addCommand( DutId.B, new CmdConnectionConnect( st, "localhost", 2301 ));
+		
+		nw.addCommand( DutId.A, new CmdConnectionAwait( st, PORT_CHABU ));
+		nw.addCommand( DutId.B, new CmdConnectionConnect( st, "localhost", PORT_CHABU ));
 		nw.flush(DutId.ALL);
 		waitUntil( System.nanoTime()+1000*MSEC );
 		st = System.nanoTime();
@@ -66,19 +69,20 @@ public class SimpleTest implements ITestTask {
 
 		for( int i = 0; i < 6; i++ ){
 			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
-			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 1, 100000, 0 ));
-			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
+			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 1, 100000, 0 ));
+			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
 			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 1, 100000, 0 ));
 
-//			millis1 += 200;
-//			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 0, 10000 ));
-//			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 10000, 0 ));
+			millis1 += 200;
+			addToList( DutId.A, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
+			addToList( DutId.B, new CmdChannelAction( st+millis1*MSEC, 0, 100000, 0 ));
 			millis1 += 400;
 		}
 		int millis2 = 0;
 		while( millis2 <= millis1+500 ){
 			addToList( DutId.ALL, new CmdChannelCreateStat( st+millis2*MSEC, 0 ));
-			millis2 += 100;
+			addToList( DutId.ALL, new CmdChannelCreateStat( st+millis2*MSEC, 1 ));
+			millis2 += 50;
 		}
 		enqueueList(nw);
 		nw.flush(DutId.ALL);
@@ -102,4 +106,8 @@ public class SimpleTest implements ITestTask {
 		}
 	}
 
+	@Override
+	public int getChannelCount() {
+		return 2;
+	}
 }

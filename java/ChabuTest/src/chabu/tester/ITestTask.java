@@ -6,4 +6,7 @@ public interface ITestTask {
 	final long SEC = 1_000*MSEC;
 
 	void task( ChabuTestNw nw ) throws Exception;
+	
+	int getChannelCount();
+	
 }

@@ -9,6 +9,7 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeMap;
@@ -187,7 +188,7 @@ public class ChabuTestNw {
 									if( ds.commands.isEmpty() && !ds.txBuffer.hasRemaining() ){
 										this.notifyAll();
 									}
-									if( !ds.txBuffer.hasRemaining() ){
+									if( !ds.txBuffer.hasRemaining() && ds.commands.isEmpty()){
 										ds.registeredInterrestOps &= ~SelectionKey.OP_WRITE;
 										ds.socketChannel.register( selector, ds.registeredInterrestOps, ds );
 									}
@@ -246,54 +247,59 @@ public class ChabuTestNw {
 		}
 	}
 
-	static class StatsData {
-		long  time;
-		int txCount;
-		int rxCount;
-		
-		long timeDelta;
-		int txCountDelta;
-		int rxCountDelta;
+	ArrayList<ChannelStats> statsValues = new ArrayList<ChannelStats>(100);
+	
+	public ArrayList<ChannelStats> getStatsValues() {
+		return statsValues;
 	}
-	ArrayList<StatsData> statsValues = new ArrayList<StatsData>(100);
+	
 	private void consumeResult(DutId dut, AResult res) throws IOException {
 		if( res instanceof ResultChannelStat ){
 			ResultChannelStat cs = (ResultChannelStat)res;
 			
-			int idx = cs.channelId*2;
+			int idx = cs.channelId*4;
 			
 			Logger log = ( dut == DutId.A ) ? Logger.getLogger("statsA") : Logger.getLogger("statsB");
 
 			if( dut == DutId.B ){
-				idx++;
+				idx += 2;
 			}
-			while( statsValues.size() <= idx ){
-				statsValues.add( new StatsData() );
+			while( statsValues.size() <= idx+1 ){
+				statsValues.add( new ChannelStats() );
 			}
-			StatsData sd = statsValues.get(idx);
-			sd.txCountDelta = cs.txCount;
-			sd.rxCountDelta = cs.rxCount;
-			sd.timeDelta = cs.time - sd.time;
+			fillStats(dut, cs, idx  , log, true  );
+			fillStats(dut, cs, idx+1, log, false );
 			
-			sd.txCount += cs.txCount;
-			sd.rxCount += cs.rxCount;
-			sd.time = cs.time;
+//			log.printfln("%s\t%s\t%s\t%s\t%s\t%s\t%s", dut, cs.channelId,
+//					td, 
+//					cs.txCount, chStats.txRate[chStats.count], cs.rxCount, chStats.rxRate[chStats.count] );
 
-			int txRate = -1;
-			int rxRate = -1;
-			if( sd.timeDelta > 0 ){
-				txRate = (int)(( cs.txCount * 1000_000_000L ) / sd.timeDelta);
-				rxRate = (int)(( cs.rxCount * 1000_000_000L ) / sd.timeDelta);
-			}
-			long td = ( cs.time - AXferItem.relativeTimeForToString ) / 1000000;
-			System.out.printf("%s %s %s\n", cs.txCount, txRate, td );
-			log.printfln("%s\t%s\t%s\t%s\t%s\t%s", dut,
-					td, 
-					sd.txCount, txRate, sd.rxCount, rxRate );
 		}
 		else {
 			logger.printfln("recv %s %s", dut, res );
 		}
+	}
+
+	private void fillStats(DutId dut, ResultChannelStat cs, int idx, Logger log, boolean isTx ) {
+		ChannelStats chStats = statsValues.get(idx);
+		chStats.dutId = dut;
+		chStats.channelId = cs.channelId;
+		chStats.isTx = isTx;
+		
+		if( chStats.count <= chStats.time.length ){
+			chStats.time   = Arrays.copyOf( chStats.time  , chStats.count + 200 );
+			chStats.rate = Arrays.copyOf( chStats.rate, chStats.count + 200 );
+		}
+		
+		int time = (int)(( cs.time - AXferItem.relativeTimeForToString ) / 1000000);
+		int td = time - chStats.lastTimestamp;
+		if( chStats.lastTimestamp != Integer.MIN_VALUE && td != 0 ){
+			chStats.time[chStats.count] = time;
+			chStats.rate[chStats.count] = (int)(( ( isTx ? cs.txCount : cs.rxCount ) * 1000 ) / td );
+
+			chStats.count++;
+		}
+		chStats.lastTimestamp = time;
 	}
 
 	public void start() {
@@ -376,7 +382,7 @@ public class ChabuTestNw {
 			if( isEmpty ){
 				break;
 			}
-			wait();
+			wait(500);
 		}
 	}
 

@@ -12,7 +12,7 @@ public class Chabu implements INetworkUser {
 
 	public static final int PROTOCOL_VERSION = 1;
 
-	ILogConsumer log;
+	ILogConsumer logConsumer;
 	
 	private ArrayList<Channel> channels = new ArrayList<>(256);
 	private BitSet xmitChannelRequest;
@@ -38,7 +38,7 @@ public class Chabu implements INetworkUser {
 	}
 	
 	public void setLogConsumer( ILogConsumer log ){
-		this.log = log;
+		this.logConsumer = log;
 	}
 	public void addChannel( Channel channel ){
 		Utils.ensure( startupRx && startupTx );
@@ -119,7 +119,7 @@ public class Chabu implements INetworkUser {
 	}
 
 	void logHelper(ILogConsumer.Category cat, String instanceName, String fmt, Object ... args ) {
-		ILogConsumer log = this.log;
+		ILogConsumer log = this.logConsumer;
 		
 		if( cat == Category.NW_CHABU ) return;
 		if( cat == Category.CHABU_INT ) return;

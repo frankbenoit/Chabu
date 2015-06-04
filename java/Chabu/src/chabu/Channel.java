@@ -10,6 +10,9 @@ public final class Channel implements INetwork {
 
 	private static final int PACKETFLAG_ARM = 0x0001;
 	private static final int PACKETFLAG_SEQ = 0x0002;
+	private static final int Chabu_HEADER_SEQ_SIZE = 10;
+	private static final int Chabu_HEADER_SIZE_MAX = 10;
+	private static final int Chabu_HEADER_ARM_SIZE = 8;
 
 	private int     channelId    = -1;
 	private String  instanceName = "ChabuChannel[<not yet active>]";
@@ -21,22 +24,40 @@ public final class Channel implements INetwork {
 	private int        xmitSeq = 0;
 	private int        xmitArm = 0;
 	
+	private ByteBuffer xmitHeader = ByteBuffer.allocate(10);
+	private int        xmitLastIndex = 0;
+	private int        xmitLastLength = 0;
+	
 	private boolean    recvArmShouldBeXmit  = false;
 	
 	private ByteBuffer recvBuffer;
 	private int        recvSeq = 0;
 	private int        recvArm = 0;
 	
+	int        priority = 0;
 	
 	public Channel(int recvBufferSize, int xmitBufferSize ) {
 		
 		this.recvBuffer  = ByteBuffer.allocate(recvBufferSize);
-		
 		this.recvArm = recvBufferSize;
 		this.recvArmShouldBeXmit = true;
+
+	}
+	
+	/**
+	 * Set the priority, lowest prior is 0.
+	 *  
+	 * @param priority
+	 */
+	public void setPriority( int priority ){
+		Utils.ensure( chabu == null, "only allowed when not yet activated" );
+		this.priority = priority;
 	}
 
 	void activate(Chabu chabu, int channelId ){
+
+		this.xmitHeader.order( chabu.getByteOrder() );
+		
 		this.chabu      = chabu;
 		this.channelId  = channelId;
 		this.instanceName = String.format("%s.ch%d", chabu.instanceName, channelId );
@@ -136,24 +157,24 @@ public final class Channel implements INetwork {
 		chabu.logHelper(cat, instanceName, fmt, args);
 	}
 
-	void handleXmit( ByteBuffer buf ) {
+	/**
+	 * @return true if this channel needs to be continue xmitting
+	 */
+	boolean handleXmit( ByteBuffer buf ) {
 		log( Category.CHANNEL_INT, "ChXmit %s", toString() );
 
-		int startPos = buf.position();
+//		if( !buf.hasRemaining() ){
+//			return ( xmitLastLength > 0 && xmitLastIndex < xmitLastLength );
+//		}
 		
-		if( recvArmShouldBeXmit && buf.remaining() >= 8 ){
-			recvArmShouldBeXmit = false;
-			buf.putShort( (short)channelId );      // CID
-			buf.putShort( (short)PACKETFLAG_ARM ); // PKF
-			buf.putInt( recvArm );                 // ARM
-			log( Category.CHANNEL_INT, "ChXmit recvArm=%d", recvArm );
+		if( this.xmitBuffer == null ){
+			this.xmitBuffer = ByteBuffer.allocate( chabu.getMaxXmitPayloadSize() );
+			this.xmitBuffer.order( chabu.getByteOrder() );
 		}
-		
-		if( xmitBuffer == null ){
-			xmitBuffer = ByteBuffer.allocate( chabu.getMaxXmitPayloadSize() );
-			xmitBuffer.order( chabu.getByteOrder() );
-		}
-		
+
+
+		// get/fill xmit data from user
+		// xmitBuffer in filling mode
 		if( xmitBuffer.hasRemaining() ){
 			int avail = xmitBuffer.remaining();
 			log(Category.CHABU_USER, "ChXmitCallingUser %5s bytes free", avail );
@@ -161,37 +182,134 @@ public final class Channel implements INetwork {
 			int consumed = avail - xmitBuffer.remaining();
 			log(Category.CHABU_USER, "ChXmitCalledUser  %5s bytes fill", consumed );
 		}
-		
-		if( xmitBuffer.position() > 0 ){
+
+		if( xmitLastIndex == 0 && xmitLastLength == 0 ){
+			// start new header
 			
-			xmitBuffer.flip();
-			
-			int pls = buf.remaining() - 10;
-			if( pls > 0 ){
-				if( pls > xmitBuffer.remaining() ){
-					pls = xmitBuffer.remaining();
-				}
-				if( pls > 0xFFFF ){
-					pls = 0xFFFF;
-				}
-				buf.putShort( (short) channelId );      // CID
-				buf.putShort( (short) PACKETFLAG_SEQ ); // PKF
-				buf.putInt( xmitSeq );                  // SEQ
-				buf.putShort( (short)pls );             // PLS
-				int oldLimit = xmitBuffer.limit();
-				xmitBuffer.limit( xmitBuffer.position() + pls );
-				buf.put( xmitBuffer );
-				xmitBuffer.limit( oldLimit );
-				log( Category.CHANNEL_INT, "ChXmit xmitSeq=%5d pls=%5d", xmitSeq, pls );
-				xmitSeq += pls;
+			if( recvArmShouldBeXmit ){
+				recvArmShouldBeXmit = false;
+				
+				xmitHeader.clear();
+				
+				xmitHeader.putShort( (short)channelId );      // CID
+				xmitHeader.putShort( (short)PACKETFLAG_ARM ); // PKF
+				xmitHeader.putInt( recvArm );                 // ARM
+				xmitHeader.flip();
+				log( Category.CHANNEL_INT, "ChXmit recvArm=%d", recvArm );
+				xmitLastLength = Chabu_HEADER_ARM_SIZE;
 			}
-			xmitBuffer.compact();
+			else {
+				int pls = xmitBuffer.position();
+				Utils.ensure( pls >= 0 && pls <= 0xFFFF );
+				if( pls > chabu.getMaxXmitPayloadSize() ){
+					pls = chabu.getMaxXmitPayloadSize();
+				}
+				int remainArm = xmitArm - xmitSeq;
+				if( pls > remainArm ){
+					pls = remainArm;
+				}
+
+				Utils.ensure( pls >= 0 ); // negative shall not occur
+				if( pls > 0 ){
+
+					xmitHeader.clear();
+					
+					xmitHeader.putShort( (short)channelId );
+					xmitHeader.putShort( (short)PACKETFLAG_SEQ );
+					xmitHeader.putInt( xmitSeq );
+					xmitHeader.putShort( (short)pls );
+					xmitLastLength = pls + Chabu_HEADER_SEQ_SIZE;
+					xmitSeq += pls;
+					
+					xmitHeader.flip();
+				}
+
+			}
+			
 		}
 		
-		int xmitSz = buf.position() - startPos;
-		if( xmitSz == 0 ){
-			log( Category.CHANNEL_INT, "handleXmit no-action" );
+
+		if( xmitLastLength != 0 ){
+
+			// block header
+			if(( xmitLastIndex < Chabu_HEADER_SIZE_MAX ) && ( xmitLastIndex < xmitLastLength ) && buf.hasRemaining()){
+
+				int copySz = xmitLastLength - xmitLastIndex;
+				if( copySz > Chabu_HEADER_SIZE_MAX ){
+					copySz = Chabu_HEADER_SIZE_MAX;
+				}
+				if( copySz > buf.remaining() ){
+					copySz = buf.remaining();
+				}
+
+				Utils.ensure( copySz >= 0 );
+
+				int hdrLimit = xmitHeader.limit();
+				xmitHeader.limit( xmitHeader.position() + copySz );
+
+				int oldPos = buf.position();
+				buf.put( xmitHeader );
+				Utils.ensure( oldPos + copySz == buf.position() );
+				xmitHeader.limit(hdrLimit);
+				xmitLastIndex += copySz;
+
+			}
+
+			// block payload
+			if(( xmitLastIndex >= Chabu_HEADER_SIZE_MAX ) && ( xmitLastIndex < xmitLastLength ) && buf.hasRemaining() ){
+
+				int copySz = xmitLastLength - xmitLastIndex;
+				if( copySz > buf.remaining() ){
+					copySz = buf.remaining();
+				}
+
+				// xmitBuffer to consume/xmit mode
+				xmitBuffer.flip();
+				
+				Utils.ensure(( copySz >= 0 ) && ( copySz <= buf.remaining() ) && ( copySz <= xmitBuffer.remaining() ), "copySz:%s, buf.remaining():%s, xmitBuffer.remaining():%s", copySz, buf.remaining(), xmitBuffer.remaining());
+				
+				int xmitLimit = xmitBuffer.limit();
+				xmitBuffer.limit( xmitBuffer.position() + copySz );
+				int oldPos = buf.position();
+				buf.put( xmitBuffer );
+				Utils.ensure( oldPos + copySz == buf.position(), "oldPos:%s copySz:%s oldPos+copySz:%s buf.position():%s", oldPos, copySz, oldPos + copySz, buf.position() );
+				xmitBuffer.limit(xmitLimit);
+
+				xmitLastIndex += copySz;
+
+				// xmitBuffer to back to filling mode
+				xmitBuffer.compact();
+				
+				Utils.ensure( xmitBuffer.position() >= (xmitLastLength - xmitLastIndex), "xmitBuffer.position():%s >= (xmitLastLength:%s - xmitLastIndex:%s)", xmitBuffer.position(), xmitLastLength, xmitLastIndex );
+			}
+			
+
+			// block completed
+			if( xmitLastIndex >= xmitLastLength ){
+				Utils.ensure( xmitLastIndex == xmitLastLength );
+				xmitLastIndex  = 0;
+				xmitLastLength = 0;
+//				userCallback( userData, channel, Chabu_Channel_Event_Transmitted );
+			}
 		}
+
+		// get/fill xmit data from user
+		// xmitBuffer in filling mode
+		if( xmitBuffer.hasRemaining() ){
+			int avail = xmitBuffer.remaining();
+			log(Category.CHABU_USER, "ChXmitCallingUser %5s bytes free", avail );
+			user.evXmit(xmitBuffer);
+			int consumed = avail - xmitBuffer.remaining();
+			log(Category.CHABU_USER, "ChXmitCalledUser  %5s bytes fill", consumed );
+		}
+		//Check if data is still available
+		if( xmitBuffer.position() > 0 ){
+			//register next xmit on same channel.
+			chabu.evUserXmitRequest(channelId);
+		}
+		
+		// true if there is outstanding data for the current block
+		return ( xmitLastLength > 0 ) && ( xmitLastIndex < xmitLastLength );
 	}
 	
 	public String toString(){

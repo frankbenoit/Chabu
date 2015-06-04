@@ -6,11 +6,19 @@ public class Utils {
 		throw new RuntimeException( String.format( fmt, args ));
 	}
 	
+	/**
+	 * Throw an exception if the condition is not true.
+	 * @param cond
+	 */
 	public static void ensure( boolean cond, String fmt, Object ... args ){
 		if( cond ) return;
 		throw new RuntimeException( String.format( fmt, args ));
 	}
 	
+	/**
+	 * Throw an exception if the condition is not true.
+	 * @param cond
+	 */
 	public static void ensure( boolean cond ){
 		if( cond ) return;
 		throw new RuntimeException();

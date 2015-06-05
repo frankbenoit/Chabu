@@ -1,0 +1,103 @@
+<ChabuTrace Format=1>
+
+//
+// Check corner cases, where sending 0..max payload shall be OK
+//
+
+
+SETUP: {
+    "ChabuProtocolVersion"  : 1,
+    "ByteOrderBigEndian"    : true,
+    "MaxReceivePayloadSize" : 10,
+    "ReceiveCannelCount"    : 2,
+    "ApplicationVersion"    : 2,
+    "ApplicationName"       : "ABC",
+    "PriorityCount"         : 3,
+    "Channels" : [
+         { "ID" : 0, "Priority" : 1, "RxSize" : 20, "TxSize" : 20 },
+         { "ID" : 1, "Priority" : 0, "RxSize" : 20, "TxSize" : 20 }
+         ]
+}
+
+
+// Check the configuration block send by Chabu
+WIRE_RX: {}
+    01          // u8   protocol version
+	01          // bool endianess
+	00 0A       // u16  maxReceivePayloadSize	
+	00 02       // u16  receiveCannelCount
+	00 00 00 06 // u32  applicationVersion
+	03 58 59 5A // u8+. applicationName
+	<<
+    
+// Create config block
+WIRE_TX: {}
+    01          // u8   protocol version
+	01          // bool endianess
+	00 0a       // u16  maxReceivePayloadSize	
+	00 02       // u16  receiveCannelCount
+	00 00 00 02 // u32  applicationVersion
+	03 41 42 43 // u8+. applicationName
+	<<
+
+// Initial ARM phase
+
+WIRE_RX: {}	
+//	<---+                          Channel 
+//	      <---+                    PKF
+//	            <---------+        ARM
+	
+	00 00 00 01 00 00 00 14 // Ch 0
+	00 01 00 01 00 00 00 14 // Ch 1
+	<<
+
+WIRE_TX: { "More" : 20 }
+	00 00 00 01 00 00 00 14 // Ch 0
+	00 01 00 01 00 00 00 14 // Ch 1
+	<<
+
+
+// send zero packet
+WIRE_RX: {}
+	00 00 00 02 00 00 00 00 00 00 // Ch 0
+	00 01 00 02 00 00 00 00 00 00 // Ch 1
+	00 00 00 02 00 00 00 00 00 00 // Ch 0
+	00 01 00 02 00 00 00 00 00 00 // Ch 1
+	<<
+
+// send max pls packet
+WIRE_RX: {}
+	00 00 00 02 00 00 00 00 00 0a // Ch 0
+    AA AA AA AA 55 55 55 55 AA AA
+	00 01 00 02 00 00 00 00 00 0a // Ch 1
+    AA AA AA AA 55 55 55 55 AA AA
+	00 00 00 02 00 00 00 0a 00 0a // Ch 0
+    AA AA AA AA 55 55 55 55 AA AA
+	00 01 00 02 00 00 00 0a 00 0a // Ch 1
+    AA AA AA AA 55 55 55 55 AA AA
+	<<
+
+// Read the data
+CHANNEL_TO_APPL: { "ID" : 0 }
+    AA AA AA AA 55 55 55 55 AA AA
+    AA AA AA AA 55 55 55 55 AA AA
+	<<
+
+// Ensure the ARM
+WIRE_TX: { "More" : 20 }
+	00 00 00 01 00 00 00 28
+	<<
+
+CHANNEL_TO_APPL: { "ID" : 1 }
+    AA AA AA AA 55 55 55 55 AA AA
+    AA AA AA AA 55 55 55 55 AA AA
+	<<
+
+WIRE_TX: { "More" : 20 }
+	00 01 00 01 00 00 00 28
+	<<
+
+
+
+
+

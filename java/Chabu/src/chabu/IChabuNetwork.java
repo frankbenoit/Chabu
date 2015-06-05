@@ -1,9 +1,9 @@
 package chabu;
 
 
-public interface INetwork {
+public interface IChabuNetwork {
 
-	public void setNetworkUser( INetworkUser user );
+	public void setChabu( Chabu chabu );
 	
 	public void evUserRecvRequest();
 	

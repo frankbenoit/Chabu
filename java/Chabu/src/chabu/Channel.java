@@ -6,7 +6,7 @@ import chabu.ILogConsumer.Category;
 
 
 
-public final class Channel implements INetwork {
+public final class Channel {
 
 	private static final int PACKETFLAG_ARM = 0x0001;
 	private static final int PACKETFLAG_SEQ = 0x0002;
@@ -18,7 +18,7 @@ public final class Channel implements INetwork {
 	private String  instanceName = "ChabuChannel[<not yet active>]";
 	
 	private Chabu        chabu;
-	private INetworkUser user;
+	private IChabuChannelUser user;
 	
 	private ByteBuffer xmitBuffer;
 	private int        xmitSeq = 0;
@@ -63,28 +63,34 @@ public final class Channel implements INetwork {
 		this.instanceName = String.format("%s.ch%d", chabu.instanceName, channelId );
 	}
 	
-	@Override
-	public void setNetworkUser(INetworkUser user) {
+	public void setNetworkUser(IChabuChannelUser user) {
 		this.user = user;
+		user.setChannel(this);
 	}
 	
-	@Override
 	public void evUserRecvRequest(){
 		log(Category.CHABU_USER, "evUserRecvRequest()");
 	}
 
-	@Override
 	public void evUserXmitRequest(){
 		log(Category.CHABU_USER, "evUserXmitRequest()");
 		chabu.evUserXmitRequest(channelId);
 	}
 
+	/**
+	 * Call this, to force the channel user evRecv be used.
+	 */
+	public void pushRecvData(){
+		handleRecv(null);
+	}
 	void handleRecv( ByteBuffer buf ) {
 		log(Category.CHANNEL_INT, "ChRecv %s %s", this, buf );
-		if( recvBuffer.position() > 0 ){
+
+//TODO is this really needed
+//		if( recvBuffer.position() > 0 ){
 			callUserToTakeRecvData();
-		}
-		user.evRecv( null );
+//		}
+//		user.evRecv( null );
 		if( buf == null ){
 			return;
 		}
@@ -314,6 +320,10 @@ public final class Channel implements INetwork {
 	
 	public String toString(){
 		return String.format("Channel[%s recvS:%s recvA:%s xmitS:%s xmitA:%s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
+	}
+
+	public int getId() {
+		return channelId;
 	}
 	
 }

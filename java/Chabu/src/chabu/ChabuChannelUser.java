@@ -2,19 +2,19 @@ package chabu;
 
 import java.nio.ByteBuffer;
 
-public class ByteBufferChabuChannelUser implements INetworkUser {
+public class ChabuChannelUser implements IChabuChannelUser {
 		protected ByteBuffer recv;
 		protected ByteBuffer xmit;
-		protected INetwork network;
+		protected Channel channel;
 		
-		public ByteBufferChabuChannelUser( ByteBuffer recv, ByteBuffer xmit ){
+		public ChabuChannelUser( ByteBuffer recv, ByteBuffer xmit ){
 			this.recv = recv;
 			this.xmit = xmit;
 			recv.limit( recv.position() );
 		}
 		
-		public void setNetwork(INetwork nw) {
-			this.network = nw;
+		public void setChannel(Channel channel) {
+			this.channel = channel;
 		}
 		
 		public boolean evXmit(ByteBuffer bufferToFill) {

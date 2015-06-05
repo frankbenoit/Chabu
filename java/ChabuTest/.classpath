@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src"/>
+	<classpathentry excluding="chabu/tester/|chabu/tester/data/|chabu/tester/dlg/|chabu/tester/dut/|org/eclipse/wb/swt/|org/eclipse/wb/" kind="src" path="src"/>
 	<classpathentry kind="src" path="res"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.jface_3.10.1.v20140813-1009.jar"/>
-	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.swt.win32.win32.x86_64_3.103.1.v20140903-1947.jar"/>
-	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.core.commands_3.6.100.v20140528-1422.jar"/>
-	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.core.runtime_3.10.0.v20140318-2214.jar"/>
-	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.equinox.common_3.6.200.v20130402-1505.jar"/>
-	<classpathentry kind="lib" path="lib/org.swtchart_0.9.0.v20140219.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/Chabu"/>
-	<classpathentry kind="lib" path="C:/Tool/Eclipse/plugins/org.eclipse.osgi_3.10.1.v20140909-1633.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

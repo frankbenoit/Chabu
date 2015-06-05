@@ -1,5 +1,7 @@
 package chabu;
 
+import java.nio.ByteBuffer;
+
 public class Utils {
 	
 	public static RuntimeException fail( String fmt, Object ... args ){
@@ -54,5 +56,9 @@ public class Utils {
 		synchronized(o){
 			o.notifyAll();
 		}
+	}
+
+	public static void dump(ByteBuffer bb) {
+		
 	}
 }

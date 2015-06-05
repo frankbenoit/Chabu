@@ -1,6 +1,6 @@
 package chabu;
 
-public interface IConnectingValidator {
+public interface IChabuConnectingValidator {
 
 	public boolean isAccepted( ChabuConnectingInfo local, ChabuConnectingInfo remote );
 	

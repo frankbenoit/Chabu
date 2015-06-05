@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.BitSet;
 
 
-public class Chabu implements INetworkUser {
+public class Chabu {
 
 	public static final int PROTOCOL_VERSION = 1;
 
@@ -20,9 +20,17 @@ public class Chabu implements INetworkUser {
 	private BitSet[] recvChannelRequest;
 	private int      recvChannelIdx = 0;
 	
-	private INetwork nw;
-	private boolean startupRx = true;/// TODO: what means startupRx ?
-	private boolean startupTx = true;/// TODO: what means startupTx ?
+	private IChabuNetwork nw;
+	
+	/**
+	 * True until the startup data is completely received.
+	 */
+	private boolean startupRx = true;
+	/**
+	 * True until the startup data is completely sent.
+	 */
+	private boolean startupTx = true;
+
 	int maxChannelId;
 	
 	private boolean activated = false;
@@ -63,27 +71,32 @@ public class Chabu implements INetworkUser {
 	}
 	
 	/**
-	 * TODO: What does activate do?
-	 * 
-	 * 
+	 * Priority that forces the processing to be done with highest possible priority.
+	 * Lower priority values result in later processing.
+	 */
+	public int getHighestValidPriority(){
+		return priorityCount-1;
+	}
+	
+	/**
+	 * When activate is called, chabu enters operation. No subsequent calls to {@link #addChannel(Channel)} or {@link #setPriorityCount(int)} are allowed.
 	 */
 	public void activate(){
 		Utils.ensure( channels.size() > 0 );
 		for( int i = 0; i < channels.size(); i++ ){
 			Channel ch = channels.get(i);
+			Utils.ensure( ch.priority < priorityCount, "Channel %s has higher priority (%s) as the max %s", i, ch.priority, priorityCount );
 			ch.activate(this, i );
 		}
 		
 		xmitChannelRequest = new BitSet[ priorityCount ];
 		for (int i = 0; i < xmitChannelRequest.length; i++) {
 			xmitChannelRequest[i] = new BitSet(channels.size());
-			xmitChannelRequest[i].set(0, channels.size() );
 		}
 		
 		recvChannelRequest = new BitSet[ priorityCount ];
 		for (int i = 0; i < recvChannelRequest.length; i++) {
 			recvChannelRequest[i] = new BitSet(channels.size());
-			recvChannelRequest[i].set(0, channels.size() );
 		}
 		
 		maxChannelId = channels.size() -1;
@@ -91,11 +104,7 @@ public class Chabu implements INetworkUser {
 	}
 	
 	/**
-	 * TODO: TBC from Frank Benoit
-	 * 
-	 * Receive the data from XXX and transmit/shift/copy to YYY
-	 * 
-	 * @param buf: must contain a full chabu frame (incl. all protocol parameters) a frame part is NOK.
+	 * Receive the data from the network and process it into the channels.
 	 */
 	public void evRecv(ByteBuffer buf) {
 		log(ILogConsumer.Category.NW_CHABU, "evRecv()");
@@ -147,6 +156,7 @@ public class Chabu implements INetworkUser {
 		log(ILogConsumer.Category.CHABU_INT, "evUserWriteRequest");
 		synchronized(this){
 			int priority = channels.get(channelId).priority;
+			chabu.Utils.ensure(priority < xmitChannelRequest.length, "priority:%s < xmitChannelRequest.length:%s", priority, xmitChannelRequest.length );
 			xmitChannelRequest[priority].set( channelId );
 		}
 		nw.evUserXmitRequest();
@@ -179,7 +189,7 @@ public class Chabu implements INetworkUser {
 	public boolean evXmit(ByteBuffer buf) {
 		log(ILogConsumer.Category.NW_CHABU, "evXmit()");
 		int oldRemaining = -1;
-		while( buf.remaining() > 10 && oldRemaining != buf.remaining()){
+		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
 			oldRemaining = buf.remaining();
 			
 			if( startupTx ){
@@ -207,27 +217,30 @@ public class Chabu implements INetworkUser {
 
 	private boolean calcNextXmitChannel() {
 		synchronized(this){
-			int idx = -1;
-			for( int prio = priorityCount-1; prio >= 0 && idx < 0; prio-- ){
-				if( xmitChannelIdx+1 < xmitChannelRequest[prio].size() ){
-					idx = xmitChannelRequest[prio].nextSetBit(xmitChannelIdx+1);
+			for( int prio = priorityCount-1; prio >= 0; prio-- ){
+				int idxCandidate = -1;
+				BitSet prioBitSet = xmitChannelRequest[prio];
+				
+				// search from last channel pos on
+				if( xmitChannelIdx+1 < prioBitSet.size() ){
+					idxCandidate = prioBitSet.nextSetBit(xmitChannelIdx+1);
 				}
-				if( idx < 0 ){
-					idx = xmitChannelRequest[prio].nextSetBit(0);
+				
+				// try from idx zero
+				if( idxCandidate < 0 ){
+					idxCandidate = prioBitSet.nextSetBit(0);
 				}
-				if( idx >= 0 ){
-					xmitChannelRequest[prio].clear(idx);
+				
+				// if found, clear and use it
+				if( idxCandidate >= 0 ){
+					prioBitSet.clear(idxCandidate);
+					xmitChannelIdx = idxCandidate;
+					xmitContinueChannel = channels.get(idxCandidate);
+					Utils.ensure( xmitContinueChannel.priority == prio );
+					return true;
 				}
 			}
-			
-			if( idx >= 0 ){
-				xmitChannelIdx = idx;
-				xmitContinueChannel = channels.get(idx);
-				return true;
-			}
-			else {
-				return false;
-			}
+			return false;
 		}
 	}
 
@@ -256,9 +269,10 @@ public class Chabu implements INetworkUser {
 		}
 	}
 	
-	public void setNetwork(INetwork nw) {
+	public void setNetwork(IChabuNetwork nw) {
 		Utils.ensure( this.nw == null && nw != null );
 		this.nw = nw;
+		nw.setChabu(this);
 	}
 	
 	/**

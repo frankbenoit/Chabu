@@ -2,9 +2,9 @@ package chabu;
 
 import java.nio.ByteBuffer;
 
-public interface INetworkUser {
+public interface IChabuChannelUser {
 
-	public void setNetwork( INetwork nw );
+	public void setChannel( Channel channel );
 	
 	/**
 	 * Event to receive data from the network.

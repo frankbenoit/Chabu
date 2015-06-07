@@ -1,19 +1,27 @@
-package chabu;
+package chabu.internal;
 
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 
+import chabu.ChabuConnectingInfo;
+import chabu.ChabuConnectionAbortedException;
+import chabu.IChabu;
+import chabu.IChabuConnectingValidator;
+import chabu.IChabuNetwork;
+import chabu.ILogConsumer;
 
-public class Chabu {
+
+public class Chabu implements IChabu {
 
 	public static final int PROTOCOL_VERSION = 1;
 
 	ILogConsumer logConsumer;
 	
-	private ArrayList<Channel> channels = new ArrayList<>(256);
+	private ArrayList<ChabuChannel> channels = new ArrayList<>(256);
 	private int      priorityCount = 1;
 	private BitSet[] xmitChannelRequest;
 	private int      xmitChannelIdx = 0;
@@ -40,9 +48,11 @@ public class Chabu {
 	private ChabuConnectingInfo infoLocal;
 	private ChabuConnectingInfo infoRemote;
 
-	private Channel xmitContinueChannel;
+	private ChabuChannel xmitContinueChannel;
 
-	
+	private PrintWriter traceWriter;
+
+	private IChabuConnectingValidator val;
 	
 	public Chabu( ChabuConnectingInfo info ){
 		this.infoLocal = info;
@@ -57,7 +67,7 @@ public class Chabu {
 	 * The Cte must ensure itself that the channel is available at firmware side.
 	 * @param channel
 	 */
-	public void addChannel( Channel channel ){
+	public void addChannel( ChabuChannel channel ){
 		channels.add(channel);
 	}
 	public void setPriorityCount( int priorityCount ){
@@ -79,12 +89,12 @@ public class Chabu {
 	}
 	
 	/**
-	 * When activate is called, chabu enters operation. No subsequent calls to {@link #addChannel(Channel)} or {@link #setPriorityCount(int)} are allowed.
+	 * When activate is called, chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannel)} or {@link #setPriorityCount(int)} are allowed.
 	 */
 	public void activate(){
 		Utils.ensure( channels.size() > 0 );
 		for( int i = 0; i < channels.size(); i++ ){
-			Channel ch = channels.get(i);
+			ChabuChannel ch = channels.get(i);
 			Utils.ensure( ch.priority < priorityCount, "Channel %s has higher priority (%s) as the max %s", i, ch.priority, priorityCount );
 			ch.activate(this, i );
 		}
@@ -107,10 +117,15 @@ public class Chabu {
 	 * Receive the data from the network and process it into the channels.
 	 */
 	public void evRecv(ByteBuffer buf) {
+		// prepare trace
+		PrintWriter trc = traceWriter;
+		int trcStartPos = buf.position();
+		
+		// start real work
 		log(ILogConsumer.Category.NW_CHABU, "evRecv()");
 		
 		while( calcNextRecvChannel() ){
-			Channel ch = channels.get(recvChannelIdx);
+			ChabuChannel ch = channels.get(recvChannelIdx);
 			log( ILogConsumer.Category.CHABU_INT, "Ch[%s]Recv null", recvChannelIdx );
 			ch.handleRecv(null);
 		}
@@ -127,6 +142,7 @@ public class Chabu {
 					this.infoRemote = info;
 					//System.out.println("recv prot spec OK");
 					startupRx = false;	
+					checkConnectingValidator();
 					continue;
 				}
 				break;
@@ -137,9 +153,23 @@ public class Chabu {
 			}
 			log( ILogConsumer.Category.CHABU_INT, "Recv pos %d", buf.position() );
 			int channelId = buf.getShort(buf.position()+0) & 0xFFFF;
-			Channel channel = channels.get(channelId);
+			ChabuChannel channel = channels.get(channelId);
 			channel.handleRecv(buf);
 			
+		}
+		
+		// write out trace info
+		if( trc != null ){
+			trc.printf( "WIRE_RX: {}%n");
+			Utils.printTraceHexData(trc, buf, trcStartPos, buf.position());
+		}
+	}
+
+	private void checkConnectingValidator() {
+		if( val != null && !startupRx && !startupTx ){
+			if( !val.isAccepted(infoLocal, infoRemote)){
+				throw new ChabuConnectionAbortedException( ChabuConnectionAbortedException.AbortCause.VALIDATOR, "Validator refused connection for unknown reason");
+			}
 		}
 	}
 
@@ -156,7 +186,7 @@ public class Chabu {
 		log(ILogConsumer.Category.CHABU_INT, "evUserWriteRequest");
 		synchronized(this){
 			int priority = channels.get(channelId).priority;
-			chabu.Utils.ensure(priority < xmitChannelRequest.length, "priority:%s < xmitChannelRequest.length:%s", priority, xmitChannelRequest.length );
+			chabu.internal.Utils.ensure(priority < xmitChannelRequest.length, "priority:%s < xmitChannelRequest.length:%s", priority, xmitChannelRequest.length );
 			xmitChannelRequest[priority].set( channelId );
 		}
 		nw.evUserXmitRequest();
@@ -187,6 +217,11 @@ public class Chabu {
 	 * 			false 	no flush performed.
 	 */
 	public boolean evXmit(ByteBuffer buf) {
+		// prepare trace
+		PrintWriter trc = traceWriter;
+		int trcStartPos = buf.position();
+		
+		// start real work
 		log(ILogConsumer.Category.NW_CHABU, "evXmit()");
 		int oldRemaining = -1;
 		while( buf.hasRemaining() && oldRemaining != buf.remaining()){
@@ -194,6 +229,7 @@ public class Chabu {
 			
 			if( startupTx ){
 				xmitProtocolParameterSpecification(buf);
+				checkConnectingValidator();
 				continue;
 			}
 			if( startupRx ){
@@ -204,13 +240,18 @@ public class Chabu {
 				calcNextXmitChannel();
 			}
 			if( xmitContinueChannel != null ){
-				Channel ch = xmitContinueChannel;
+				ChabuChannel ch = xmitContinueChannel;
 				xmitContinueChannel = null;
 				boolean contXmit = ch.handleXmit( buf );
 				if( contXmit ){
 					this.xmitContinueChannel = ch;
 				}
 			}
+		}
+		// write out trace info
+		if( trc != null ){
+			trc.printf( "WIRE_TX: {}%n");
+			Utils.printTraceHexData(trc, buf, trcStartPos, buf.position());
 		}
 		return false; // flushing not implemented
 	}
@@ -348,4 +389,17 @@ public class Chabu {
 		return infoLocal.byteOrderBigEndian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN;
 	}
 
+	@Override
+	public void setTracePrinter(PrintWriter writer) {
+		this.traceWriter = writer;
+	}
+
+	public PrintWriter getTraceWriter() {
+		return traceWriter;
+	}
+
+	public void setConnectingValidator(IChabuConnectingValidator val) {
+		this.val = val;
+	}
+	
 }

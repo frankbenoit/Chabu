@@ -14,10 +14,10 @@ public class TestChannelUser implements IChabuChannelUser {
 	 */
 	private ByteBuffer tx = ByteBuffer.allocate(1000);
 	
-	private Channel channel;
+	private IChabuChannel channel;
 	private boolean consumeRxInProgress = false;
 	@Override
-	public void setChannel(Channel channel) {
+	public void setChannel(IChabuChannel channel) {
 		this.channel = channel;
 	}
 
@@ -29,7 +29,7 @@ public class TestChannelUser implements IChabuChannelUser {
 			while( rx.hasRemaining() && bufferToConsume.hasRemaining() ){
 				rx.put( bufferToConsume.get() );
 			}
-			TraceRunner.ensure( !bufferToConsume.hasRemaining(), "evRecv cannot take all data");
+			//TraceRunner.ensure( !bufferToConsume.hasRemaining(), "evRecv cannot take all data");
 		}
 		
 	}
@@ -75,7 +75,7 @@ public class TestChannelUser implements IChabuChannelUser {
 				TraceRunner.ensure( exp == cur, "Data mismatch %02X != %02X", cur, exp );
 			}
 			rx.compact();
-			channel.evUserRecvRequest();
+			channel.evUserXmitRequest();
 		}
 		finally {
 			consumeRxInProgress = false;

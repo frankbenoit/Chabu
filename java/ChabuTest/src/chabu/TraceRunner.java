@@ -3,7 +3,9 @@ package chabu;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -12,6 +14,8 @@ import java.util.regex.Pattern;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import chabu.internal.Utils;
 
 
 
@@ -31,7 +35,7 @@ public class TraceRunner {
 	String line;
 	int ln = 0;
 	private BufferedReader br;
-	private Chabu chabu;
+	private IChabu chabu;
 	
 	private ArrayList<TestChannelUser> channelUsers = new ArrayList<TestChannelUser>();
 	private final TestNetwork testNw = new TestNetwork();
@@ -45,7 +49,7 @@ public class TraceRunner {
 			throw new RuntimeException(String.format(fmt, args));
 		}
 	}
-	public void run( Reader reader ) throws IOException {
+	public void run( IChabu givenChabu, Reader reader ) throws IOException {
 		br = new BufferedReader(reader);
 		nextLine();
 		ensure( "<ChabuTrace Format=1>".equals( line ), "wrong format: %s", line);
@@ -54,9 +58,9 @@ public class TraceRunner {
 		skipEmpyLines();
 
 		// setup
-		ensure( line.startsWith("SETUP:"), "Not starting with SETUP: in line %s: %s", ln, line );
-		
-		{
+		if( givenChabu == null ){
+			ensure( line.startsWith("SETUP:"), "Not starting with SETUP: in line %s: %s", ln, line );
+			
 			StringBuilder sb = new StringBuilder();
 			sb.append( line.substring("SETUP:".length()));
 			nextLine();
@@ -77,28 +81,37 @@ public class TraceRunner {
 			ci.applicationVersion    = setupParams.getInt    ("ApplicationVersion"   );
 			ci.applicationName       = setupParams.getString ("ApplicationName"      );
 			
-			chabu = new Chabu(ci);
+			ChabuBuilder builder = ChabuBuilder.start(ci);
 			
-			chabu.setPriorityCount(setupParams.getInt ("PriorityCount" ));
+			builder.setPriorityCount(setupParams.getInt ("PriorityCount" ));
+			builder.setNetwork( testNw );
 			
-			chabu.setNetwork(testNw);
 			
 			JSONArray channels = setupParams.getJSONArray("Channels");
 			for( int channelIdx = 0; channelIdx < channels.length(); channelIdx ++ ){
 				JSONObject channelParams = (JSONObject)channels.get(channelIdx);
 				ensure( channelIdx == channelParams.getInt("ID"), "ID should be %s, but is %s", channelIdx, channelParams.getInt("ID") );
-				Channel channel = new Channel( 
-						channelParams.getInt("RxSize"), 
-						channelParams.getInt("TxSize"));
-				chabu.addChannel( channel);
-				channel.setPriority( channelParams.getInt("Priority"));
+				
 				TestChannelUser channelUser = new TestChannelUser();
-				channel.setNetworkUser( channelUser );
+				builder.addChannel( 
+						channelIdx, 
+						channelParams.getInt("RxSize"), 
+						channelParams.getInt("TxSize"),
+						channelParams.getInt("Priority"),
+						channelUser );
+				
 				channelUsers.add(channelUser);
 			}
-			chabu.activate();
+			
+			chabu = builder.build();
 		}
+		else {
+			chabu = givenChabu;
+		}
+		
 
+		PrintWriter trcPrinter = new PrintWriter(System.out);
+		chabu.setTracePrinter( trcPrinter );
 		try{
 			while( line != null ){
 				blockLineNum = ln;
@@ -133,6 +146,8 @@ public class TraceRunner {
 			System.err.printf("Block @%s\n", blockLineNum);
 			e.printStackTrace(System.err);
 			throw e;
+		} finally {
+			trcPrinter.flush();
 		}
 	}
 
@@ -244,9 +259,17 @@ public class TraceRunner {
 		ln++;
 	}
 
-	public static void test(String string) throws Exception {
+	public static void testFile(String string) throws Exception {
 		System.out.println("Test: "+string);
 		TraceRunner r = new TraceRunner();
-		r.run( new FileReader("src/chabu/"+string));
+		r.run( null, new FileReader("src/chabu/"+string));
+	}
+	public static void testText(String string) throws Exception {
+		TraceRunner r = new TraceRunner();
+		r.run( null, new StringReader(string));
+	}
+	public static void testText(IChabu givenChabu, String string) throws Exception {
+		TraceRunner r = new TraceRunner();
+		r.run( givenChabu, new StringReader(string));
 	}
 }

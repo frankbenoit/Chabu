@@ -1,5 +1,6 @@
-package chabu;
+package chabu.internal;
 
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 
 public class Utils {
@@ -61,4 +62,24 @@ public class Utils {
 	public static void dump(ByteBuffer bb) {
 		
 	}
+
+	static void printTraceHexData(PrintWriter trc, ByteBuffer buf, int startPos, int endPos ) {
+		int len = endPos - startPos;
+		for( int i = 0; i < len; i += 16 ){
+			trc.printf("    ");
+			for( int k = 0; k+i < len && k < 16; k++ ){
+				if( k > 0 ) {
+					trc.print(" ");
+					if( k % 4 == 0 ){
+						trc.print(" ");							
+					}
+				}
+				trc.printf("%02X", 0xFF & buf.get( i+k) );
+			}
+			trc.printf("%n");
+		}
+		trc.printf("    <<%n%n");
+	}
+
+
 }

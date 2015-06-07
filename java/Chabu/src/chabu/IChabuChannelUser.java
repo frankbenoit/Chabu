@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 public interface IChabuChannelUser {
 
-	public void setChannel( Channel channel );
+	public void setChannel( IChabuChannel channel );
 	
 	/**
 	 * Event to receive data from the network.

@@ -5,7 +5,7 @@ import java.nio.ByteBuffer;
 public class ChabuChannelUser implements IChabuChannelUser {
 		protected ByteBuffer recv;
 		protected ByteBuffer xmit;
-		protected Channel channel;
+		protected IChabuChannel channel;
 		
 		public ChabuChannelUser( ByteBuffer recv, ByteBuffer xmit ){
 			this.recv = recv;
@@ -13,7 +13,7 @@ public class ChabuChannelUser implements IChabuChannelUser {
 			recv.limit( recv.position() );
 		}
 		
-		public void setChannel(Channel channel) {
+		public void setChannel(IChabuChannel channel) {
 			this.channel = channel;
 		}
 		

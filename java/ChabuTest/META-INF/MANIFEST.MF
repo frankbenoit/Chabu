@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: ChabuTest
+Bundle-SymbolicName: ChabuTest
+Bundle-Version: 1.0.0.qualifier
+Export-Package: chabu,
+ chabu.tester,
+ org.eclipse,
+ org.json
+Require-Bundle: Chabu;bundle-version="1.0.0",
+ org.junit;bundle-version="4.11.0",
+ org.eclipse.core.runtime;bundle-version="3.10.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8

@@ -1,12 +1,15 @@
-package chabu;
+package chabu.internal;
 
 import java.nio.ByteBuffer;
 
+import chabu.IChabuChannel;
+import chabu.IChabuChannelUser;
+import chabu.ILogConsumer;
 import chabu.ILogConsumer.Category;
 
 
 
-public final class Channel {
+public final class ChabuChannel implements IChabuChannel {
 
 	private static final int PACKETFLAG_ARM = 0x0001;
 	private static final int PACKETFLAG_SEQ = 0x0002;
@@ -36,7 +39,7 @@ public final class Channel {
 	
 	int        priority = 0;
 	
-	public Channel(int recvBufferSize, int xmitBufferSize ) {
+	public ChabuChannel(int recvBufferSize, int xmitBufferSize ) {
 		
 		this.recvBuffer  = ByteBuffer.allocate(recvBufferSize);
 		this.recvArm = recvBufferSize;

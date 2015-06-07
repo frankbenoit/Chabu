@@ -1,0 +1,51 @@
+
+ What it is
+============
+ Chabu can be used to write a trace files. This format can be used to replay the data in test.
+ 
+ Format
+========
+
+"SETUP" : {
+    "ChabuProtocolVersion"  : 1,
+    "ByteOrderBigEndian"    : true,
+    "MaxReceivePayloadSize" : 1000,
+    "ReceiveCannelCount"    : 3,
+    "ApplicationVersion"    : 12345678,
+    "ApplicationName"       : "",
+    "PriorityCount"         : 3,
+    "Channels" : [
+         { "ID" : 0, "Priority" : 3, "RxSize" : 1000, "TxSize" : 1000 },
+         { "ID" : 1, "Priority" : 2, "RxSize" : 1000, "TxSize" : 1000 },
+         ]
+}
+
+{
+"Type" : "WIRE_RX",
+    "Offered" : 1234,
+    "Data:    : "
+	    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+	    00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 
+	    00 00 00 00 00 00 00 00 ...
+    "
+}
+
+
+WIRE_TX Available=1234, Data=
+    00 00 00 00 ...
+
+CHANNEL_TO_APPL <CH-ID>
+    00 00 00 00 ...
+
+APPL_TO_CHANNEL <CH-ID>
+    00 00 00 00 ...
+
+
+
+
+
+
+
+
+

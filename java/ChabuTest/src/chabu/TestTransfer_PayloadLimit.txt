@@ -97,6 +97,49 @@ WIRE_TX: { "More" : 20 }
 	00 01 00 01 00 00 00 28
 	<<
 
+// 19+1
+WIRE_RX: {}
+	00 00 00 02 00 00 00 14 00 13 // Ch 0
+    AA AA AA AA 55 55 55 55 AA AA
+    AA AA AA AA 55 55 55 55 AA
+	00 00 00 02 00 00 00 27 00 01 // Ch 0
+    AA
+	<<
+
+CHANNEL_TO_APPL: { "ID" : 0 }
+    AA
+	<<
+
+WIRE_TX: {}
+	00 00 00 01 00 00 00 29
+	<<
+
+CHANNEL_TO_APPL: { "ID" : 0 }
+    AA AA AA 55 55 55 55 AA AA
+    AA AA AA AA 55 55 55 55 AA AA
+	<<
+
+WIRE_TX: {}
+	00 00 00 01 00 00 00 3c
+	<<
+
+// 19+1
+WIRE_RX: {}
+	00 00 00 02 00 00 00 28 00 13 // Ch 0
+    AA AA AA AA 55 55 55 55 AA AA
+    AA AA AA AA 55 55 55 55 AA
+	00 00 00 02 00 00 00 3b 00 01 // Ch 0
+    AA
+	<<
+
+CHANNEL_TO_APPL: { "ID" : 0 }
+    AA AA AA AA 55 55 55 55 AA AA
+    AA AA AA AA 55 55 55 55 AA AA
+	<<
+
+WIRE_TX: { "More" : 20 }
+	00 00 00 01 00 00 00 50
+	<<
 
 
 

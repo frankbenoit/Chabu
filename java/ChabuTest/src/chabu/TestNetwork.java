@@ -1,9 +1,10 @@
 package chabu;
 
+
 public class TestNetwork implements IChabuNetwork {
 
 	@SuppressWarnings("unused")
-	private Chabu chabu;
+	private IChabu chabu;
 	boolean hadRecvReq = false;
 	boolean hadXmitReq = false;
 
@@ -18,7 +19,7 @@ public class TestNetwork implements IChabuNetwork {
 	}
 
 	@Override
-	public void setChabu(Chabu chabu) {
+	public void setChabu(IChabu chabu) {
 		this.chabu = chabu;
 	}
 

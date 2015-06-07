@@ -9,17 +9,35 @@ public class TestTransfer {
 
 	@Test
 	public void First() throws Exception {
-		TraceRunner.test("TestTransfer_First.txt");
+		TraceRunner.testFile("TestTransfer_First.txt");
 	}
 
+	
+	/*
+	 * Connection Setup:
+	 * 
+	 * 
+	 * 
+	 * Receiving:
+	 * 
+	 * 
+	 * 
+	 * 
+	 * Transmitting:
+	 * 
+	 * 
+	 * 
+	 */
+	
+	
 	@Test
 	public void PayloadLimit() throws Exception {
-		TraceRunner.test("TestTransfer_PayloadLimit.txt");
+		TraceRunner.testFile("TestTransfer_PayloadLimit.txt");
 	}
 	
 	@Test
 	public void Segmentation() throws Exception {
-		TraceRunner.test("TestTransfer_Segmentation.txt");
+		TraceRunner.testFile("TestTransfer_Segmentation.txt");
 	}
 	
 }

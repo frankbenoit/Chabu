@@ -63,7 +63,7 @@ public class TestChannelUser implements IChabuChannelUser {
 		try{
 			rx.clear();
 			rx.limit( expectedData.remaining() );
-			channel.pushRecvData();
+			channel.evUserRecvRequest();
 			rx.flip();
 			TraceRunner.ensure( rx.remaining() == expectedData.remaining(), "RX does not have enough data %s != %s", rx.remaining(), expectedData.remaining());
 			while( expectedData.hasRemaining() ){

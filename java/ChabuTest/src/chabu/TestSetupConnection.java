@@ -1,69 +1,340 @@
 package chabu;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import org.junit.Test;
 
 @SuppressWarnings("unused")
 public class TestSetupConnection {
 
+	private final String APPLNAME_200 = "" 
+			+ "12345678901234567890123456789012345678901234567890"
+			+ "12345678901234567890123456789012345678901234567890"
+			+ "12345678901234567890123456789012345678901234567890"
+			+ "12345678901234567890123456789012345678901234567890"
+			;
 	@Test
-	public void First() throws Exception {
+	public void LocalConnectionInfo_MaxReceivePayloadSize() throws Exception {
 		
-		ChabuConnectingInfo ci = new ChabuConnectingInfo();
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		ci.applicationName = "ABC";
+		ci.applicationVersion = 0x123;
+
+		// too low
+		ci.maxReceivePayloadSize = 0;
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
+			ChabuBuilder .start(ci, new TestNetwork(), 3);
+		});
+		ci.maxReceivePayloadSize = 0x100-1;
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
+			ChabuBuilder .start(ci, new TestNetwork(), 3);
+		});
+		// too much
+		ci.maxReceivePayloadSize = 0xFFFF+1;
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
+			ChabuBuilder .start(ci, new TestNetwork(), 3);
+		});
+		
+
+	}		
+
+	@Test
+	public void LocalConnectionInfo_ApplicationName() throws Exception {
+
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+
+		ci.applicationName = null;
+		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, ()->{
+			ChabuBuilder .start(ci, new TestNetwork(), 3);
+		});
+		
+		ci.applicationName = APPLNAME_200 + "-";
+		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, ()->{
+			ChabuBuilder .start(ci, new TestNetwork(), 3);
+		});
+
+		ci.applicationName = APPLNAME_200;
+		ChabuBuilder .start(ci, new TestNetwork(), 3);
+		ci.applicationName = "";
+		ChabuBuilder .start(ci, new TestNetwork(), 3);
 		
 		IChabu chabu = ChabuBuilder
-				.start(ci)
-				.setConnectionValidator(new IChabuConnectingValidator(){
-
-					@Override
-					public boolean isAccepted(ChabuConnectingInfo local,
-							ChabuConnectingInfo remote) {
-						// TODO Auto-generated method stub
-						return false;
-					}})
-				.setNetwork(null)
-				.setPriorityCount(3)
+				.start(ci, new TestNetwork(), 3)
+				.setConnectionValidator((local, remote) -> {
+					System.out.println("Local  "+remote.applicationName);
+					System.out.println("Remote "+remote.applicationName);
+						return null;
+				})
+				.addChannel(0, 0x100, 0, new TestChannelUser())
 				.build();
-		
-		TraceRunner.testText( chabu, ""
-				+ "// simple case for setup\n"
-				+ "SETUP: {\r\n" + 
-				"    \"ChabuProtocolVersion\"  : 1,\r\n" + 
-				"    \"ByteOrderBigEndian\"    : true,\r\n" + 
-				"    \"MaxReceivePayloadSize\" : 10,\r\n" + 
-				"    \"ReceiveCannelCount\"    : 2,\r\n" + 
-				"    \"ApplicationVersion\"    : 2,\r\n" + 
-				"    \"ApplicationName\"       : \"ABC\",\r\n" + 
-				"    \"PriorityCount\"         : 3,\r\n" + 
-				"    \"Channels\" : [\r\n" + 
-				"         { \"ID\" : 0, \"Priority\" : 1, \"RxSize\" : 20, \"TxSize\" : 20 },\r\n" + 
-				"         { \"ID\" : 1, \"Priority\" : 0, \"RxSize\" : 20, \"TxSize\" : 20 }\r\n" + 
-				"         ]\r\n" + 
-				"}\r\n" + 
-				"\r\n" + 
-				"// Check the configuration block send by Chabu\r\n" + 
-				"WIRE_RX: {}\r\n" + 
-				"    01          // u8   protocol version\r\n" + 
-				"	01          // bool endianess\r\n" + 
-				"	00 0A       // u16  maxReceivePayloadSize	\r\n" + 
-				"	00 02       // u16  receiveCannelCount\r\n" + 
-				"	00 00 00 06 // u32  applicationVersion\r\n" + 
-				"	03 58 59 5A // u8+. applicationName\r\n" + 
-				"	<<\r\n" + 
-				"    \r\n" + 
-				"// Create config block\r\n" + 
-				"WIRE_TX: {}\r\n" + 
-				"    01          // u8   protocol version\r\n" + 
-				"	01          // bool endianess\r\n" + 
-				"	00 0a       // u16  maxReceivePayloadSize	\r\n" + 
-				"	00 02       // u16  receiveCannelCount\r\n" + 
-				"	00 00 00 02 // u32  applicationVersion\r\n" + 
-				"	03 41 42 43 // u8+. applicationName\r\n" + 
-				"	<<\r\n" + 
-				"\n"
-				);
-	}
+	}		
 
+	@Test
+	public void LocalConnectionInfo_NetworkNull() {
+
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "";
+
+		assertException( ChabuErrorCode.CONFIGURATION_NETWORK, ()->{
+			ChabuBuilder.start(ci, null, 3);
+		});
+	}		
+	
+	
+	@Test
+	public void LocalConnectionInfo_PriorityCount() {
+		
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "";
+		
+		// Prio count <= 0
+		assertException( ChabuErrorCode.CONFIGURATION_PRIOCOUNT, ()->{
+			ChabuBuilder.start(ci, new TestNetwork(), 0);
+		});		
+		// Prio count > 20
+		assertException( ChabuErrorCode.CONFIGURATION_PRIOCOUNT, ()->{
+			ChabuBuilder.start(ci, new TestNetwork(), 21);
+		});
+	}		
+	
+	@Test
+	public void LocalConnectionInfo_ChannelConfig() throws Exception {
+		
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "";
+
+		ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 20, 0, new TestChannelUser());
+		
+		assertException( ChabuErrorCode.CONFIGURATION_CH_ID, ()->{
+			ChabuBuilder
+				.start(ci, new TestNetwork(), 3)
+				.addChannel( 1, 20, 0, new TestChannelUser());
+		});
+		
+		assertException( ChabuErrorCode.CONFIGURATION_CH_RECVSZ, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 0, 0, new TestChannelUser());
+		});
+
+		assertException( ChabuErrorCode.CONFIGURATION_CH_PRIO, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 20, -1 /* >= 0 */, new TestChannelUser());
+		});
+		assertException( ChabuErrorCode.CONFIGURATION_CH_PRIO, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3 /* limit */)
+			.addChannel( 0, 20, 3 /* not < 3 */, new TestChannelUser())
+			.build(); // << will be tested in here
+		});
+		
+		assertException( ChabuErrorCode.CONFIGURATION_CH_USER, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 20, 0, null /*!!*/);
+		});
+		
+		assertException( ChabuErrorCode.CONFIGURATION_NO_CHANNELS, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.build();
+		});
+		
+	}		
+	
+	@Test
+	public void LocalConnectionInfo_ConnectionValidator() throws Exception {
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "ABC";
+
+		ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 20, 0, new TestChannelUser())
+			.setConnectionValidator( (local, remote) -> null )
+			.build();
+		
+		assertException( ChabuErrorCode.CONFIGURATION_VALIDATOR, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 20, 0, new TestChannelUser())
+			.setConnectionValidator( null )
+			.build();
+			fail();
+		});
+
+		assertException( ChabuErrorCode.CONFIGURATION_VALIDATOR, ()->{
+			ChabuBuilder
+			.start(ci, new TestNetwork(), 3)
+			.addChannel( 0, 20, 0, new TestChannelUser())
+			.setConnectionValidator( (local, remote) -> null )
+			.setConnectionValidator( (local, remote) -> null )
+			.build();
+		});
+
+		{
+			
+			IChabu chabu = ChabuBuilder
+					.start(ci, new TestNetwork(), 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.setConnectionValidator( (local, remote) -> {
+						return new ChabuConnectionAcceptInfo( 0x177, "To Test");
+					})
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireRx("00 0D F0 01 01 00 00 00 01 23 00 03 41 41 41");
+			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+			r.wireRx("00 01 E1");
+			assertException( 0x177, ()->{
+				r.wireTx("00 01 E1");
+			});
+		}
+	}		
+
+	private void assertException( ChabuErrorCode ec, Runnable r ){
+		try{
+			r.run();
+			fail();
+		}
+		catch( ChabuException e ){
+			assertEquals( ec.getCode(), e.getCode());
+		}
+	}
+	private void assertException( int code, Runnable r ){
+		try{
+			r.run();
+			fail();
+		}
+		catch( ChabuException e ){
+			assertEquals( code, e.getCode());
+		}
+	}
+	@Test
+	public void RemoteConnectionInfo_ChabuVersion() throws Exception {
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "ABC";
+
+
+		{
+			IChabu chabu = ChabuBuilder
+					.start(ci, new TestNetwork(), 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireRx("00 0D F0 02 01 00 00 00 01 23 00 03 41 41 41");
+			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+			r.wireRx("00 01 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
+				r.wireTx("00 01 E1");
+			});
+		}
+		{
+			IChabu chabu = ChabuBuilder
+					.start(ci, new TestNetwork(), 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+			r.wireRx("00 0D F0 02 01 00 00 00 01 23 00 03 41 41 41");
+			r.wireRx("00 01 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
+				r.wireTx("00 01 E1");
+			});
+		}
+		{
+			IChabu chabu = ChabuBuilder
+					.start(ci, new TestNetwork(), 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+			r.wireRx("00 0D F0 02 01 00 00 00 01 23 00 03 41 41 41");
+			//r.wireRx("00 01 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
+				r.wireTx("00 01 E1");
+			});
+		}
+	}		
+	
+	@Test
+	public void RemoteConnectionInfo_MaxReceivePayloadSize() throws Exception {
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "ABC";
+
+
+		{
+			IChabu chabu = ChabuBuilder
+					.start(ci, new TestNetwork(), 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireRx("00 0D F0 01 00 FF 00 00 01 23 00 03 41 41 41");
+			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+			r.wireRx("00 01 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, ()->{
+				r.wireTx("00 01 E1");
+			});
+		}
+	}		
+	
+	@Test
+	public void RemoteConnectionInfo_Validator() throws Exception {
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		
+		ci.applicationVersion = 0x123;
+		ci.maxReceivePayloadSize = 0x100;
+		ci.applicationName = "ABC";
+
+
+		{
+			IChabu chabu = ChabuBuilder
+					.start(ci, new TestNetwork(), 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireRx("00 0D F0 01 00 FF 00 00 01 23 00 03 41 41 41");
+			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+			// 7 + len
+			assertException( ChabuErrorCode.REMOTE_ABORT, ()->{
+				r.wireRx("00 0A D2 00 00 01 23 "+TestUtils.test2LengthAndHex("bla"));
+			});
+		}
+	}		
 	
 }

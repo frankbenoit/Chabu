@@ -2,6 +2,9 @@ package chabu;
 
 public interface IChabuConnectingValidator {
 
-	public boolean isAccepted( ChabuConnectingInfo local, ChabuConnectingInfo remote );
+	/**
+	 * For accepted, either returns null or a ChabuConnectionAcceptInfo with code set to 0.
+	 */
+	public ChabuConnectionAcceptInfo isAccepted( ChabuSetupInfo local, ChabuSetupInfo remote );
 	
 }

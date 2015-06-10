@@ -3,9 +3,12 @@ package chabu.internal;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 
+import chabu.ChabuErrorCode;
+import chabu.ChabuException;
+
 public class Utils {
 	
-	public static RuntimeException fail( String fmt, Object ... args ){
+	public static RuntimeException failX( String fmt, Object ... args ){
 		throw new RuntimeException( String.format( fmt, args ));
 	}
 	
@@ -13,16 +16,34 @@ public class Utils {
 	 * Throw an exception if the condition is not true.
 	 * @param cond
 	 */
-	public static void ensure( boolean cond, String fmt, Object ... args ){
+	public static void ensureX( boolean cond, String fmt, Object ... args ){
 		if( cond ) return;
 		throw new RuntimeException( String.format( fmt, args ));
 	}
 	
+	public static void fail( ChabuErrorCode error, String fmt, Object ... args ){
+		throw new ChabuException( error, String.format( fmt, args ));
+	}
+
+	public static void fail( int error, String fmt, Object ... args ){
+		throw new ChabuException( error, String.format( fmt, args ));
+	}
+	
+	public static void ensure( boolean cond, ChabuErrorCode error, String fmt, Object ... args ){
+		if( cond ) return;
+		throw new ChabuException( error, String.format( fmt, args ));
+	}
+	
+	public static void ensure( boolean cond, int code, String fmt, Object ... args ){
+		if( cond ) return;
+		throw new ChabuException( code, String.format( fmt, args ));
+	}
+	
 	/**
 	 * Throw an exception if the condition is not true.
 	 * @param cond
 	 */
-	public static void ensure( boolean cond ){
+	public static void ensureX( boolean cond ){
 		if( cond ) return;
 		throw new RuntimeException();
 	}
@@ -81,5 +102,12 @@ public class Utils {
 		trc.printf("    <<%n%n");
 	}
 
-
+	public static int transferRemaining( ByteBuffer src, ByteBuffer trg ){
+		int xfer = Math.min( src.remaining(), trg.remaining() );
+		int oldLimit = src.limit();
+		src.limit( src.position() + xfer );
+		trg.put( src );
+		src.limit( oldLimit );
+		return xfer;
+	}
 }

@@ -13,7 +13,7 @@ public interface IChabuNetwork {
 
 	public void setChabu( IChabu chabu );
 	
-	public void evUserRecvRequest();
+//	public void evUserRecvRequest();
 	
 	public void evUserXmitRequest();
 	

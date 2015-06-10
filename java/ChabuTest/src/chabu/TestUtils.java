@@ -1,9 +1,32 @@
 package chabu;
 
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
-public class HexDump
-{
+public class TestUtils {
+
+	public static String test2Hex( String text ){
+		byte[] bytes = text.getBytes( StandardCharsets.UTF_8 );
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < bytes.length; i++) {
+			if( sb.length() > 0 ) sb.append(" ");
+			sb.append( String.format("%02X", 0xFF & bytes[i] ));
+		}
+		return sb.toString();
+	}
+	
+	public static String test2LengthAndHex( String text ){
+		byte[] bytes = text.getBytes( StandardCharsets.UTF_8 );
+		StringBuilder sb = new StringBuilder();
+		sb.append( String.format("%02X %02X", bytes.length >> 8, 0xFF & bytes.length  ));
+		if( bytes.length > 0 ){
+			for (int i = 0; i < bytes.length; i++) {
+				sb.append( String.format(" %02X", 0xFF & bytes[i] ));
+			}
+		}
+		return sb.toString();
+	}
+	
     private final static char[] HEX_DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
     
     public static String dumpHexString(byte[] array)
@@ -156,4 +179,3 @@ public class HexDump
         return buffer;
     }    
 }
-

@@ -15,8 +15,6 @@ import java.util.regex.Pattern;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import chabu.internal.Utils;
-
 
 
 public class TraceRunner {
@@ -44,6 +42,10 @@ public class TraceRunner {
 	public TraceRunner(){
 	}
 
+	public TraceRunner(IChabu chabu) {
+		this.chabu = chabu;
+	}
+
 	static void ensure( boolean test, String fmt, Object ... args ){
 		if( !test){
 			throw new RuntimeException(String.format(fmt, args));
@@ -58,7 +60,7 @@ public class TraceRunner {
 		skipEmpyLines();
 
 		// setup
-		if( givenChabu == null ){
+		if( givenChabu == null && this.chabu == null ){
 			ensure( line.startsWith("SETUP:"), "Not starting with SETUP: in line %s: %s", ln, line );
 			
 			StringBuilder sb = new StringBuilder();
@@ -72,20 +74,13 @@ public class TraceRunner {
 			JSONObject setupParams = new JSONObject(sb.toString());
 //			System.out.println( "Setup: "+ setupParams);
 			
-			ChabuConnectingInfo ci = new ChabuConnectingInfo();
+			ChabuSetupInfo ci = new ChabuSetupInfo();
 			
-			ci.chabuProtocolVersion  = setupParams.getInt    ("ChabuProtocolVersion" );
-			ci.byteOrderBigEndian    = setupParams.getBoolean("ByteOrderBigEndian"   );
 			ci.maxReceivePayloadSize = setupParams.getInt    ("MaxReceivePayloadSize");
-			ci.receiveCannelCount    = setupParams.getInt    ("ReceiveCannelCount"   );
 			ci.applicationVersion    = setupParams.getInt    ("ApplicationVersion"   );
 			ci.applicationName       = setupParams.getString ("ApplicationName"      );
 			
-			ChabuBuilder builder = ChabuBuilder.start(ci);
-			
-			builder.setPriorityCount(setupParams.getInt ("PriorityCount" ));
-			builder.setNetwork( testNw );
-			
+			ChabuBuilder builder = ChabuBuilder.start(ci, testNw, setupParams.getInt ("PriorityCount" ));
 			
 			JSONArray channels = setupParams.getJSONArray("Channels");
 			for( int channelIdx = 0; channelIdx < channels.length(); channelIdx ++ ){
@@ -96,7 +91,6 @@ public class TraceRunner {
 				builder.addChannel( 
 						channelIdx, 
 						channelParams.getInt("RxSize"), 
-						channelParams.getInt("TxSize"),
 						channelParams.getInt("Priority"),
 						channelUser );
 				
@@ -105,7 +99,7 @@ public class TraceRunner {
 			
 			chabu = builder.build();
 		}
-		else {
+		else if( givenChabu != null ){
 			chabu = givenChabu;
 		}
 		
@@ -151,6 +145,27 @@ public class TraceRunner {
 		}
 	}
 
+	public void wireRx(String hexData) {
+		hexStringToBB(hexData);
+		JSONObject params = new JSONObject();
+		wireRx( params, bb );
+	}
+	public void wireTx(String hexData) {
+		hexStringToBB(hexData);
+		JSONObject params = new JSONObject();
+		wireTx( params, bb );
+	}
+
+	private void hexStringToBB(String hexData) {
+		bb.clear();
+		StringTokenizer tokenizer = new StringTokenizer(hexData);
+		while( tokenizer.hasMoreTokens()){
+			String token = tokenizer.nextToken();
+			ensure( token.length() == 2, "RAW number has not length 2. Line: %s", ln );
+			bb.put( (byte) Integer.parseInt(token, 16));
+		}
+		bb.flip();
+	}
 	/**
 	 * Push the data into Chabu.
 	 */
@@ -159,7 +174,7 @@ public class TraceRunner {
 		int more = params.optInt("More");
 		bb.limit( bb.limit() + more );
 		chabu.evRecv(bb);
-		ensure( bb.remaining() == 0, "Chabu did not receive all data" );
+		ensure( bb.remaining() == more, "Chabu did not receive all data" );
 	}
 
 	/**
@@ -188,12 +203,12 @@ public class TraceRunner {
 		}
 
 		if( !isOk ){
-			System.out.println("TX by chabu:"+HexDump.dumpHexString( txBuf ));
-			Utils.ensure( txBuf.limit() == bb.limit(), "WIRE_TX @%s: TX length (%s) does not match the expected length (%s)", blockLineNum, txBuf.limit(), bb.limit() );
+			System.out.println("TX by chabu:"+TestUtils.dumpHexString( txBuf ));
+			ensure( txBuf.limit() == bb.limit(), "WIRE_TX @%s: TX length (%s) does not match the expected length (%s)", blockLineNum, txBuf.limit(), bb.limit() );
 			for( int i = 0; i < bb.limit(); i++ ){
 				int exp = 0xFF & bb.get(i);
 				int cur = 0xFF & txBuf.get(i);
-				Utils.ensure( cur == exp, "TX data (0x%02X) != expected (0x%02X) at index %d", cur, exp, i );
+				ensure( cur == exp, "TX data (0x%02X) != expected (0x%02X) at index %d", cur, exp, i );
 			}
 		}
 	}
@@ -271,5 +286,10 @@ public class TraceRunner {
 	public static void testText(IChabu givenChabu, String string) throws Exception {
 		TraceRunner r = new TraceRunner();
 		r.run( givenChabu, new StringReader(string));
+	}
+
+	public static TraceRunner test(IChabu chabu) {
+		TraceRunner r = new TraceRunner(chabu);
+		return r;
 	}
 }

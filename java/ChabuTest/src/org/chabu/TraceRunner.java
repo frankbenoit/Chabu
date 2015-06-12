@@ -167,6 +167,12 @@ public class TraceRunner {
 		JSONObject params = new JSONObject();
 		wireTx( params, bb );
 	}
+	public void wireTx( int more, String hexData) {
+		hexStringToBB(hexData);
+		JSONObject params = new JSONObject();
+		params.put( "More", more );
+		wireTx( params, bb );
+	}
 
 	private void hexStringToBB(String hexData) {
 		bb.clear();
@@ -224,7 +230,7 @@ public class TraceRunner {
 			for( int i = 0; i < bb.limit(); i++ ){
 				int exp = 0xFF & bb.get(i);
 				int cur = 0xFF & txBuf.get(i);
-				ensure( cur == exp, "TX data (0x%02X) != expected (0x%02X) at index %d", cur, exp, i );
+				ensure( cur == exp, "TX data (0x%02X) != expected (0x%02X) at index 0x%X", cur, exp, i );
 			}
 		}
 	}

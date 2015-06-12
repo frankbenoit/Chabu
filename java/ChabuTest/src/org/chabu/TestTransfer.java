@@ -32,16 +32,16 @@ public class TestTransfer {
 		// send initial ARM with the first data
 		r.wireTx(""
 				// ARM[0]=64
-				+ "00 07 C3 00 00 00 00 00 64 "
+				+ "00 07 C3 00 00 00 00 02 00 "
+				// ARM[1]=64
+				+ "00 07 C3 00 01 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
 				+ "00 59 B4 00 00 00 00 00 00 00 50 "
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 " 
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
-				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "
-				// ARM[1]=64
-				+ "00 07 C3 00 01 00 00 00 64");
+				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55");
 		
 		// recv some data
 		r.wireRx("00 11 B4 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08");
@@ -61,7 +61,7 @@ public class TestTransfer {
 		
 		IChabu chabu = ChabuBuilder
 				.start(ci, new TestNetwork(), 3)
-				.addChannel(0, 100, 1, new TestChannelUser())
+				.addChannel(0, 0x200, 1, new TestChannelUser())
 				.addChannel(1, 100, 0, new TestChannelUser())
 				.build();
 
@@ -71,7 +71,7 @@ public class TestTransfer {
 		r.wireRxAutoLength(""
 				+ "F0 "
 				+ "01 "
-				+ "07 ff "
+				+ "01 00 "
 				+ "00 00 00 06 "
 				+ TestUtils.test2LengthAndHex("ABC"));
 		    
@@ -119,21 +119,30 @@ public class TestTransfer {
 				+ "00 07 C3 00 01 00 00 07 FF");
 
 		// send initial ARM with the first data
-		r.wireTx(""
+		r.wireTx( ""
 				// ARM[0]=64
-				+ "00 07 C3 00 00 00 00 00 64 "
+				+ "00 07 C3 00 00 00 00 02 00 "
+				// ARM[1]=64
+				+ "00 07 C3 00 01 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
 				// len   SE chan. seq........ pls..
 				+ "00 FE B4 00 00 00 00 00 00 00 F5 " + dg.getExpBytesString(245) + " "
-				//+ "00 0A B4 00 00 00 00 01 00 00 01 " + dg.getExpBytesString( 12) + " "
-				// ARM[1]=64
-				//+ "00 07 C3 00 01 00 00 00 64"
+				+ "00 15 B4 00 00 00 00 00 F5 00 0C " + dg.getExpBytesString( 12) + " "
 				);
 		
+		r.wireTx( 20, "");
 		dg.ensureSamePosition();
 		
-//		r.wireRx("00 11 c4 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08");
-//		r.wireTx( "00" );
+		r.wireRx(""
+		+ "00 FE B4 00 00 00 00 00 00 00 F5 " + dg.getExpBytesString(245) + " "
+		+ "00 15 B4 00 00 00 00 00 F5 00 0C " + dg.getExpBytesString( 12));
+		
+		r.channelToAppl( 0, dg.getGenBytesString(257));
+		dg.ensureSamePosition();
+		
+		// SEQ[0]=F5+0c=0x101 +0x200 -> ARM = 0x301
+		r.wireTx( 20, "00 07 C3 00 00 00 00 03 01" );
+		r.wireRx( "00 07 C3 00 00 00 00 08 FF " );
 	}
 	
 	@Test

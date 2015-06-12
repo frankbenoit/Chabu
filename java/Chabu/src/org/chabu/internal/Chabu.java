@@ -24,12 +24,13 @@ public class Chabu implements IChabu {
 
 	private ArrayList<ChabuChannel> channels = new ArrayList<>(256);
 	private int      priorityCount = 1;
-	private BitSet[] xmitChannelRequest;
+	private BitSet[] xmitChannelRequestData;
+	private BitSet[] xmitChannelRequestArm;
 	private int      xmitLastChannelIdx = 0;
 //	private BitSet[] recvChannelRequest;
 //	private int      recvChannelIdx = 0;
 	
-	private ByteBuffer xmitHeader = ByteBuffer.allocate( 0x100 );
+	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 	private ByteBuffer recvHeader = ByteBuffer.allocate( 0x100 );
 
 	private IChabuNetwork nw;
@@ -86,8 +87,8 @@ public class Chabu implements IChabu {
 		recvHeader.order(ByteOrder.BIG_ENDIAN);
 		recvHeader.clear();
 		
-		xmitHeader.order(ByteOrder.BIG_ENDIAN);
-		xmitHeader.clear().limit(0);
+		xmitBuf.order(ByteOrder.BIG_ENDIAN);
+		xmitBuf.clear().limit(0);
 		
 	}
 	
@@ -120,15 +121,18 @@ public class Chabu implements IChabu {
 	public void activate(){
 		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
 		Utils.ensure( channels.size() > 0, ChabuErrorCode.CONFIGURATION_NO_CHANNELS, "No channels are set." );
+		
+		xmitChannelRequestData = new BitSet[ priorityCount ];
+		xmitChannelRequestArm  = new BitSet[ priorityCount ];
+		for (int i = 0; i < xmitChannelRequestData.length; i++) {
+			xmitChannelRequestData[i] = new BitSet(channels.size());
+			xmitChannelRequestArm [i] = new BitSet(channels.size());
+		}
+		
 		for( int i = 0; i < channels.size(); i++ ){
 			ChabuChannel ch = channels.get(i);
 			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, "Channel %s has higher priority (%s) as the max %s", i, ch.getPriority(), priorityCount );
 			ch.activate(this, i );
-		}
-		
-		xmitChannelRequest = new BitSet[ priorityCount ];
-		for (int i = 0; i < xmitChannelRequest.length; i++) {
-			xmitChannelRequest[i] = new BitSet(channels.size());
 		}
 		
 //		recvChannelRequest = new BitSet[ priorityCount ];
@@ -327,10 +331,10 @@ public class Chabu implements IChabu {
 			}
 			val = null;
 
-			if( isOk && this.xmitHeader.capacity() != infoRemote.maxReceiveSize ){
-				this.xmitHeader = ByteBuffer.allocate( infoRemote.maxReceiveSize );
-				this.xmitHeader.order( ByteOrder.BIG_ENDIAN );
-				this.xmitHeader.limit( 0 );
+			if( isOk && this.xmitBuf.capacity() != infoRemote.maxReceiveSize ){
+				this.xmitBuf = ByteBuffer.allocate( infoRemote.maxReceiveSize );
+				this.xmitBuf.order( ByteOrder.BIG_ENDIAN );
+				this.xmitBuf.limit( 0 );
 			}
 
 			prepareXmitAccept();
@@ -361,11 +365,19 @@ public class Chabu implements IChabu {
 //		nw.evUserRecvRequest();
 //	}
 
-	void evUserXmitRequest(int channelId){
+	void channelXmitRequestData(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			Utils.ensure(priority < xmitChannelRequest.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequest.length:%s", priority, xmitChannelRequest.length );
-			xmitChannelRequest[priority].set( channelId );
+			Utils.ensure(priority < xmitChannelRequestData.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestData.length );
+			xmitChannelRequestData[priority].set( channelId );
+		}
+		nw.evUserXmitRequest();
+	}
+	void channelXmitRequestArm(int channelId){
+		synchronized(this){
+			int priority = channels.get(channelId).getPriority();
+			Utils.ensure(priority < xmitChannelRequestArm.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestArm.length );
+			xmitChannelRequestArm[priority].set( channelId );
 		}
 		nw.evUserXmitRequest();
 	}
@@ -386,9 +398,9 @@ public class Chabu implements IChabu {
 		// start real work
 		while( buf.hasRemaining() ){
 			
-			Utils.transferRemaining( xmitHeader, buf );
+			Utils.transferRemaining( xmitBuf, buf );
 
-			if( xmitHeader.hasRemaining() ){
+			if( xmitBuf.hasRemaining() ){
 				break;
 			}
 			if( xmitStartupCompleted != XmitState.IDLE ){
@@ -417,14 +429,20 @@ public class Chabu implements IChabu {
 				}
 			}
 
-			ChabuChannel nextXmitChannel = calcNextXmitChannel();
-			if( nextXmitChannel != null ){
-				nextXmitChannel.handleXmit();
+			ChabuChannel ch = calcNextXmitChannel(xmitChannelRequestArm);
+			if( ch != null ){
+				ch.handleXmitArm();
+				continue;
 			}
-			else {
-				// nothing more to do, go out
-				break;
+			
+			ch = calcNextXmitChannel(xmitChannelRequestData);
+			if( ch != null ){
+				ch.handleXmitData();
+				continue;
 			}
+
+			// nothing more to do, go out
+			break;
 		}
 		// write out trace info
 		if( trc != null ){
@@ -442,22 +460,22 @@ public class Chabu implements IChabu {
 	 */
 	private void processXmitSetup(){
 
-		if( xmitHeader.hasRemaining() ){
+		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit SETUP, buffer is not empty");
 		}
 		
 		byte[] anlBytes = infoLocal.applicationName.getBytes( StandardCharsets.UTF_8 );
 		Utils.ensure( anlBytes.length <= 200, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, "SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.", anlBytes.length );
 		
-		xmitHeader.clear();
-		xmitHeader.putShort( (short)(PacketType.SETUP.headerSize + anlBytes.length) );
-		xmitHeader.put     ( (byte ) PacketType.SETUP.id );
-		xmitHeader.put     ( (byte ) PROTOCOL_VERSION );
-		xmitHeader.putShort( (short) infoLocal.maxReceiveSize       );
-		xmitHeader.putInt  (         infoLocal.applicationVersion );
-		xmitHeader.putShort( (short) anlBytes.length );
-		xmitHeader.put     (         anlBytes );
-		xmitHeader.flip();
+		xmitBuf.clear();
+		xmitBuf.putShort( (short)(PacketType.SETUP.headerSize + anlBytes.length) );
+		xmitBuf.put     ( (byte ) PacketType.SETUP.id );
+		xmitBuf.put     ( (byte ) PROTOCOL_VERSION );
+		xmitBuf.putShort( (short) infoLocal.maxReceiveSize       );
+		xmitBuf.putInt  (         infoLocal.applicationVersion );
+		xmitBuf.putShort( (short) anlBytes.length );
+		xmitBuf.put     (         anlBytes );
+		xmitBuf.flip();
 		
 		xmitStartupCompleted = XmitState.PREPARED;
 		
@@ -465,14 +483,14 @@ public class Chabu implements IChabu {
 
 	private void prepareXmitAccept(){
 
-		if( xmitHeader.hasRemaining() ){
+		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit ACCEPT, buffer is not empty");
 		}
 		
-		xmitHeader.clear();
-		xmitHeader.putShort( (short)(PacketType.ACCEPT.headerSize) );
-		xmitHeader.put     ( (byte ) PacketType.ACCEPT.id );
-		xmitHeader.flip();
+		xmitBuf.clear();
+		xmitBuf.putShort( (short)(PacketType.ACCEPT.headerSize) );
+		xmitBuf.put     ( (byte ) PacketType.ACCEPT.id );
+		xmitBuf.flip();
 	}
 	private void processXmitAbort(){
 		
@@ -480,13 +498,13 @@ public class Chabu implements IChabu {
 		byte[] msgBytes = xmitAbortMessage.getBytes( StandardCharsets.UTF_8 );
 		Utils.ensure( msgBytes.length <= 200, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH, "Xmit Abort message, text must be less than 200 UTF8 bytes, but is %s", msgBytes.length );
 		
-		xmitHeader.clear();
-		xmitHeader.putShort( (short)(PacketType.ABORT.headerSize + msgBytes.length) );
-		xmitHeader.put     ( (byte ) PacketType.ABORT.id );
-		xmitHeader.putInt  (         xmitAbortCode );
-		xmitHeader.putShort( (short) msgBytes.length );
-		xmitHeader.put     (         msgBytes );
-		xmitHeader.flip();
+		xmitBuf.clear();
+		xmitBuf.putShort( (short)(PacketType.ABORT.headerSize + msgBytes.length) );
+		xmitBuf.put     ( (byte ) PacketType.ABORT.id );
+		xmitBuf.putInt  (         xmitAbortCode );
+		xmitBuf.putShort( (short) msgBytes.length );
+		xmitBuf.put     (         msgBytes );
+		xmitBuf.flip();
 		
 		xmitAbortMessage = "";
 		xmitAbortCode    = 0;
@@ -499,16 +517,16 @@ public class Chabu implements IChabu {
 	 */
 	void processXmitArm( int channelId, int arm ){
 
-		if( xmitHeader.hasRemaining() ){
+		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit ACCEPT, buffer is not empty");
 		}
 		
-		xmitHeader.clear();
-		xmitHeader.putShort( (short)(PacketType.ARM.headerSize) );
-		xmitHeader.put     ( (byte ) PacketType.ARM.id );
-		xmitHeader.putShort( (short) channelId );
-		xmitHeader.putInt  (         arm       );
-		xmitHeader.flip();
+		xmitBuf.clear();
+		xmitBuf.putShort( (short)(PacketType.ARM.headerSize) );
+		xmitBuf.put     ( (byte ) PacketType.ARM.id );
+		xmitBuf.putShort( (short) channelId );
+		xmitBuf.putInt  (         arm       );
+		xmitBuf.flip();
 		
 		
 	}
@@ -518,39 +536,38 @@ public class Chabu implements IChabu {
 	 */
 	int processXmitSeq( int channelId, int seq, Consumer<ByteBuffer> user ){
 		
-		if( xmitHeader.hasRemaining() ){
+		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit SEQ, buffer is not empty");
 		}
 		
-		xmitHeader.clear();
-		int plPos = PacketType.SEQ.headerSize + 2;
-		xmitHeader.position( plPos );
+		xmitBuf.clear();
+		int plPos = PacketType.SEQ.headerSize/*==9*/ + 2;
+		xmitBuf.position( plPos );
 		
-		user.accept( xmitHeader );
+		user.accept( xmitBuf );
 		
-		int pls = xmitHeader.position() - plPos;
+		int pls = xmitBuf.position() - plPos;
 		
 		if( pls > 0 ){
-			xmitHeader.putShort( 0, (short)(PacketType.SEQ.headerSize+pls) );
-			xmitHeader.put     ( 2, (byte ) PacketType.SEQ.id );
-			xmitHeader.putShort( 3, (short) channelId );
-			xmitHeader.putInt  ( 5,         seq       );
-			xmitHeader.putShort( 9, (short) pls );
-			xmitHeader.flip();
-			return pls;
+			xmitBuf.putShort( 0, (short)(PacketType.SEQ.headerSize+pls) );
+			xmitBuf.put     ( 2, (byte ) PacketType.SEQ.id );
+			xmitBuf.putShort( 3, (short) channelId );
+			xmitBuf.putInt  ( 5,         seq       );
+			xmitBuf.putShort( 9, (short) pls );
+			xmitBuf.flip();
 		}
 		else {
-			xmitHeader.clear().limit(0);
-			return 0;
+			xmitBuf.clear().limit(0);
 		}
+		return pls;
 	}
 
 
-	private ChabuChannel calcNextXmitChannel() {
+	private ChabuChannel calcNextXmitChannel(BitSet[] prioBitSets) {
 		synchronized(this){
 			for( int prio = priorityCount-1; prio >= 0; prio-- ){
 				int idxCandidate = -1;
-				BitSet prioBitSet = xmitChannelRequest[prio];
+				BitSet prioBitSet = prioBitSets[prio];
 
 				// search from last channel pos on
 				if( xmitLastChannelIdx+1 < prioBitSet.size() ){

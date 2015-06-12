@@ -44,6 +44,9 @@ public class TestChannelUser implements IChabuChannelUser {
 		while( tx.hasRemaining() && bufferToFill.hasRemaining() ){
 			bufferToFill.put( tx.get() );
 		}
+		if( tx.hasRemaining() ){
+			channel.evUserXmitRequest();
+		}
 		tx.compact();
 		return tx.position() > 0;
 	}

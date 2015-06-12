@@ -62,11 +62,12 @@ public final class ChabuChannel implements IChabuChannel {
 		this.channelId  = channelId;
 
 		user.setChannel(this);
+		chabu.channelXmitRequestArm(channelId);
 		
 	}
 	
 	public void evUserXmitRequest(){
-		chabu.evUserXmitRequest(channelId);
+		chabu.channelXmitRequestData(channelId);
 	}
 
 //	void handleRecv( ByteBuffer buf ) {
@@ -148,35 +149,51 @@ public final class ChabuChannel implements IChabuChannel {
 			if( consumed > 0 ){
 				this.recvArm += consumed;
 				this.recvArmShouldBeXmit = true;
-				chabu.evUserXmitRequest(channelId);
+				chabu.channelXmitRequestArm(channelId);
 			}
 		}
 	}
 
 	void handleRecvSeq(int seq, ByteBuffer buf ) {
 		int pls = buf.remaining();
+		Utils.ensure( buf.remaining() <= recvBuffer.remaining(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
 		recvBuffer.put( buf );
 		this.recvSeq += pls;
 		callUserToTakeRecvData();
 	}
 	
+	/**
+	 * Receive the ARM from the partner.
+	 * @param arm
+	 */
 	void handleRecvArm(int arm) {
-		if( this.xmitArm != arm ){
-			chabu.evUserXmitRequest(channelId);
+		if( this.xmitArm != arm && this.xmitArm == this.xmitSeq ){
+			// was blocked by receiver
+			// now the arm is updated
+			// --> try to send new data
+			chabu.channelXmitRequestData(channelId);
 		}
 		this.xmitArm = arm;
 	}
 
+	void handleXmitArm() {
+		
+		if( !recvArmShouldBeXmit ) {
+			System.err.println("handleXmitArm()");
+		}
+		
+		recvArmShouldBeXmit = false;
+		chabu.processXmitArm(channelId, recvArm);
+		chabu.channelXmitRequestData(channelId);
+
+	}
+	void handleXmitData() {
+		chabu.processXmitSeq( channelId, xmitSeq, this::callUserToGiveXmit );
+	}
 	void handleXmit() {
 		
-		if( recvArmShouldBeXmit ){
-			recvArmShouldBeXmit = false;
-			chabu.processXmitArm(channelId, recvArm);
-			chabu.evUserXmitRequest(channelId);
-			return;
-		}
 
-		chabu.processXmitSeq( channelId, xmitSeq, this::callUserToGiveXmit );
+		
 ////		if( !buf.hasRemaining() ){
 ////			return ( xmitLastLength > 0 && xmitLastIndex < xmitLastLength );
 ////		}
@@ -315,14 +332,17 @@ public final class ChabuChannel implements IChabuChannel {
 
 	private void callUserToGiveXmit(ByteBuffer buf) {
 		PrintWriter trc = chabu.getTraceWriter();
-		int trcStartPos = buf.position();
+		int startPos = buf.position();
 		
 		user.evXmit(buf);
 		
+		int added = buf.position() - startPos;
+		this.xmitSeq += added;
+		
 		// write out trace info
-		if( trc != null && buf.position() != trcStartPos ){
+		if( trc != null && buf.position() != startPos ){
 			trc.printf( "APPL_TO_CHANNEL: { \"ID\" : %s }%n", channelId );
-			Utils.printTraceHexData(trc, buf, trcStartPos, buf.position());
+			Utils.printTraceHexData(trc, buf, startPos, buf.position());
 		}
 
 

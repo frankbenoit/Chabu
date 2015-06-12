@@ -22,17 +22,18 @@ public enum ChabuErrorCode {
 	SETUP_REMOTE_CHABU_VERSION  ( 31 ),
 	SETUP_REMOTE_MAXRECVSIZE    ( 32 ),
 	
-	PROTOCOL_LENGTH             ( 50 ),
-	PROTOCOL_PCK_TYPE           ( 51 ),
-	PROTOCOL_ABORT_MSG_LENGTH   ( 52 ), 
-	PROTOCOL_SETUP_TWICE        ( 53 ),
-	PROTOCOL_ACCEPT_TWICE       ( 54 ),
-	PROTOCOL_EXPECTED_SETUP     ( 55 ),
+	PROTOCOL_LENGTH              ( 50 ),
+	PROTOCOL_PCK_TYPE            ( 51 ),
+	PROTOCOL_ABORT_MSG_LENGTH    ( 52 ), 
+	PROTOCOL_SETUP_TWICE         ( 53 ),
+	PROTOCOL_ACCEPT_TWICE        ( 54 ),
+	PROTOCOL_EXPECTED_SETUP        ( 55 ),
+	PROTOCOL_CHANNEL_RECV_OVERFLOW ( 56 ),  
 	
 	REMOTE_ABORT                 (100), 
 
 	// Application can use code starting with 0x100 .. 0x1FF
-	APPLICATION_VALIDATOR   ( 0x100 ),  
+	APPLICATION_VALIDATOR   ( 0x100 ),
 	;
 	
 	private final int code;

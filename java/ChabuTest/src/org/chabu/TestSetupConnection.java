@@ -1,8 +1,14 @@
-package chabu;
+package org.chabu;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.chabu.ChabuBuilder;
+import org.chabu.ChabuConnectionAcceptInfo;
+import org.chabu.ChabuErrorCode;
+import org.chabu.ChabuException;
+import org.chabu.ChabuSetupInfo;
+import org.chabu.IChabu;
 import org.junit.Test;
 
 @SuppressWarnings("unused")
@@ -15,23 +21,23 @@ public class TestSetupConnection {
 			+ "12345678901234567890123456789012345678901234567890"
 			;
 	@Test
-	public void LocalConnectionInfo_MaxReceivePayloadSize() throws Exception {
+	public void LocalConnectionInfo_MaxReceiveSize() throws Exception {
 		
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		ci.applicationName = "ABC";
 		ci.applicationVersion = 0x123;
 
 		// too low
-		ci.maxReceivePayloadSize = 0;
+		ci.maxReceiveSize = 0;
 		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
 			ChabuBuilder .start(ci, new TestNetwork(), 3);
 		});
-		ci.maxReceivePayloadSize = 0x100-1;
+		ci.maxReceiveSize = 0x100-1;
 		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
 			ChabuBuilder .start(ci, new TestNetwork(), 3);
 		});
 		// too much
-		ci.maxReceivePayloadSize = 0xFFFF+1;
+		ci.maxReceiveSize = 0xFFFF+1;
 		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
 			ChabuBuilder .start(ci, new TestNetwork(), 3);
 		});
@@ -45,7 +51,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 
 		ci.applicationName = null;
 		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, ()->{
@@ -79,7 +85,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "";
 
 		assertException( ChabuErrorCode.CONFIGURATION_NETWORK, ()->{
@@ -94,7 +100,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "";
 		
 		// Prio count <= 0
@@ -113,7 +119,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "";
 
 		ChabuBuilder
@@ -163,7 +169,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "ABC";
 
 		ChabuBuilder
@@ -234,7 +240,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "ABC";
 
 
@@ -286,11 +292,11 @@ public class TestSetupConnection {
 	}		
 	
 	@Test
-	public void RemoteConnectionInfo_MaxReceivePayloadSize() throws Exception {
+	public void RemoteConnectionInfo_MaxReceiveSize() throws Exception {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "ABC";
 
 
@@ -316,7 +322,7 @@ public class TestSetupConnection {
 		ChabuSetupInfo ci = new ChabuSetupInfo();
 		
 		ci.applicationVersion = 0x123;
-		ci.maxReceivePayloadSize = 0x100;
+		ci.maxReceiveSize = 0x100;
 		ci.applicationName = "ABC";
 
 

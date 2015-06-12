@@ -3,7 +3,7 @@
 SETUP: {
     "ChabuProtocolVersion"  : 1,
     "ByteOrderBigEndian"    : true,
-    "MaxReceivePayloadSize" : 1000,
+    "MaxReceivePayloadSize" : 256,
     "ReceiveCannelCount"    : 3,
     "ApplicationVersion"    : 12345678,
     "ApplicationName"       : "ABC",

@@ -1,4 +1,4 @@
-package chabu;
+package org.chabu;
 
 import java.nio.ByteBuffer;
 
@@ -29,7 +29,7 @@ public class ChabuChannelUser implements IChabuChannelUser {
 			bufferToFill.put(xmit);
 			xmit.limit(oldLimit);
 			xmit.compact();
-			//System.out.printf( "% 5d: to chabu %d bytes, %d in buffer\n", System.currentTimeMillis()-dbgSt, sz, strmRqBuffer.position() );
+			//System.out.printf( "% 5d: to org.chabu %d bytes, %d in buffer\n", System.currentTimeMillis()-dbgSt, sz, strmRqBuffer.position() );
 
 			return false;
 		}

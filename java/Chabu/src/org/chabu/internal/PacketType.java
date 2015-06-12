@@ -1,4 +1,4 @@
-package chabu.internal;
+package org.chabu.internal;
 
 public enum PacketType {
 	SETUP ( 0xF0, 10 ),

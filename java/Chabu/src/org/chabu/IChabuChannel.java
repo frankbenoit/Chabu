@@ -1,4 +1,4 @@
-package chabu;
+package org.chabu;
 
 
 public interface IChabuChannel {
@@ -7,4 +7,5 @@ public interface IChabuChannel {
 
 	void evUserRecvRequest();
 
+	IChabuChannelUser getUser();
 }

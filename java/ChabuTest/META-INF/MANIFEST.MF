@@ -3,8 +3,8 @@ Bundle-ManifestVersion: 2
 Bundle-Name: ChabuTest
 Bundle-SymbolicName: ChabuTest
 Bundle-Version: 1.0.0.qualifier
-Export-Package: chabu,
- chabu.tester,
+Export-Package: chabu.tester,
+ org.chabu,
  org.json
 Require-Bundle: Chabu;bundle-version="1.0.0",
  org.junit;bundle-version="4.11.0",

@@ -1,4 +1,4 @@
-package chabu;
+package org.chabu;
 
 public enum ChabuErrorCode {
 	OK_NOERROR       ( 0 ),
@@ -27,6 +27,7 @@ public enum ChabuErrorCode {
 	PROTOCOL_ABORT_MSG_LENGTH   ( 52 ), 
 	PROTOCOL_SETUP_TWICE        ( 53 ),
 	PROTOCOL_ACCEPT_TWICE       ( 54 ),
+	PROTOCOL_EXPECTED_SETUP     ( 55 ),
 	
 	REMOTE_ABORT                 (100), 
 

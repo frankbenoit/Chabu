@@ -3,7 +3,7 @@
 SETUP: {
     "ChabuProtocolVersion"  : 1,
     "ByteOrderBigEndian"    : true,
-    "MaxReceivePayloadSize" : 1000,
+    "MaxReceivePayloadSize" : 256,
     "ReceiveCannelCount"    : 3,
     "ApplicationVersion"    : 12345678,
     "ApplicationName"       : "ABC",
@@ -15,23 +15,31 @@ SETUP: {
 }
 
 WIRE_RX: {}
+	00 0D
+    F0
     01          // u8   protocol version
-	01          // bool endianess
 	07 FF       // u16  maxReceivePayloadSize	
-	00 03       // u16  receiveCannelCount
 	00 00 00 06 // u32  applicationVersion
-	03 58 59 5A // u8+. applicationName
+	00 03 58 59 5A // u8+. applicationName
 	<<
     
 WIRE_TX: {}
+	00 0D
+    F0
     01          // u8   protocol version
-	01          // bool endianess
-	03 e8       // u16  maxReceivePayloadSize	
-	00 03       // u16  receiveCannelCount
+	01 00       // u16  maxReceivePayloadSize	
 	00 bc 61 4e // u32  applicationVersion
-	03 41 42 43 // u8+. applicationName
+	00 03 41 42 43 // u8+. applicationName
 	<<
 
+WIRE_RX: {}
+	00 01 E1
+	<<
+	
+WIRE_TX: {}
+	00 01 E1
+	<<
+	
 APPL_TO_CHANNEL: { "ID" : 0 }
     AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55
     AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55
@@ -42,19 +50,19 @@ APPL_TO_CHANNEL: { "ID" : 0 }
 
 WIRE_RX: {}
 	// ARM channel 0+1
-	00 00 00 01 00 00 07 FF // Ch 0
-	00 01 00 01 00 00 07 FF // Ch 1
+	00 07 C3 00 00 00 00 07 FF // Ch 0
+	00 07 C3 00 01 00 00 07 FF // Ch 1
 	<<
 
 WIRE_TX: { "More" : 20 }
-	00 01 00 01 00 00 03 e8 // Ch 1
-	00 00 00 01 00 00 03 e8 // Ch 0
+	00 07 C3 00 00 00 00 03 e8 // Ch 0
+	00 07 C3 00 01 00 00 03 e8 // Ch 1
 	<<
 
 WIRE_TX: {}
 // SEQ channel 0
 //  ch    pkf   seq         pls
-	00 00 00 02 00 00 00 00 00 50
+	00 59 B2 00 00 00 00 00 00 00 50
     AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55
     AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55
     AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55
@@ -64,7 +72,7 @@ WIRE_TX: {}
 
 WIRE_RX: {}
 	// SEQ channel 0
-	00 00 00 02 00 00 00 00 00 08 // Ch 0
+	00 11 B2 00 00 00 00 00 00 00 08 // Ch 0
 	01 02 03 04 05 06 07 08
 	<<
 

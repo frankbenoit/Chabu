@@ -1,4 +1,7 @@
-package chabu;
+package org.chabu;
+
+import org.chabu.IChabu;
+import org.chabu.IChabuNetwork;
 
 
 public class TestNetwork implements IChabuNetwork {

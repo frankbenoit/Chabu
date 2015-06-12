@@ -1,4 +1,4 @@
-package chabu;
+package org.chabu;
 
 public class ChabuConnectionAcceptInfo {
 	

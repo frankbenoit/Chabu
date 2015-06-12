@@ -1,8 +1,8 @@
-package chabu;
+package org.chabu;
 
-import chabu.internal.Chabu;
-import chabu.internal.ChabuChannel;
-import chabu.internal.Utils;
+import org.chabu.internal.Chabu;
+import org.chabu.internal.ChabuChannel;
+import org.chabu.internal.Utils;
 
 public class ChabuBuilder {
 	

@@ -1,4 +1,4 @@
-package chabu.internal;
+package org.chabu.internal;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
@@ -8,13 +8,14 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.function.Consumer;
 
-import chabu.ChabuSetupInfo;
-import chabu.ChabuConnectionAcceptInfo;
-import chabu.ChabuErrorCode;
-import chabu.ChabuException;
-import chabu.IChabu;
-import chabu.IChabuConnectingValidator;
-import chabu.IChabuNetwork;
+import org.chabu.ChabuConnectionAcceptInfo;
+import org.chabu.ChabuErrorCode;
+import org.chabu.ChabuException;
+import org.chabu.ChabuSetupInfo;
+import org.chabu.IChabu;
+import org.chabu.IChabuChannel;
+import org.chabu.IChabuConnectingValidator;
+import org.chabu.IChabuNetwork;
 
 
 public class Chabu implements IChabu {
@@ -70,8 +71,8 @@ public class Chabu implements IChabu {
 	
 	public Chabu( ChabuSetupInfo info ){
 		
-		Utils.ensure( info.maxReceivePayloadSize >= 0x100 && info.maxReceivePayloadSize <= 0xFFFF, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
-				"maxReceivePayloadSize must be in range 0x100 .. 0xFFFF, but is %s", info.maxReceivePayloadSize );
+		Utils.ensure( info.maxReceiveSize >= 0x100 && info.maxReceiveSize <= 0xFFFF, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
+				"maxReceiveSize must be in range 0x100 .. 0xFFFF, but is %s", info.maxReceiveSize );
 		
 		Utils.ensure( info.applicationName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, 
 				"applicationName must not be null" );
@@ -114,7 +115,7 @@ public class Chabu implements IChabu {
 	}
 	
 	/**
-	 * When activate is called, chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannel)} or {@link #setPriorityCount(int)} are allowed.
+	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannel)} or {@link #setPriorityCount(int)} are allowed.
 	 */
 	public void activate(){
 		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
@@ -192,11 +193,13 @@ public class Chabu implements IChabu {
 					int packetTypeId = recvHeader.get() & 0xFF;
 					PacketType packetType = PacketType.findPacketType(packetTypeId);
 					if( packetType == null ){
-						throw new ChabuException(String.format("Packet type cannot be found 0x%02X", packetTypeId ));
+						delayedAbort( ChabuErrorCode.PROTOCOL_PCK_TYPE, String.format("Packet type cannot be found 0x%02X", packetTypeId ));
+						return;
 					}
 
 					if( recvSetupCompleted != RecvState.RECVED && packetType != PacketType.SETUP ){
-						throw new ChabuException(String.format("Recveived %s, but SETUP was expected", packetType ));
+						delayedAbort( ChabuErrorCode.PROTOCOL_EXPECTED_SETUP, String.format("Recveived %s, but SETUP was expected", packetType ));
+						return;
 					}
 					
 					switch( packetType ){
@@ -229,12 +232,12 @@ public class Chabu implements IChabu {
 		
 		/// when is startupRx set before?
 		Utils.ensure( recvSetupCompleted != RecvState.RECVED, ChabuErrorCode.PROTOCOL_SETUP_TWICE, "Recveived SETUP twice" );
-		Utils.ensure( activated, ChabuErrorCode.NOT_ACTIVATED, "While receiving the SETUP block, chabu was not activated." );
+		Utils.ensure( activated, ChabuErrorCode.NOT_ACTIVATED, "While receiving the SETUP block, org.chabu was not activated." );
 
 		int chabuProtocolVersion = recvHeader.get() & 0xFF;
 		
 		ChabuSetupInfo info = new ChabuSetupInfo();
-		info.maxReceivePayloadSize = recvHeader.getShort() & 0xFFFF;
+		info.maxReceiveSize = recvHeader.getShort() & 0xFFFF;
 		info.applicationVersion    = recvHeader.getInt();
 		info.applicationName       = getRecvString();
 		
@@ -306,10 +309,10 @@ public class Chabu implements IChabu {
 	private void checkConnectingValidator() {
 		if( xmitAccepted != XmitState.XMITTED && recvSetupCompleted == RecvState.RECVED && xmitStartupCompleted == XmitState.XMITTED ){
 			
-			if( infoRemote.maxReceivePayloadSize < 0x100 || infoRemote.maxReceivePayloadSize >= 0x10000 ){
+			if( infoRemote.maxReceiveSize < 0x100 || infoRemote.maxReceiveSize >= 0x10000 ){
 			delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE.getCode(), 
-					String.format("MaxReceivePayloadSize must be on range 0x100 .. 0xFFFF bytes, but SETUP from remote contained 0x%02X", 
-					infoRemote.maxReceivePayloadSize));
+					String.format("MaxReceiveSize must be on range 0x100 .. 0xFFFF bytes, but SETUP from remote contained 0x%02X", 
+					infoRemote.maxReceiveSize));
 			}
 
 			boolean isOk = true;
@@ -324,8 +327,8 @@ public class Chabu implements IChabu {
 			}
 			val = null;
 
-			if( isOk && this.xmitHeader.capacity() != infoRemote.maxReceivePayloadSize ){
-				this.xmitHeader = ByteBuffer.allocate( infoRemote.maxReceivePayloadSize );
+			if( isOk && this.xmitHeader.capacity() != infoRemote.maxReceiveSize ){
+				this.xmitHeader = ByteBuffer.allocate( infoRemote.maxReceiveSize );
 				this.xmitHeader.order( ByteOrder.BIG_ENDIAN );
 				this.xmitHeader.limit( 0 );
 			}
@@ -431,7 +434,7 @@ public class Chabu implements IChabu {
 		return false; // flushing not implemented
 	}
 	/**
-	 * Put on the buffer the needed chabu protocol informations: chabu version, byte order, payloadsize, channel count
+	 * Put on the buffer the needed org.chabu protocol informations: org.chabu version, byte order, payloadsize, channel count
 	 * 
 	 * These values must be set previous to infoLocal
 	 * 
@@ -450,7 +453,7 @@ public class Chabu implements IChabu {
 		xmitHeader.putShort( (short)(PacketType.SETUP.headerSize + anlBytes.length) );
 		xmitHeader.put     ( (byte ) PacketType.SETUP.id );
 		xmitHeader.put     ( (byte ) PROTOCOL_VERSION );
-		xmitHeader.putShort( (short) infoLocal.maxReceivePayloadSize       );
+		xmitHeader.putShort( (short) infoLocal.maxReceiveSize       );
 		xmitHeader.putInt  (         infoLocal.applicationVersion );
 		xmitHeader.putShort( (short) anlBytes.length );
 		xmitHeader.put     (         anlBytes );
@@ -507,6 +510,7 @@ public class Chabu implements IChabu {
 		xmitHeader.putInt  (         arm       );
 		xmitHeader.flip();
 		
+		
 	}
 	
 	/** 
@@ -531,7 +535,7 @@ public class Chabu implements IChabu {
 			xmitHeader.put     ( 2, (byte ) PacketType.SEQ.id );
 			xmitHeader.putShort( 3, (short) channelId );
 			xmitHeader.putInt  ( 5,         seq       );
-			xmitHeader.putShort( 7, (short) pls );
+			xmitHeader.putShort( 9, (short) pls );
 			xmitHeader.flip();
 			return pls;
 		}
@@ -627,6 +631,21 @@ public class Chabu implements IChabu {
 		Utils.ensure( val      != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "ConnectingValidator passed in is null" );
 		Utils.ensure( this.val == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "ConnectingValidator is already set" );
 		this.val = val;
+	}
+
+	@Override
+	public int getChannelCount() {
+		return channels.size();
+	}
+
+	@Override
+	public IChabuChannel getChannel(int channelId) {
+		return channels.get(channelId);
+	}
+
+	@Override
+	public IChabuNetwork getNetwork() {
+		return nw;
 	}
 	
 }

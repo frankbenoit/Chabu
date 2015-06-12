@@ -3,6 +3,6 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Chabu
 Bundle-SymbolicName: Chabu
 Bundle-Version: 1.0.0.qualifier
-Export-Package: chabu
+Export-Package: org.chabu
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy

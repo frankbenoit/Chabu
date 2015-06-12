@@ -1,4 +1,4 @@
-package chabu.internal;
+package org.chabu.internal;
 
 public enum XmitState {
 	IDLE,

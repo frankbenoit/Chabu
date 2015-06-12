@@ -1,11 +1,11 @@
-package chabu.internal;
+package org.chabu.internal;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 
-import chabu.ChabuErrorCode;
-import chabu.IChabuChannel;
-import chabu.IChabuChannelUser;
+import org.chabu.ChabuErrorCode;
+import org.chabu.IChabuChannel;
+import org.chabu.IChabuChannelUser;
 
 
 
@@ -172,6 +172,7 @@ public final class ChabuChannel implements IChabuChannel {
 		if( recvArmShouldBeXmit ){
 			recvArmShouldBeXmit = false;
 			chabu.processXmitArm(channelId, recvArm);
+			chabu.evUserXmitRequest(channelId);
 			return;
 		}
 
@@ -205,8 +206,8 @@ public final class ChabuChannel implements IChabuChannel {
 //			else {
 //				int pls = xmitBuffer.position();
 //				Utils.ensure( pls >= 0 && pls <= 0xFFFF );
-//				if( pls > chabu.getMaxXmitPayloadSize() ){
-//					pls = chabu.getMaxXmitPayloadSize();
+//				if( pls > org.chabu.getMaxXmitPayloadSize() ){
+//					pls = org.chabu.getMaxXmitPayloadSize();
 //				}
 //				int remainArm = xmitArm - xmitSeq;
 //				if( pls > remainArm ){
@@ -305,7 +306,7 @@ public final class ChabuChannel implements IChabuChannel {
 //		//Check if data is still available
 //		if( xmitBuffer.position() > 0 ){
 //			//register next xmit on same channel.
-//			chabu.evUserXmitRequest(channelId);
+//			org.chabu.evUserXmitRequest(channelId);
 //		}
 //		
 //		// true if there is outstanding data for the current block
@@ -337,6 +338,11 @@ public final class ChabuChannel implements IChabuChannel {
 
 	int getPriority() {
 		return priority;
+	}
+
+	@Override
+	public IChabuChannelUser getUser() {
+		return user;
 	}
 
 }

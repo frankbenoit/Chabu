@@ -1,10 +1,10 @@
-package chabu.internal;
+package org.chabu.internal;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 
-import chabu.ChabuErrorCode;
-import chabu.ChabuException;
+import org.chabu.ChabuErrorCode;
+import org.chabu.ChabuException;
 
 public class Utils {
 	

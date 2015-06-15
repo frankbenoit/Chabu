@@ -410,6 +410,9 @@ public class Chabu implements IChabu {
 			
 			Utils.transferRemaining( xmitBuf, buf );
 
+			if( !buf.hasRemaining() ){
+				break;
+			}
 			if( xmitBuf.hasRemaining() ){
 				break;
 			}

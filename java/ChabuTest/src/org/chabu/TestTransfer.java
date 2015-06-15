@@ -194,6 +194,9 @@ public class TestTransfer {
 				+ "00 FE B4 00 00 00 00 00 00 00 F5 " + dg0.getExpBytesString(245) + " "
 				+ "00 15 B4 00 00 00 00 00 F5 00 0C " + dg0.getExpBytesString( 12) + " "
 				);
+		
+		// see the data of same priority in round robin
+		// 1, 2, 3, 1, 2, 3
 		r.wireTx( ""
 				+ "00 FE B4 00 01 00 00 00 00 00 F5 " + dg1.getExpBytesString(245) + " "
 				+ "00 FE B4 00 02 00 00 00 00 00 F5 " + dg2.getExpBytesString(245) + " "

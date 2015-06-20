@@ -165,9 +165,13 @@ enum TYPE_ID {
 #define UINT32_PUT_UNALIGNED_HTON(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint32 _v2 = (uint32)_v; _p2[3] = _v2; _p2[2] = _v2 >>  8;  _p2[1] = _v2 >> 16; _p2[0] = _v2 >> 24; })
 #define UINT64_PUT_UNALIGNED_HTON(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint64 _v2 = (uint64)_v; _p2[7] = _v2; _p2[6] = _v2 >>  8;  _p2[5] = _v2 >> 16; _p2[4] = _v2 >> 24; _p2[3] = _v2 >> 32; _p2[2] = _v2 >> 40;  _p2[1] = _v2 >> 48; _p2[0] = _v2 >> 56; })
 
-#define UINT16_HTON(_v) UINT16_COMP2( (_v), (_v) >> 8 )
-#define UINT32_HTON(_v) UINT32_COMP4( (_v), (_v) >> 8, (_v) >> 16, (_v) >> 24 )
-#define UINT64_HTON(_v) UINT64_COMP8( (_v), (_v) >> 8, (_v) >> 16, (_v) >> 24, (_v) >> 32, (_v) >> 40, (_v) >> 48, (_v) >> 56 )
+#define UINT16_SWAP(_v) UINT16_COMP2( (_v), (_v) >> 8 )
+#define UINT32_SWAP(_v) UINT32_COMP4( (_v), (_v) >> 8, (_v) >> 16, (_v) >> 24 )
+#define UINT64_SWAP(_v) UINT64_COMP8( (_v), (_v) >> 8, (_v) >> 16, (_v) >> 24, (_v) >> 32, (_v) >> 40, (_v) >> 48, (_v) >> 56 )
+
+#define UINT16_HTON(_v) UINT16_SWAP(_v)
+#define UINT32_HTON(_v) UINT32_SWAP(_v)
+#define UINT64_HTON(_v) UINT64_SWAP(_v)
 
 
 #define UINT16_B0_MASK 0x00FF

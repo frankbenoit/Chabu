@@ -304,7 +304,7 @@ static int Chabu_Channel_handleRecv( struct Chabu_Data* chabu, struct Chabu_Chan
 					channel->xmitArm = arm;
 					Chabu_Channel_evUserXmitRequest( channel );
 				}
-				return 8;
+				return Chabu_HEADER_ARM_SIZE;
 			}
 			else if( pkf == PACKETFLAG_SEQ ){
 				if( length <= Chabu_HEADER_SEQ_SIZE ){
@@ -604,7 +604,6 @@ static int Chabu_Channel_handleXmit( struct Chabu_Data* chabu, struct Chabu_Chan
 		else {
 			// pls = payload size
 			int pls = QueueVar_Available( channel->xmitQueue );
-			Assert( pls >= 0 && pls <= 0xFFFF );
 
 			if( pls > channel->chabu->xmitMaxPayloadSize ){
 				pls = channel->chabu->xmitMaxPayloadSize;

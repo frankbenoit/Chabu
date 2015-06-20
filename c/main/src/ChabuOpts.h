@@ -39,6 +39,7 @@
 		} 																		\
 	}while(false)
 
+
 //#define Chabu_USE_LOCK
 #define Chabu_LOCK_TYPE
 #define Chabu_LOCK_CREATE( _var )

@@ -1,8 +1,25 @@
 /*
- * Chabu.h
+ * The MIT License (MIT)
  *
- *  Created on: 11.12.2014
- *      Author: Frank
+ * Copyright (c) 2015 Frank Benoit - Germany, Stuttgart, fr@nk-benoit.de
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #ifndef CHABU_SRC_CHABU_H_
@@ -37,10 +54,27 @@
 #define Chabu_HEADER_ARM_SIZE  8
 #define Chabu_HEADER_SEQ_SIZE 10
 
+
 enum Chabu_Event {
-	Chabu_Event_DataAvailable,
-	Chabu_Event_CanTransmit,
-	Chabu_Event_Connecting,
+
+	Chabu_Event_DataAvailable = 1,
+	Chabu_Event_CanTransmit   = 2,
+	Chabu_Event_Connecting    = 3,
+
+	Chabu_Event_Error         = 0x1000,
+	Chabu_Event_Error_AbortRx,
+
+	Chabu_Event_Error_Protocol = 0x1100,
+	Chabu_Event_Error_Protocol_UnknownRx,
+
+	Chabu_Event_Error_RxSetup_PN = 0x1200,
+	Chabu_Event_Error_RxSetup_PV,
+	Chabu_Event_Error_RxSetup_RS,
+	Chabu_Event_Error_RxSetup_AV,
+	Chabu_Event_Error_RxSetup_AN,
+	Chabu_Event_Error_RxSetup_AN_Length,
+
+
 };
 
 enum Chabu_Channel_Event {
@@ -52,23 +86,21 @@ enum Chabu_Channel_Event {
 struct Chabu_Channel_Data;
 struct Chabu_Data;
 
-typedef void (TChabu_ChannelUserCallback)( void* userData, struct Chabu_Channel_Data* chabuData, enum Chabu_Channel_Event event );
+struct Chabu_Buffer {
+	int  position;
+	int  limit;
+	int  capacity;
+	uint8 * data;
+};
+
 typedef void (TChabu_UserCallback       )( void* userData, struct Chabu_Data*         chabuData, enum Chabu_Event         event );
+typedef void (TChabu_ChannelUserCallback)( void* userData, struct Chabu_Channel_Data* chabuData, enum Chabu_Channel_Event event );
 
 struct Chabu_ConnectionInfo_Data {
-	int     index;
-	int     length;
-	uint8   chabuProtocolVersion;
-	bool    byteOrderBigEndian;
-	union {
-		struct {
-			uint16  maxReceivePayloadSize;
-			uint16  receiveChannelCount;
-			uint32  applicationVersion;
-			uint8   applicationNameLength;
-			char    applicationName[Chabu_APPLICATION_NAME_SIZE_MAX];
-		} v1;
-	};
+	uint16  receiveBufferSize;
+	uint32  applicationVersion;
+	uint8   applicationNameLength;
+	char    applicationName[Chabu_APPLICATION_NAME_SIZE_MAX];
 };
 
 struct Chabu_Channel_Data {
@@ -99,7 +131,6 @@ struct Chabu_Data {
 
 	struct Chabu_ConnectionInfo_Data connectionInfoLocal;
 	struct Chabu_ConnectionInfo_Data connectionInfoRemote;
-	char   applicationNameRemote[Chabu_APPLICATION_NAME_SIZE_MAX];
 
 #ifdef Chabu_USE_LOCK
 	Chabu_LOCK_TYPE    lock;
@@ -112,34 +143,37 @@ struct Chabu_Data {
 	int                        channelCount;
 
 	int    xmitChannelIdx;
-	int    recvChannelIdx;
 
-	uint8              recvHeaderBuffer[Chabu_HEADER_SIZE_MAX];
-	/// Until which idx the data is until now consumed.
-	int                recvLastIndex;
-	/// Until which idx the data shall be consumed.
-	int                recvLastLength;
+	struct Chabu_Buffer recvBuffer;
 
-	uint8              xmitHeaderBuffer[Chabu_HEADER_SIZE_MAX];
-	int                xmitLastIndex;
-	int                xmitLastLength;
+	struct Chabu_Buffer xmitBuffer;
+	int                 xmitMaxPacketSize;
 
-	bool startupRx; // TODO: true before what is initialized?
-	bool startupTx; // TODO: true before what is initialized?
-	bool activated; // true when initialization (TODO: of chabu protocol?) is completed
+	bool activated; // true when initialization is completed
+	bool setupRx;   // reveived the setup packet
+	bool setupTx;   // put the setup packet into xmit buffer
+	bool acceptRx;  // received the accept packet
+	bool acceptTx;  // put the accept packet into the xmit buffer
 
-	struct Chabu_Channel_Data* recvContinueChannel;
+	bool xmitAbort; // an abort packet shall be send on next possibility
 
-	struct Chabu_Channel_Data* xmitContinueChannel;
-	uint16                     xmitMaxPayloadSize;
+	int   lastErrorCode;
+	char* lastErrorString;
 
 };
 
 extern void Chabu_Init(
 		struct Chabu_Data* data,
-		int    applicationVersion,
-		char*  applicationName,
-		int    maxReceivePayloadSize,
+
+		int     applicationVersion,
+		char*   applicationName,
+
+		uint8*  recvBufferMemory,
+		int recvBufferSize,
+
+		uint8*  xmitBufferMemory,
+		int xmitBufferSize,
+
 		TChabu_UserCallback * userCallback,
 		void * userData );
 
@@ -152,13 +186,20 @@ extern void Chabu_Init_AddChannel (
 		struct QueueVar* xmitQueue );
 
 extern void Chabu_Init_Complete ( struct Chabu_Data* data );
+
+//extern char* Chabu_GetLastErrorString( struct Chabu_Data* data );
+//extern int   Chabu_GetLastErrorCode( struct Chabu_Data* data );
 /////////////////////////////////////////////////////////
 // Network <-> Chabu
 
-// RX
+/**
+ * Called by the network connection to transfer received data into chabu and distribute it towards the channels.
+ */
 extern void Chabu_PutRecvData ( struct Chabu_Data* data, void* recvData, int length );
 
-// TX
+/**
+ * Called by the network connection to retrieve data from chabu.
+ */
 extern bool Chabu_GetXmitData ( struct Chabu_Data* data, void* xmitData, int* xmitLength, int maxLength );
 
 

@@ -1,10 +1,26 @@
 /*
- * Chabu.c
+ * The MIT License (MIT)
  *
- *  Created on: 11.12.2014
- *      Author: Frank
+ * Copyright (c) 2015 Frank Benoit - Germany, Stuttgart, fr@nk-benoit.de
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in all
+ * copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
-
 
 #include <string.h>
 #include <stdint.h>
@@ -13,55 +29,90 @@
 #include "QueueVar.h"
 
 #define Chabu_PROTCOL_VERSION 1
-#define PACKETFLAG_ARM  0x0001
-#define PACKETFLAG_SEQ  0x0002
 
 //#define CHABU_DBGPRINTF(...) dbg_printf(__VA_ARGS__)
 //#define CHABU_DBGMEMORY(...) dbg_memory(__VA_ARGS__)
 #define CHABU_DBGPRINTF(...)
 #define CHABU_DBGMEMORY(...)
 
+#define CHABU_PACKETTYPE_MAGIC  0x77770000
+
+#define CHABU_PACKETTYPE_SETUP  0xF0
+#define CHABU_PACKETTYPE_ACCEPT 0xE1
+#define CHABU_PACKETTYPE_ABORT  0xD2
+#define CHABU_PACKETTYPE_ARM    0xC3
+#define CHABU_PACKETTYPE_SEQ    0xB4
+#define CHABU_MINIMUM_PACKET_SIZE 8
+
+
+#define CHABU_PACKET_OFFSET_PACKETSIZE   0
+#define CHABU_PACKET_OFFSET_PACKETTYPE   4
+
+#define CHABU_ARMPACKET_OFFSET_CHANNEL   8
+#define CHABU_ARMPACKET_OFFSET_ARM      12
+
+#define CHABU_SEQPACKET_OFFSET_CHANNEL   8
+#define CHABU_SEQPACKET_OFFSET_SEQ      12
+#define CHABU_SEQPACKET_OFFSET_DATASIZE 16
+#define CHABU_SEQPACKET_OFFSET_DATADATA 20
 
 void Chabu_Init(
 		struct Chabu_Data* data,
+
 		int     applicationVersion,
 		char*   applicationName,
-		int     maxReceivePayloadSize,
+
+		uint8*  recvBufferMemory,
+		int recvBufferSize,
+
+		uint8*  xmitBufferMemory,
+		int xmitBufferSize,
+
 		TChabu_UserCallback * userCallback,
 		void * userData ){
+
+	Chabu_AssertPrintf( (((int)recvBufferMemory) & 0x3) == 0, "recvBufferMemory is not 4-byte aligned" );
+	Chabu_AssertPrintf( (((int)xmitBufferMemory) & 0x3) == 0, "xmitBufferMemory is not 4-byte aligned" );
+	Chabu_AssertPrintf( recvBufferMemory != NULL, "recvBufferMemory is NULL" );
+	Chabu_AssertPrintf( recvBufferSize < 0x100, "recvBufferSize shall be bigger than 0x100, but is %d", recvBufferSize );
+	Chabu_AssertPrintf( xmitBufferMemory != NULL, "xmitBufferMemory is NULL" );
+	Chabu_AssertPrintf( xmitBufferSize < 0x100, "xmitBufferSize shall be bigger than 0x100, but is %d", xmitBufferSize );
 
 	data->channelCount = 0;
 	data->activated = false;
 
-	data->connectionInfoLocal.index  = 0;
-	data->connectionInfoLocal.length = 11;
-	data->connectionInfoLocal.chabuProtocolVersion  = Chabu_PROTCOL_VERSION;
-	data->connectionInfoLocal.byteOrderBigEndian    = true;
-	data->connectionInfoLocal.v1.maxReceivePayloadSize = maxReceivePayloadSize;
-	data->connectionInfoLocal.v1.receiveChannelCount   = 0;
-	data->connectionInfoLocal.v1.applicationVersion    = applicationVersion;
-	data->connectionInfoLocal.v1.applicationNameLength = Chabu_strnlen(applicationName, Chabu_APPLICATION_NAME_SIZE_MAX);
-	strncpy( data->connectionInfoLocal.v1.applicationName, applicationName, Chabu_APPLICATION_NAME_SIZE_MAX );
+	data->connectionInfoLocal.receiveBufferSize = recvBufferSize;
+	data->connectionInfoLocal.applicationVersion    = applicationVersion;
+	data->connectionInfoLocal.applicationNameLength = Chabu_strnlen(applicationName, Chabu_APPLICATION_NAME_SIZE_MAX);
+	strncpy( data->connectionInfoLocal.applicationName, applicationName, Chabu_APPLICATION_NAME_SIZE_MAX );
 
-	data->connectionInfoRemote.index  = 0;
-	data->connectionInfoRemote.length = 11;
-	memset( data->connectionInfoRemote.v1.applicationName, 0, Chabu_APPLICATION_NAME_SIZE_MAX );
+	memset( data->connectionInfoRemote.applicationName, 0, Chabu_APPLICATION_NAME_SIZE_MAX );
+
+	data->recvBuffer.data     = recvBufferMemory;
+	data->recvBuffer.capacity = recvBufferSize;
+	data->recvBuffer.limit    = CHABU_MINIMUM_PACKET_SIZE;
+	data->recvBuffer.position = 0;
+
+	data->xmitBuffer.data     = xmitBufferMemory;
+	data->xmitBuffer.capacity = xmitBufferSize;
+	data->xmitBuffer.limit    = 0;
+	data->xmitBuffer.position = 0;
+	data->xmitMaxPacketSize   = 0x100;
 
 #ifdef Chabu_USE_LOCK
 	Chabu_LOCK_CREATE(data->lock);
 #endif
 
 	data->xmitChannelIdx = 0;
-	data->recvChannelIdx = 0;
 
-	data->startupRx = true;
-	data->startupTx = true;
+	data->setupRx   = false;
+	data->setupTx   = false;
+	data->acceptRx  = false;
+	data->acceptRx  = false;
+	data->xmitAbort = false;
 
 	data->userCallback = userCallback;
 	data->userData     = userData;
-
-	data->recvContinueChannel = NULL;
-	data->xmitContinueChannel = NULL;
 
 	int i;
 	for( i = 0; i < Chabu_CHANNEL_COUNT_MAX; i++ ){
@@ -105,8 +156,6 @@ void Chabu_Init_AddChannel (
 	channel->xmitArm        = 0;
 	channel->xmitSeq        = 0;
 	channel->xmitRequest    = true;
-	data->xmitLastIndex  = 0;
-	data->xmitLastLength = 0;
 
 	channel->recvArmShouldBeXmit = true;
 
@@ -114,8 +163,6 @@ void Chabu_Init_AddChannel (
 	channel->recvArm        = 0;
 	channel->recvSeq        = 0;
 	channel->recvRequest    = false;
-	data->recvLastIndex  = 0;
-	data->recvLastLength = 0;
 
 	channel->recvArm        += QueueVar_Free( recvQueue );
 
@@ -127,10 +174,9 @@ void Chabu_Init_AddChannel (
 
 void Chabu_Init_Complete ( struct Chabu_Data* data ){
 	data->activated = true;
-	data->connectionInfoLocal.v1.receiveChannelCount = data->channelCount;
 }
 
-static bool calcNextXmitChannel( struct Chabu_Data* data ) {
+static struct Chabu_Channel_Data * calcNextXmitChannel( struct Chabu_Data* data ) {
 	int priority = INT32_MIN;
 	struct Chabu_Channel_Data * foundChannel = NULL;
 	int chIdx = ( data->xmitChannelIdx +1 );
@@ -154,581 +200,393 @@ static bool calcNextXmitChannel( struct Chabu_Data* data ) {
 	if( foundChannel ){
 		foundChannel->xmitRequest = false;
 		data->xmitChannelIdx = foundChannel->channelId;
-		return true;
+		return foundChannel;
 	}
 
-	return false;
-}
-
-
-static int recvProtocolParameterSpecification( struct Chabu_Data* data, void* recvData, int length ){
-
-	int res = 0;
-	if(( data->connectionInfoRemote.index == 0) && ( res+1 <= length )){
-		data->connectionInfoRemote.chabuProtocolVersion = *(uint8*)recvData;
-		data->connectionInfoRemote.index++;
-		res++;
-		Chabu_Assert( data->connectionInfoRemote.chabuProtocolVersion == Chabu_PROTCOL_VERSION );
-	}
-	if(( data->connectionInfoRemote.index == 1) && ( res+1 <= length )){
-		data->connectionInfoRemote.byteOrderBigEndian = ((*(uint8*)recvData) != 0 );
-		data->connectionInfoRemote.index++;
-		res++;
-	}
-	if( data->connectionInfoRemote.index >= 2 ){
-		while( true ){
-			if( res+1 > length || data->connectionInfoRemote.index >= data->connectionInfoRemote.length ){
-				break;
-			}
-			uint32 value = *(uint8*)( recvData + data->connectionInfoRemote.index );
-			switch( data->connectionInfoRemote.index ){
-			case  2: data->connectionInfoRemote.v1.maxReceivePayloadSize |= value <<  8; break;
-			case  3: data->connectionInfoRemote.v1.maxReceivePayloadSize |= value <<  0;
-				data->xmitMaxPayloadSize = data->connectionInfoRemote.v1.maxReceivePayloadSize;
-				//dbg_printf("Chabu: xmitMaxPayloadSize %d", data->xmitMaxPayloadSize );
-				break;
-			case  4: data->connectionInfoRemote.v1.receiveChannelCount   |= value <<  8;
-				break;
-			case  5: data->connectionInfoRemote.v1.receiveChannelCount   |= value <<  0;
-				//dbg_printf("Chabu: data->connectionInfoRemote.v1.receiveCannelCount %d", data->connectionInfoRemote.v1.receiveCannelCount );
-				break;
-			case  6: data->connectionInfoRemote.v1.applicationVersion    |= value << 24;
-				break;
-			case  7: data->connectionInfoRemote.v1.applicationVersion    |= value << 16;
-				break;
-			case  8: data->connectionInfoRemote.v1.applicationVersion    |= value <<  8;
-				break;
-			case  9: data->connectionInfoRemote.v1.applicationVersion    |= value <<  0;
-				//dbg_printf("Chabu: data->connectionInfoRemote.v1.applicationVersion 0x%X", data->connectionInfoRemote.v1.applicationVersion );
-				break;
-			case 10:
-				data->connectionInfoRemote.v1.applicationNameLength = value;
-				data->connectionInfoRemote.length = 11 + data->connectionInfoRemote.v1.applicationNameLength;
-				break;
-			default: {
-					int nameIdx = data->connectionInfoRemote.index -11;
-					if( nameIdx < data->connectionInfoRemote.v1.applicationNameLength ){
-						data->connectionInfoRemote.v1.applicationName[nameIdx] = (char)value;
-					}
-				}
-				break;
-			}
-			data->connectionInfoRemote.index++;
-			res++;
-			if( data->connectionInfoRemote.index >= data->connectionInfoRemote.length ){
-				//dbg_printf("Chabu: data->connectionInfoRemote.v1.applicationName %s", data->connectionInfoRemote.v1.applicationName );
-				data->startupRx = false;
-			}
-		}
-	}
-	return res;
-}
-
-static int xmitProtocolParameterSpecification( struct Chabu_Data* data, uint8* xmitData, int length ){
-
-	int res = 0;
-	if(( data->connectionInfoLocal.index == 0) && ( res+1 <= length )){
-		xmitData[ res ] = data->connectionInfoLocal.chabuProtocolVersion;
-		data->connectionInfoLocal.index++;
-		res++;
-		Chabu_Assert( data->connectionInfoLocal.chabuProtocolVersion == Chabu_PROTCOL_VERSION );
-	}
-	if(( data->connectionInfoLocal.index == 1) && ( res+1 <= length )){
-		xmitData[ res ] = data->connectionInfoLocal.byteOrderBigEndian;
-		data->connectionInfoLocal.index++;
-		res++;
-	}
-	if( data->connectionInfoLocal.index >= 2 ){
-		while( true ){
-			if( res+1 > length ){
-				break;
-			}
-			switch( data->connectionInfoLocal.index ){
-			case  2: xmitData[ res ] = data->connectionInfoLocal.v1.maxReceivePayloadSize >>  8; break;
-			case  3: xmitData[ res ] = data->connectionInfoLocal.v1.maxReceivePayloadSize >>  0; break;
-			case  4: xmitData[ res ] = data->connectionInfoLocal.v1.receiveChannelCount   >>  8; break;
-			case  5: xmitData[ res ] = data->connectionInfoLocal.v1.receiveChannelCount   >>  0; break;
-			case  6: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >> 24; break;
-			case  7: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >> 16; break;
-			case  8: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >>  8; break;
-			case  9: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >>  0; break;
-			case 10: xmitData[ res ] = data->connectionInfoLocal.v1.applicationNameLength; break;
-			default:
-			{
-				int nameIdx = data->connectionInfoLocal.index -11;
-				if( nameIdx < data->connectionInfoLocal.v1.applicationNameLength ){
-					xmitData[ res ] = data->connectionInfoLocal.v1.applicationName[nameIdx];
-				}
-				if( nameIdx >= data->connectionInfoLocal.v1.applicationNameLength ){
-					data->startupTx = false;
-					return res;
-				}
-			}
-			}
-			data->connectionInfoLocal.index++;
-			res++;
-		}
-	}
-	return res;
+	return NULL;
 }
 
 
 /**
- * Consume the provided data, even if the packet is not yet completed. Avoids payload copying.
- *
- * If the data is the complete packet, it is processed and data is transfered into the recv queue.
- * Otherwise the header is stored into a buffer and when the header is completed it is used from that
- * buffer.
- *
- * When the data is not giving a full packet, channel->chabu->recvContinueChannel is set to this
- * channel. Then the immediate next data must be delivered again to this channel.
- *
- * @Return: count of consumed bytes.
- *
+ * Try to copy as much as possible into the buffer.
+ * The amount of bytes copied is returned.
  */
-static int Chabu_Channel_handleRecv( struct Chabu_Data* chabu, struct Chabu_Channel_Data* channel, void* recvData, int length ){
-	Chabu_Assert( length > 0 );
-	int res = 0;
-
-	// when there is no began header and the header can be read completely -> process
-	// when there is no begun header and the header cannot be red completely -> store header
-	// when there is a begun header -> store header
-
-	if( chabu->recvLastIndex == 0 ){
-		if( length >= Chabu_HEADER_ARM_SIZE ){
-			// ok, can process ArmPacket completely
-			int pkf = UINT16_GET_UNALIGNED_HTON( recvData + 2 ) & 0xFFFF;
-			if( pkf == PACKETFLAG_ARM ){
-				uint32 arm = UINT32_GET_UNALIGNED_HTON( recvData + 4 );
-				if( channel->xmitArm != arm ){
-					channel->xmitArm = arm;
-					Chabu_Channel_evUserXmitRequest( channel );
-				}
-				return Chabu_HEADER_ARM_SIZE;
-			}
-			else if( pkf == PACKETFLAG_SEQ ){
-				if( length <= Chabu_HEADER_SEQ_SIZE ){
-					Common_MemCopy( chabu->recvHeaderBuffer, Chabu_HEADER_SEQ_SIZE, 0, recvData, length, 0, length );
-					chabu->recvLastIndex = length;
-					chabu->recvContinueChannel = channel;
-					return length;
-				}
-				uint32 seq = UINT32_GET_UNALIGNED_HTON( recvData+4 );
-				//pay load size
-				int    pls = UINT16_GET_UNALIGNED_HTON( recvData+8 ) & 0xFFFF;
-
-				if( channel->recvSeq != seq ){
-					CHABU_DBGPRINTF("Chabu_Channel_handleRecv SEQ not matching %d != %d(expected)", channel->recvSeq, seq);
-				}
-				//Chabu_Assert( channel->recvSeq == seq );
-				channel->recvSeq += pls;
-
-				if( Chabu_HEADER_SEQ_SIZE+pls > length ){
-					// packet not yet completely available
-					// header must be stored
-					Common_MemCopy( chabu->recvHeaderBuffer, Chabu_HEADER_SIZE_MAX, 0, recvData, length, 0, Chabu_HEADER_SEQ_SIZE );
-
-					// Queue must have enough space,
-					// because only armed payload is transmitted
-					QueueVar_Write( channel->recvQueue, recvData+10, length - 10 );
-
-					// continue with this channel with following data
-					chabu->recvLastIndex = length;
-					chabu->recvLastLength = Chabu_HEADER_SEQ_SIZE + pls;
-					channel->chabu->recvContinueChannel = channel;
-
-					// all input data was taken
-					res = length;
-				}
-				else {
-					// ok, full packet
-
-					// Queue must have enough space,
-					// because only armed payload is transmitted
-					QueueVar_Write( channel->recvQueue, recvData+Chabu_HEADER_SEQ_SIZE, pls );
-					chabu->recvLastIndex = 0;
-					// only this packet size data was taken
-					res = Chabu_HEADER_SEQ_SIZE + pls;
-				}
+static int copyMemoryToBuffer( struct Chabu_Buffer* trgBuf, void* srcData, int srcLength ){
+	int cpySz = trgBuf->limit - trgBuf->position;
+	if( cpySz > srcLength){
+		cpySz = srcLength;
+	}
+	memcpy( trgBuf->data + trgBuf->position, srcData, cpySz );
+	trgBuf->position += cpySz;
+	return cpySz;
+}
+static int copyBufferToBuffer( struct Chabu_Buffer* trgBuf, struct Chabu_Buffer* srcBuf ){
+	int cpySzTrg = trgBuf->limit - trgBuf->position;
+	int cpySzSrc = srcBuf->limit - srcBuf->position;
+	int cpySz = ( cpySzTrg < cpySzSrc ) ? cpySzTrg : cpySzSrc;
+	memcpy( trgBuf->data + trgBuf->position, srcBuf->data + srcBuf->position, cpySz );
+	trgBuf->position += cpySz;
+	srcBuf->position += cpySz;
+	return cpySz;
+}
 
 
-				channel->userCallback( channel->userData, channel, Chabu_Channel_Event_DataAvailable );
+static void handleRecvSetupProblem( struct Chabu_Data* data, enum Chabu_Event ev ){
 
-				return res;
+}
+static void handleRecvSetup( struct Chabu_Data* data ){
+	if( !data->setupRx ){
+		data->setupRx = true;
 
-			}
-			else {
-				Chabu_Assert(false);
-				return 0;
-			}
+		// PS
+		// PT
+		uint32 idx = 8;
+
+		// PN "CHABU"
+		uint32 pnLen = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+		idx += 4;
+		char*  pnStr = (char*)(data->recvBuffer.data + idx);
+		idx = align4( idx + pnLen);
+
+		if( pnLen != 5 ) {
+			handleRecvSetupProblem( data, Chabu_Event_Error_RxSetup_PN );
+			return;
 		}
-		else {
-			//length < Chabu_HEADER_ARM_SIZE
-			Common_MemCopy( chabu->recvHeaderBuffer, Chabu_HEADER_SIZE_MAX, 0, recvData, Chabu_HEADER_SIZE_MAX, 0, length );
-			chabu->recvLastIndex = length;
-			chabu->recvContinueChannel = channel;
-			return length;
+		if( strncmp( "CHABU", pnStr, 5 ) != 0 ){
+			handleRecvSetupProblem( data, Chabu_Event_Error_RxSetup_PN );
+			return;
 		}
+
+		// PV protocol version
+		uint32 pv = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+		idx += 4;
+
+		if( UINT32_HI(pv) != UINT32_HI(Chabu_PROTCOL_VERSION) ) {
+			handleRecvSetupProblem( data, Chabu_Event_Error_RxSetup_PV );
+			return;
+		}
+
+		// RS receive buffer size
+		uint32 rs = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+		idx += 4;
+		if( rs < CHABU_MINIMUM_PACKET_SIZE ) {
+			handleRecvSetupProblem( data, Chabu_Event_Error_RxSetup_RS );
+			return;
+		}
+
+		// AV application version
+		uint32 av = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+		idx += 4;
+
+		// AN application name
+		uint32 anLen = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+		idx += 4;
+		char*  anStr = (char*)(data->recvBuffer.data + idx);
+		idx = align4( idx + pnLen);
+
+		if( anLen < CHABU_MINIMUM_PACKET_SIZE ) {
+			handleRecvSetupProblem( data, Chabu_Event_Error_RxSetup_AN_Length );
+			return;
+		}
+		if( anLen > Chabu_APPLICATION_NAME_SIZE_MAX ){
+			anLen = Chabu_APPLICATION_NAME_SIZE_MAX;
+		}
+		memcpy( data->connectionInfoRemote.applicationName, anStr, anLen );
+		data->connectionInfoRemote.applicationName[anLen] = 0;
+		data->connectionInfoRemote.applicationNameLength = anLen;
+
+		data->connectionInfoRemote.applicationVersion = av;
+
+		data->userCallback( data->userData, data, Chabu_Event_Connecting );
+
+		CHABU_DBGPRINTF( "Chabu_PutRecvData recv protocol spec %d bytes consumed, startupRx:%d startupTx:%d", (idx - idx2), data->startupRx, data->startupTx );
+		return;
 	}
 
-	Chabu_Assert(res==0);
 
-	// there was already a started packet
-	// now fill the header buffer
-	if( chabu->recvLastIndex < 0 ){
-		Chabu_dbg_printf("channel->channelId %d, channel->recvLastIndex %d, channel->recvLastLength %d", channel->channelId, chabu->recvLastIndex, chabu->recvLastLength );
-	}
-	Chabu_Assert( chabu->recvLastIndex >= 0 );
+}
+static void handleRecvAccept( struct Chabu_Data* data ){
+	data->acceptRx = true;
+}
+static void handleRecvAbort( struct Chabu_Data* data ){
 
-	//fill with ARM HEADER
-	if( chabu->recvLastIndex < Chabu_HEADER_ARM_SIZE ){
-		int sz = Chabu_HEADER_ARM_SIZE - chabu->recvLastIndex;
-		if( sz > length ){
-			sz = length;
-		}
-		Chabu_Assert( sz >= 0 );
+	uint32 idx = 8;
 
-		Common_MemCopy( chabu->recvHeaderBuffer, Chabu_HEADER_ARM_SIZE, chabu->recvLastIndex, recvData, length, 0, sz );
-		chabu->recvLastIndex += sz;
+	// PV protocol version
+	uint32 code = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+	idx += 4;
 
-		// the copied data is consumed
-		res += sz;
+	// PN "CHABU"
+	uint32 msgLen = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + idx );
+	idx += 4;
+	char*  msgStr = (char*)(data->recvBuffer.data + idx);
+	idx = align4( idx + msgLen);
 
-		if( chabu->recvLastIndex < Chabu_HEADER_ARM_SIZE ){
-			// still smaller 8, so no further processing
-			channel->chabu->recvContinueChannel = channel;
-			Chabu_Assert( sz > 0 );
-			return res;
-		}
-	}
+	// write into buffer to terminate the string
+	msgStr[msgLen] = 0;
 
-	// when here, the recv bytes must have at least 8
-	int pkf = UINT16_GET_UNALIGNED_HTON( chabu->recvHeaderBuffer + 2 ) & 0xFFFF;
-	if( pkf == PACKETFLAG_ARM ){
-		uint32 arm = UINT32_GET_UNALIGNED_HTON( chabu->recvHeaderBuffer + 4 );
-		if( channel->xmitArm != arm ){
-			channel->xmitArm = arm;
-			Chabu_Channel_evUserXmitRequest( channel );
-		}
+	data->lastErrorCode   = code;
+	data->lastErrorString = msgStr;
 
-		// packet completed -> reset header buffer
-		chabu->recvLastIndex = 0;
+	data->userCallback( data->userData, data, Chabu_Event_Error_AbortRx );
 
-		// consumed up to the 8th byte
-		return res;
+}
+static void handleRecvArm( struct Chabu_Data* data ){
+
+	Chabu_Assert( data->recvBuffer.position == 16 );
+
+	uint32 channelId  = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_ARMPACKET_OFFSET_CHANNEL );
+	uint32 arm        = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_ARMPACKET_OFFSET_ARM     );
+
+	Chabu_Assert( channelId < data->channelCount );
+	struct Chabu_Channel_Data* channel = data->channels[channelId];
+
+	if( channel->xmitArm != arm ){
+		channel->xmitArm = arm;
+		Chabu_Channel_evUserXmitRequest( channel );
 	}
 
-	//from here it must be a seq.
-	Chabu_Assert( pkf == PACKETFLAG_SEQ );
+}
+static void handleRecvSeq( struct Chabu_Data* data ){
 
-	//fill up from ARM HEADER up to SEQ_HEADER (+2 Byte for the pls)
-	if( chabu->recvLastIndex < Chabu_HEADER_SEQ_SIZE ){
-		int sz = Chabu_HEADER_SEQ_SIZE - chabu->recvLastIndex;
-		if( sz > length ){
-			sz = length;
-		}
-		Chabu_Assert( sz >= 0 );
+	Chabu_Assert( data->recvBuffer.position >= 20 );
 
-		Common_MemCopy( chabu->recvHeaderBuffer, Chabu_HEADER_SEQ_SIZE, chabu->recvLastIndex, recvData, length, res, sz );
-		chabu->recvLastIndex += sz;
+	uint32 channelId = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_CHANNEL  );
+	uint32 seq       = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_SEQ      );
+	uint32 dataSize  = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_DATASIZE );
 
-		// the copied data is consumed
-		res += sz;
+	Chabu_Assert( data->recvBuffer.position >= 20 + dataSize );
+	Chabu_Assert( channelId < data->channelCount );
 
-		if( chabu->recvLastIndex < Chabu_HEADER_SEQ_SIZE ){
-			// still smaller 10, so no further processing
-			channel->chabu->recvContinueChannel = channel;
-			Chabu_Assert( sz > 0 );
+	struct Chabu_Channel_Data* channel = data->channels[channelId];
 
-
-			return res;
-		}
+	if( channel->recvSeq != seq ){
+		CHABU_DBGPRINTF("Chabu_Channel_handleRecv SEQ not matching %d != %d(expected)", channel->recvSeq, seq);
 	}
 
-	// SEQ Header is available
-	if( chabu->recvLastIndex == Chabu_HEADER_SEQ_SIZE ){
+	//Chabu_Assert( channel->recvSeq == seq );
+	channel->recvSeq += dataSize;
 
-		uint32 seq = UINT32_GET_UNALIGNED_HTON( chabu->recvHeaderBuffer+4 );
-		int    pls = UINT16_GET_UNALIGNED_HTON( chabu->recvHeaderBuffer+8 ) & 0xFFFF;
+	// Queue must have enough space,
+	// because only armed payload is transmitted, this is tested in QueueVar_Write
+	QueueVar_Write( channel->recvQueue, data->recvBuffer.data + 20, dataSize );
+}
 
-		Chabu_Assert( channel->recvSeq == seq );
-		channel->recvSeq += pls;
+static void handleUnknownPacket( struct Chabu_Data* data, uint32 pt ){
 
-		chabu->recvLastLength = Chabu_HEADER_SEQ_SIZE + pls;
-	}
+	data->userCallback( data->userData, data, Chabu_Event_Error_Protocol_UnknownRx );
 
-	{
-		int remainingSrc = length - res;
-		int remainingTrg = chabu->recvLastLength - chabu->recvLastIndex;
-		if( remainingTrg > remainingSrc ){
-			// packet not yet completely available
-
-			// Queue must have enough space,
-			// because only armed payload is transmitted
-			Chabu_Assert( remainingSrc > 0 );
-			QueueVar_Write( channel->recvQueue, recvData+res, remainingSrc );
-
-			// continue with this channel with following data
-			chabu->recvLastIndex += remainingSrc;
-			channel->chabu->recvContinueChannel = channel;
-
-			// increase consumed amount by the copied payload size
-			res += remainingSrc;
-		}
-		else {
-			// ok, full packet
-
-			// Queue must have enough space,
-			// because only armed payload is transmitted
-			Chabu_Assert( remainingTrg > 0 );
-			QueueVar_Write( channel->recvQueue, recvData+res, remainingTrg );
-
-			// packet completed -> reset header buffer
-			chabu->recvLastIndex = 0;
-			chabu->recvLastLength = 0;
-
-			// increase consumed amount by the copied payload size
-			res += remainingTrg;
-		}
-
-		channel->userCallback( channel->userData, channel, Chabu_Channel_Event_DataAvailable );
-	}
-	return res;
 }
 
 void Chabu_PutRecvData ( struct Chabu_Data* data, void* recvData, int length ){
 
 	Chabu_LOCK_DO_LOCK(data->lock);
 
+	Chabu_Assert( data->activated );
 	int idx = 0;
 
 	while( idx < length ){
 
-		if( data->startupRx ){
-			Chabu_Assert( data->activated );
-			idx += recvProtocolParameterSpecification( data, recvData + idx, length - idx );
+		// try to fill recvBuffer
+		idx += copyMemoryToBuffer( &data->recvBuffer, recvData + idx, length - idx );
 
-			CHABU_DBGPRINTF( "Chabu_PutRecvData recv protocol spec %d bytes consumed, startupRx:%d startupTx:%d", (idx - idx2), data->startupRx, data->startupTx );
-			continue;
-		}
+		// if this was PS, prepare full recv and again.
+		if( data->recvBuffer.position == CHABU_MINIMUM_PACKET_SIZE && data->recvBuffer.limit == CHABU_MINIMUM_PACKET_SIZE){
+			uint32 ps = UINT32_GET_UNALIGNED_HTON(data->recvBuffer.data);
 
-		//data from last loop still pending
-		if( data->recvContinueChannel != NULL ){
-			//still continue with last channel
-			struct Chabu_Channel_Data* channel = data->recvContinueChannel;
-			data->recvContinueChannel = NULL;
-			CHABU_DBGPRINTF( "Chabu_PutRecvData recv continue" );
-			//copy the received data to the defined buffers
-			idx += Chabu_Channel_handleRecv( data, channel, recvData + idx, length - idx );
+			Chabu_Assert( ps >= CHABU_MINIMUM_PACKET_SIZE && ps <= data->recvBuffer.capacity );
 
-			continue;
-		}
-		//check new data -> 2 Options: ARM or SEQ
-
-		// ARM packet: CC CC 00 01 AA AA AA AA
-		// CC = channel (2 Bytes)
-		// AA = ARM position
-
-		// SEQ packet: CC CC 00 02 SS SS SS SS PP PP [ PP count of bytes ]
-		// CC = channel (2 Bytes)
-		// AA = ARM position
-		{
-			int channelId;
-
-			{
-				// when the last byte of a recv portion contains the first byte of the channel id,
-				// it must be stored here and reused in the next call
-				int remaining = length - idx;
-				if( remaining == 1 ){
-					data->recvHeaderBuffer[0] = ((uint8*)recvData)[idx];
-					data->recvLastIndex = 1;
-					idx++;
-					continue;
-				}
-
-				// continue if previous only 1 Byte was available.
-				if( data->recvLastIndex == 1 ){
-					data->recvHeaderBuffer[1] = ((uint8*)recvData)[idx];
-					data->recvLastIndex = 2;
-					idx++;
-					channelId = UINT16_GET_UNALIGNED_HTON( data->recvHeaderBuffer );
-				}
-				else {
-					// normal processing of the channel ID
-					Assert( data->recvLastIndex == 0 );
-					channelId = UINT16_GET_UNALIGNED_HTON( recvData + idx );
-
-					//TODO: if idx +=2
-					//--> note assert in Chabu_Channel_handleRecv because:
-					//length == idx
-				}
+			if( data->recvBuffer.limit < ps ){
+				data->recvBuffer.limit = ps;
+				continue;
 			}
-
-
-			if( channelId >= data->channelCount ){
-
-				Chabu_dbg_printf( "idx %d, unexpected channelId 0x%x, flag 0x%x, seq/arm 0x%x, last_packet_pay_load_size: 0x%x",
-						idx,
-						channelId,
-						UINT16_GET_UNALIGNED_HTON( recvData + idx+2) ,
-						UINT32_GET_UNALIGNED_HTON( recvData + idx+4) , last_packet_pay_load_size );
-				Chabu_dbg_memory("recvData", recvData, length );
-			}
-
-			Assert( channelId < data->channelCount );
-			CHABU_DBGPRINTF( "Chabu_PutRecvData recv new" );
-
-			idx += Chabu_Channel_handleRecv( data, data->channels[ channelId ], recvData + idx, length - idx );
 		}
+
+		Chabu_Assert( data->recvBuffer.limit >= CHABU_MINIMUM_PACKET_SIZE );
+
+		if( data->recvBuffer.position < data->recvBuffer.limit ){
+			break;
+		}
+
+		// now the recv buffer contains a full packet.
+
+		// process packet
+		uint32 pt = UINT32_GET_UNALIGNED_HTON(data->recvBuffer.data+4);
+		switch( pt & 0x00000FF ){
+		case CHABU_PACKETTYPE_SETUP : handleRecvSetup (data); break;
+		case CHABU_PACKETTYPE_ACCEPT: handleRecvAccept(data); break;
+		case CHABU_PACKETTYPE_ABORT : handleRecvAbort (data); break;
+		case CHABU_PACKETTYPE_ARM   : handleRecvArm   (data); break;
+		case CHABU_PACKETTYPE_SEQ   : handleRecvSeq   (data); break;
+		default              : handleUnknownPacket(data, pt); break;
+		}
+
+		// prepare for recv new packet
+		data->recvBuffer.position = 0;
+		data->recvBuffer.limit    = CHABU_MINIMUM_PACKET_SIZE;
+
+
 	}
 	Chabu_Assert( idx == length );
 	Chabu_LOCK_DO_UNLOCK(data->lock);
 
 }
 
-static int Chabu_Channel_handleXmit( struct Chabu_Data* chabu, struct Chabu_Channel_Data* channel, uint8* xmitData, int maxLength ){
 
-	channel->userCallback( channel->userData, channel, Chabu_Channel_Event_PreTransmit );
+static void xmitSetup( struct Chabu_Data* data ){
 
-	// Is no transfer in progress?
-	if( chabu->xmitLastIndex == 0 && chabu->xmitLastLength == 0 ){
+	uint32 trgIdx, srcIdx;
 
-		// Generate the headers
-		if( channel->recvArmShouldBeXmit ){
-			channel->recvArmShouldBeXmit = false;
-			UINT16_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 0, channel->channelId );
-			UINT16_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 2, PACKETFLAG_ARM );
-			UINT32_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 4, channel->recvArm );
-			chabu->xmitLastLength = Chabu_HEADER_ARM_SIZE;
-		}
-		else {
-			// pls = payload size
-			int pls = QueueVar_Available( channel->xmitQueue );
+	// packet type
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data +  4, CHABU_PACKETTYPE_MAGIC | CHABU_PACKETTYPE_SETUP );
 
-			if( pls > channel->chabu->xmitMaxPayloadSize ){
-				pls = channel->chabu->xmitMaxPayloadSize;
-			}
-			int remainArm = channel->xmitArm - channel->xmitSeq;
-			if( pls > remainArm ){
-				pls = remainArm;
-			}
+	// protocol name
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data +  8, 5 );
+	data->xmitBuffer.data[12] = 'C';
+	data->xmitBuffer.data[13] = 'H';
+	data->xmitBuffer.data[14] = 'A';
+	data->xmitBuffer.data[15] = 'B';
+	data->xmitBuffer.data[16] = 'U';
+	data->xmitBuffer.data[17] = 0x00;
+	data->xmitBuffer.data[18] = 0x00;
+	data->xmitBuffer.data[19] = 0x00;
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data + 20, Chabu_PROTCOL_VERSION );
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data + 24, data->recvBuffer.capacity );
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data + 28, data->connectionInfoLocal.applicationNameLength );
 
-			Assert( pls >= 0 ); // negative shall not occur
-			if( pls > 0 ){
-				UINT16_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 0, channel->channelId );
-				UINT16_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 2, PACKETFLAG_SEQ );
-				UINT32_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 4, channel->xmitSeq );
-				UINT16_PUT_UNALIGNED_HTON( chabu->xmitHeaderBuffer + 8, pls );
-				chabu->xmitLastLength = pls + Chabu_HEADER_SEQ_SIZE;
-				channel->xmitSeq += pls;
-			}
-		}
-
+	trgIdx = 28;
+	srcIdx =  0;
+	while( srcIdx < data->connectionInfoLocal.applicationNameLength ){
+		data->xmitBuffer.data[trgIdx++] = data->connectionInfoLocal.applicationName[ srcIdx++ ];
 	}
-
-	// if xfer in progress
-	int idx = 0;
-	if( chabu->xmitLastLength != 0 ){
-
-		// block header
-		if(( chabu->xmitLastIndex < Chabu_HEADER_SIZE_MAX ) && ( chabu->xmitLastIndex < chabu->xmitLastLength ) && ( idx < maxLength )){
-
-			int remainingSrc = chabu->xmitLastLength - chabu->xmitLastIndex;
-			if( remainingSrc > Chabu_HEADER_SIZE_MAX ){
-				remainingSrc = Chabu_HEADER_SIZE_MAX;
-			}
-			int remainingTrg = maxLength - idx;
-			int copySz = ( remainingTrg < remainingSrc ) ? remainingTrg : remainingSrc;
-			Assert( copySz >= 0 );
-
-			memcpy( xmitData + idx, chabu->xmitHeaderBuffer + chabu->xmitLastIndex, copySz );
-			chabu->xmitLastIndex += copySz;
-			idx += copySz;
-		}
-
-		// block payload
-		if(( chabu->xmitLastIndex >= Chabu_HEADER_SIZE_MAX )
-				&& ( chabu->xmitLastIndex < chabu->xmitLastLength )
-				&& ( idx < maxLength ) ){
-
-			int remainingSrc = chabu->xmitLastLength - chabu->xmitLastIndex;
-			int remainingTrg = maxLength - idx;
-
-			int copySz = ( remainingTrg < remainingSrc ) ? remainingTrg : remainingSrc;
-
-			int size = QueueVar_Available( channel->xmitQueue );
-
-			// is implicitly asserted in QueueVar_Read
-			Assert( ( copySz >= 0 ) && (copySz <= size)  );
-			QueueVar_Read( channel->xmitQueue, xmitData + idx, copySz );
-
-			chabu->xmitLastIndex += copySz;
-			idx += copySz;
-
-		}
-
-		// block completed
-		if( chabu->xmitLastIndex >= chabu->xmitLastLength ){
-			Assert( chabu->xmitLastIndex == chabu->xmitLastLength );
-			chabu->xmitLastIndex  = 0;
-			chabu->xmitLastLength = 0;
-			channel->userCallback( channel->userData, channel, Chabu_Channel_Event_Transmitted );
-		}
-		else {
-			// block to be continued
-			// ensure, the next xmit data is requested from the same channel.
-			chabu->xmitContinueChannel = channel;
-		}
+	while(( trgIdx & 0x03 ) != 0 ){
+		data->xmitBuffer.data[trgIdx++] = 0;
 	}
-	if(( channel->recvArmShouldBeXmit ) || (( QueueVar_Available( channel->xmitQueue ) > 0 ) && ( channel->xmitArm != channel->xmitSeq ))){
-		channel->xmitRequest = true;
-	}
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data + 0, trgIdx );
 
-	Assert( idx >= 0 && idx <= maxLength );
-	return idx;
+	data->xmitBuffer.limit = trgIdx;
+	data->xmitBuffer.position = 0;
 }
 
+static void xmitAccept( struct Chabu_Data* data ){
+	// packet size
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data + 0, 8 );
+	// packet type
+	UINT32_PUT_UNALIGNED_HTON( data->xmitBuffer.data + 4, CHABU_PACKETTYPE_MAGIC | CHABU_PACKETTYPE_ACCEPT );
+}
+
+static void xmitChannelArm( struct Chabu_Data* chabu, struct Chabu_Channel_Data* channel ){
+	// packet size
+	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_PACKET_OFFSET_PACKETSIZE, 16 );
+	// packet type
+	UINT16_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_PACKET_OFFSET_PACKETTYPE, CHABU_PACKETTYPE_MAGIC | CHABU_PACKETTYPE_ARM );
+	UINT16_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_ARMPACKET_OFFSET_CHANNEL, channel->channelId );
+	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_ARMPACKET_OFFSET_ARM, channel->recvArm );
+	chabu->xmitBuffer.position =  0;
+	chabu->xmitBuffer.limit    = 16;
+}
+
+static void handleChannelSeq( struct Chabu_Data* chabu, struct Chabu_Channel_Data* channel ){
+
+	// pls = payload size
+	int pls = QueueVar_Available( channel->xmitQueue );
+
+	if( pls > chabu->xmitMaxPacketSize - CHABU_SEQPACKET_OFFSET_DATADATA ){
+		pls = chabu->xmitMaxPacketSize - CHABU_SEQPACKET_OFFSET_DATADATA;
+	}
+	int remainArm = channel->xmitArm - channel->xmitSeq;
+	if( pls > remainArm ){
+		pls = remainArm;
+	}
+
+	int ps = CHABU_SEQPACKET_OFFSET_DATADATA + pls;
+
+	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_PACKET_OFFSET_PACKETSIZE, ps );
+	UINT16_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_PACKET_OFFSET_PACKETTYPE, CHABU_PACKETTYPE_MAGIC | CHABU_PACKETTYPE_SEQ );
+	UINT16_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_SEQPACKET_OFFSET_CHANNEL, channel->channelId );
+	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_SEQPACKET_OFFSET_SEQ, channel->xmitSeq );
+	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_SEQPACKET_OFFSET_DATASIZE, pls );
+	QueueVar_Read( channel->xmitQueue, chabu->xmitBuffer.data + 20, pls );
+	chabu->xmitBuffer.position =  0;
+	chabu->xmitBuffer.limit    = ps;
+
+}
+
+static void getXmitData(struct Chabu_Data* data ){
+
+	if( !data->setupTx ){
+		data->setupTx = true;
+		xmitSetup( data );
+		CHABU_DBGPRINTF("Chabu_GetXmitData startup %d byte supplied, startupRx:%d startupTx:%d", idx - idx2, data->startupRx, data->startupTx );
+		return;
+	}
+	if( !data->setupRx ){
+		return;
+	}
+	if( !data->acceptTx ){
+		data->acceptTx = true;
+		xmitAccept( data );
+		return;
+	}
+
+	struct Chabu_Channel_Data* channel = calcNextXmitChannel( data );
+	if( channel != NULL ){
+
+		channel->userCallback( channel->userData, channel, Chabu_Channel_Event_PreTransmit );
+
+		if( channel->recvArmShouldBeXmit ){
+			channel->recvArmShouldBeXmit = false;
+			xmitChannelArm( data, channel );
+			return;
+		}
+
+		handleChannelSeq( data, channel );
+
+		CHABU_DBGPRINTF("Chabu_GetXmitData ch[%d] %d byte supplied", channel->channelId, idx - idx2);
+	}
+
+}
 /**
  * @return true if the data shall be flushed
  */
-bool Chabu_GetXmitData ( struct Chabu_Data* data, void* xmitData, int* xmitLength, int maxLength ){
+bool Chabu_GetXmitData_Buffer ( struct Chabu_Data* data, struct Chabu_Buffer* xmitData ){
+
 	Chabu_LOCK_DO_LOCK(data->lock);
+
 	bool flush = true;
-	int idx = 0;
-	int oldIdx = -1;
 	int loopCheck = 0;
-	while( idx < maxLength && oldIdx != idx){
-		oldIdx = idx;
+
+	while( true ){
+
 		loopCheck++;
 		Chabu_Assert( loopCheck < 100 );
 
-		if( data->startupTx ){
-			idx += xmitProtocolParameterSpecification( data, (uint8*)(xmitData+idx), maxLength-idx);
-			CHABU_DBGPRINTF("Chabu_GetXmitData startup %d byte supplied, startupRx:%d startupTx:%d", idx - idx2, data->startupRx, data->startupTx );
-			continue;
+		// if xmit buffer is empty, try to fill it
+		if( data->xmitBuffer.limit == 0 ){
+
+			getXmitData(data);
+
+			// if xmit buffer is still empty, go out
+			if( data->xmitBuffer.limit == 0 ){
+				break;
+			}
 		}
-		if( data->startupRx ){
+
+		// copy as much as possible to target
+		copyBufferToBuffer( xmitData, &data->xmitBuffer);
+
+		// if all is transferred to target, prepare for new data
+		if( data->xmitBuffer.position == data->xmitBuffer.limit ){
+			data->xmitBuffer.position = 0;
+			data->xmitBuffer.limit    = 0;
+		}
+
+		// if target is full, go out
+		if( xmitData->position == xmitData->limit ){
 			break;
 		}
 
-		{
-			//if last xmit was not finished: load channel with last channel
-			struct Chabu_Channel_Data* channel = data->xmitContinueChannel;
-			data->xmitContinueChannel = NULL;
-
-			//last xmit was completed, get next channel
-			if( channel == NULL ){
-				if( calcNextXmitChannel( data ) ){
-					channel = data->channels[ data->xmitChannelIdx ];
-				}
-			}
-			if( channel != NULL ){
-				idx += Chabu_Channel_handleXmit( data, channel, xmitData + idx, maxLength - idx );
-				CHABU_DBGPRINTF("Chabu_GetXmitData ch[%d] %d byte supplied", channel->channelId, idx - idx2);
-			}
-		}
 	}
-	*xmitLength = idx;
 
 	Chabu_LOCK_DO_UNLOCK(data->lock);
 	return flush;

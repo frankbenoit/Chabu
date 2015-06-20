@@ -1,9 +1,4 @@
-/*
- * queue_var.c
- *
- *  Created on: 29.08.2011
- *      Author: Frank Benoit
- */
+
 #include "Common.h"
 #include "QueueVar.h"
 

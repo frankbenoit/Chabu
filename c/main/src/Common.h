@@ -260,6 +260,10 @@ extern Aint64  buildAint64 ( int64 * ptr, uint32 length );
 #define align4(v) (((v)+3)&~3)
 #define align2(v) (((v)+1)&~1)
 
+#define is_aligned_2(v) ((((int)(v))&1)==0)
+#define is_aligned_4(v) ((((int)(v))&3)==0)
+#define is_aligned_8(v) ((((int)(v))&7)==0)
+
 #define BufferInitNull( buf ) do{ (buf)->data=NULL; (buf)->used=0; (buf)->limit = 0; } while(false)
 #define BufferInit( buf, _d ) do{ (buf)->data=(_d); (buf)->used=0; (buf)->limit = sizeof(_d); } while(false)
 extern void BufferAppendData( Buffer* buf, uint8* data, int length);

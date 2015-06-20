@@ -1,9 +1,4 @@
-/*
- * QueueVar.h
- *
- *  Created on: 29.08.2011
- *      Author: Frank Benoit
- */
+
 
 #ifndef QUEUE_VAR_H_
 #define QUEUE_VAR_H_

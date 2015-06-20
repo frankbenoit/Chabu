@@ -63,7 +63,7 @@ struct Chabu_ConnectionInfo_Data {
 	union {
 		struct {
 			uint16  maxReceivePayloadSize;
-			uint16  receiveCannelCount;
+			uint16  receiveChannelCount;
 			uint32  applicationVersion;
 			uint8   applicationNameLength;
 			char    applicationName[Chabu_APPLICATION_NAME_SIZE_MAX];

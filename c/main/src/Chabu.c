@@ -38,7 +38,7 @@ void Chabu_Init(
 	data->connectionInfoLocal.chabuProtocolVersion  = Chabu_PROTCOL_VERSION;
 	data->connectionInfoLocal.byteOrderBigEndian    = true;
 	data->connectionInfoLocal.v1.maxReceivePayloadSize = maxReceivePayloadSize;
-	data->connectionInfoLocal.v1.receiveCannelCount    = 0;
+	data->connectionInfoLocal.v1.receiveChannelCount   = 0;
 	data->connectionInfoLocal.v1.applicationVersion    = applicationVersion;
 	data->connectionInfoLocal.v1.applicationNameLength = Chabu_strnlen(applicationName, Chabu_APPLICATION_NAME_SIZE_MAX);
 	strncpy( data->connectionInfoLocal.v1.applicationName, applicationName, Chabu_APPLICATION_NAME_SIZE_MAX );
@@ -127,7 +127,7 @@ void Chabu_Init_AddChannel (
 
 void Chabu_Init_Complete ( struct Chabu_Data* data ){
 	data->activated = true;
-	data->connectionInfoLocal.v1.receiveCannelCount = data->channelCount;
+	data->connectionInfoLocal.v1.receiveChannelCount = data->channelCount;
 }
 
 static bool calcNextXmitChannel( struct Chabu_Data* data ) {
@@ -187,9 +187,9 @@ static int recvProtocolParameterSpecification( struct Chabu_Data* data, void* re
 				data->xmitMaxPayloadSize = data->connectionInfoRemote.v1.maxReceivePayloadSize;
 				//dbg_printf("Chabu: xmitMaxPayloadSize %d", data->xmitMaxPayloadSize );
 				break;
-			case  4: data->connectionInfoRemote.v1.receiveCannelCount    |= value <<  8;
+			case  4: data->connectionInfoRemote.v1.receiveChannelCount   |= value <<  8;
 				break;
-			case  5: data->connectionInfoRemote.v1.receiveCannelCount    |= value <<  0;
+			case  5: data->connectionInfoRemote.v1.receiveChannelCount   |= value <<  0;
 				//dbg_printf("Chabu: data->connectionInfoRemote.v1.receiveCannelCount %d", data->connectionInfoRemote.v1.receiveCannelCount );
 				break;
 			case  6: data->connectionInfoRemote.v1.applicationVersion    |= value << 24;
@@ -246,8 +246,8 @@ static int xmitProtocolParameterSpecification( struct Chabu_Data* data, uint8* x
 			switch( data->connectionInfoLocal.index ){
 			case  2: xmitData[ res ] = data->connectionInfoLocal.v1.maxReceivePayloadSize >>  8; break;
 			case  3: xmitData[ res ] = data->connectionInfoLocal.v1.maxReceivePayloadSize >>  0; break;
-			case  4: xmitData[ res ] = data->connectionInfoLocal.v1.receiveCannelCount    >>  8; break;
-			case  5: xmitData[ res ] = data->connectionInfoLocal.v1.receiveCannelCount    >>  0; break;
+			case  4: xmitData[ res ] = data->connectionInfoLocal.v1.receiveChannelCount   >>  8; break;
+			case  5: xmitData[ res ] = data->connectionInfoLocal.v1.receiveChannelCount   >>  0; break;
 			case  6: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >> 24; break;
 			case  7: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >> 16; break;
 			case  8: xmitData[ res ] = data->connectionInfoLocal.v1.applicationVersion    >>  8; break;

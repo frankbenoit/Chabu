@@ -30,6 +30,8 @@ import org.chabu.IChabuNetwork;
 
 public class Chabu implements IChabu {
 
+	private static final int PT_MAGIC = 0x77770000;
+	public static final String PROTOCOL_NAME = "CHABU";
 	public static final int PROTOCOL_VERSION = 1;
 
 	private ArrayList<ChabuChannel> channels = new ArrayList<>(256);
@@ -41,7 +43,7 @@ public class Chabu implements IChabu {
 //	private int      recvChannelIdx = 0;
 	
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
-	private ByteBuffer recvHeader = ByteBuffer.allocate( 0x100 );
+	private ByteBuffer recvBuf = ByteBuffer.allocate( 0x100 );
 
 	private IChabuNetwork nw;
 	
@@ -82,8 +84,8 @@ public class Chabu implements IChabu {
 	
 	public Chabu( ChabuSetupInfo info ){
 		
-		Utils.ensure( info.maxReceiveSize >= 0x100 && info.maxReceiveSize <= 0xFFFF, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
-				"maxReceiveSize must be in range 0x100 .. 0xFFFF, but is %s", info.maxReceiveSize );
+		Utils.ensure( info.maxReceiveSize >= 0x100, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
+				"maxReceiveSize must be at least 0x100, but is %s", info.maxReceiveSize );
 		
 		Utils.ensure( info.applicationName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, 
 				"applicationName must not be null" );
@@ -94,8 +96,8 @@ public class Chabu implements IChabu {
 		
 		this.infoLocal = info;
 		
-		recvHeader.order(ByteOrder.BIG_ENDIAN);
-		recvHeader.clear();
+		recvBuf.order(ByteOrder.BIG_ENDIAN);
+		recvBuf.clear();
 		
 		xmitBuf.order(ByteOrder.BIG_ENDIAN);
 		xmitBuf.clear().limit(0);
@@ -172,39 +174,36 @@ public class Chabu implements IChabu {
 //		}
 		
 		int oldRemaining = -1;
-		outerloop: while( oldRemaining != buf.remaining() ){
+		while( oldRemaining != buf.remaining() ){
 			oldRemaining = buf.remaining();
 			
 
 			// ensure we have len+type
-			while( recvHeader.position() < 2 ){
-				if( !buf.hasRemaining() ){
-					break outerloop;
-				}
-				recvHeader.put( buf.get() );
+			Utils.transferUpTo( buf, recvBuf, 8 );
+			if( recvBuf.position() < 8 ){
+				break;
 			}
 			
-			int len = recvHeader.getShort(0) & 0xFFFF;
-			int pckSz = 2 + len;
-			if( pckSz > recvHeader.capacity() ){
-				delayedAbort(ChabuErrorCode.PROTOCOL_LENGTH, String.format("Packet with too much data: len %s", len ));
+			int ps = recvBuf.getInt(0);
+			if( ps > recvBuf.capacity() ){
+				delayedAbort(ChabuErrorCode.PROTOCOL_LENGTH, String.format("Packet with too much data: len %s", ps ));
 				// set all recv to be consumed.
 				buf.position( buf.limit() );
 			}
 
-			recvHeader.limit(pckSz);
-			Utils.transferRemaining(buf, recvHeader);
+			recvBuf.limit(ps);
+			Utils.transferRemaining(buf, recvBuf);
 
 
-			if( !recvHeader.hasRemaining() ){
+			if( !recvBuf.hasRemaining() ){
 				
 				// completed, now start processing
-				recvHeader.flip();
-				recvHeader.position(2);
+				recvBuf.flip();
+				recvBuf.position(4);
 
 				try{
 					
-					int packetTypeId = recvHeader.get() & 0xFF;
+					int packetTypeId = recvBuf.getInt() & 0xFF;
 					PacketType packetType = PacketType.findPacketType(packetTypeId);
 					if( packetType == null ){
 						delayedAbort( ChabuErrorCode.PROTOCOL_PCK_TYPE, String.format("Packet type cannot be found 0x%02X", packetTypeId ));
@@ -222,15 +221,15 @@ public class Chabu implements IChabu {
 					case ABORT : processRecvAbort();  break; 
 					case ARM   : processRecvArm();    break; 
 					case SEQ   : processRecvSeq();    break; 
-					default    : throw new ChabuException(String.format("Packet type 0x%02X unexpected: len %s", packetTypeId, len ));
+					default    : throw new ChabuException(String.format("Packet type 0x%02X unexpected: ps %s", packetTypeId, ps ));
 					}
 		
-					if( recvHeader.hasRemaining() ){
-						throw new ChabuException(String.format("Packet type 0x%02X left some bytes unconsumed: %s bytes", packetTypeId, recvHeader.remaining() ));
+					if( recvBuf.hasRemaining() ){
+						throw new ChabuException(String.format("Packet type 0x%02X left some bytes unconsumed: %s bytes", packetTypeId, recvBuf.remaining() ));
 					}
 				}
 				finally {
-					recvHeader.clear();
+					recvBuf.clear();
 				}
 			}
 		}
@@ -242,30 +241,42 @@ public class Chabu implements IChabu {
 		}
 	}
 
+	private String protocolVersionToString( int version ){
+		return String.format("%d.%d", version >>> 16, version & 0xFFFF );
+	}
 	private void processRecvSetup() {
 		
 		/// when is startupRx set before?
 		Utils.ensure( recvSetupCompleted != RecvState.RECVED, ChabuErrorCode.PROTOCOL_SETUP_TWICE, "Recveived SETUP twice" );
 		Utils.ensure( activated, ChabuErrorCode.NOT_ACTIVATED, "While receiving the SETUP block, org.chabu was not activated." );
 
-		int chabuProtocolVersion = recvHeader.get() & 0xFF;
+		String pn = getRecvString();
+		if( !PROTOCOL_NAME.equals(pn) ) {
+			delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_NAME.getCode(), String.format("Chabu protocol name mismatch. Expected %s, received %d", PROTOCOL_NAME, pn ));
+			return;
+		}
 		
+		int pv = recvBuf.getInt();
+		
+		int rs = recvBuf.getInt();
+		int av = recvBuf.getInt();
+		String an = getRecvString();
+
 		ChabuSetupInfo info = new ChabuSetupInfo();
-		info.maxReceiveSize = recvHeader.getShort() & 0xFFFF;
-		info.applicationVersion    = recvHeader.getInt();
-		info.applicationName       = getRecvString();
+		info.maxReceiveSize = rs;
+		info.applicationVersion    = av;
+		info.applicationName       = an;
 		
 		this.infoRemote = info;
 
 		recvSetupCompleted = RecvState.RECVED;	
 
-		if( chabuProtocolVersion != PROTOCOL_VERSION) {
-			delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION.getCode(), String.format("Chabu protocol version mismatch. Expected %d, received %d", PROTOCOL_VERSION, chabuProtocolVersion ));
+		if(( pv >>> 16 ) != (PROTOCOL_VERSION >>> 16 )) {
+			delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION.getCode(), String.format("Chabu protocol version mismatch. Expected %s, received %s", 
+					protocolVersionToString(PROTOCOL_VERSION), protocolVersionToString(pv) ));
 			return;
 		}
 				
-
-
 		checkConnectingValidator();
 	}
 
@@ -276,22 +287,22 @@ public class Chabu implements IChabu {
 
 	private void processRecvAbort() {
 		
-		int code =  recvHeader.getInt();
+		int code =  recvBuf.getInt();
 		String message = getRecvString();
 		
-		Utils.fail( ChabuErrorCode.REMOTE_ABORT, String.format("Recveived ABORT Code=0x%08X: %s", code, message ));
+		throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, String.format("Recveived ABORT Code=0x%08X: %s", code, message ));
 	}
 
 	private void processRecvArm() {
 		
 		Utils.ensure( recvAccepted == RecvState.RECVED, ChabuErrorCode.ASSERT, "" );
 		
-		if( recvHeader.limit() != PacketType.ARM.headerSize+2 ){
-			throw new ChabuException(String.format("Packet type ARM with unexpected len field: %s", recvHeader.limit()-2 ));
+		if( recvBuf.limit() != 16 ){
+			throw new ChabuException(String.format("Packet type ARM with unexpected len field: %s", 16 ));
 		}
 
-		int channelId = recvHeader.getShort() & 0xFFFF;
-		int arm       = recvHeader.getInt();
+		int channelId = recvBuf.getInt();
+		int arm       = recvBuf.getInt();
 
 		ChabuChannel channel = channels.get(channelId);
 		channel.handleRecvArm(arm);
@@ -299,26 +310,26 @@ public class Chabu implements IChabu {
 
 	private void processRecvSeq() {
 		
-		if( recvHeader.limit() < PacketType.SEQ.headerSize+2 ){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvHeader.limit()-2 ));
+		if( recvBuf.limit() < PacketType.SEQ.headerSize+2 ){
+			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvBuf.limit()-2 ));
 		}
 
-		int channelId = recvHeader.getShort() & 0xFFFF;
-		int seq       = recvHeader.getInt();
-		int pls       = recvHeader.getShort() & 0xFFFF;
+		int channelId = recvBuf.getInt();
+		int seq       = recvBuf.getInt();
+		int pls       = recvBuf.getInt();
 
 		if( channelId >= channels.size() ){
 			throw new ChabuException(String.format("Packet type SEQ with invalid channel ID %s, available channels %s", channelId, channels.size() ));
 		}
-		if( recvHeader.limit() != PacketType.SEQ.headerSize+2+pls ){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field: %s, PLS %s", recvHeader.limit()-2, pls ));
+		if( recvBuf.limit() < 20+pls ){
+			throw new ChabuException(String.format("Packet type SEQ with unexpected len field: %s, PLS %s", recvBuf.limit()-2, pls ));
 		}
-		if( recvHeader.remaining() != pls ){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvHeader.limit()-2 ));
-		}
+//		if( recvBuf.remaining() != pls ){
+//			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvBuf.limit()-2 ));
+//		}
 
 		ChabuChannel channel = channels.get(channelId);
-		channel.handleRecvSeq( seq, recvHeader );
+		channel.handleRecvSeq( seq, recvBuf, pls );
 	}
 	private void checkConnectingValidator() {
 		if( xmitAccepted != XmitState.XMITTED && recvSetupCompleted == RecvState.RECVED && xmitStartupCompleted == XmitState.XMITTED ){
@@ -411,11 +422,17 @@ public class Chabu implements IChabu {
 			Utils.transferRemaining( xmitBuf, buf );
 
 			if( !buf.hasRemaining() ){
+				// given xmit buffer is full
+				// -> not able to send more
 				break;
 			}
+			
 			if( xmitBuf.hasRemaining() ){
+				// xmitBuf not yet completely copied
+				// -> 
 				break;
 			}
+
 			if( xmitStartupCompleted != XmitState.IDLE ){
 				if( xmitStartupCompleted == XmitState.PREPARED ){
 					xmitStartupCompleted = XmitState.XMITTED;
@@ -433,7 +450,7 @@ public class Chabu implements IChabu {
 				xmitAbortCode = 0;
 				xmitAbortMessage = "";
 				xmitAbortPending = XmitState.XMITTED;
-				Utils.fail( code, "%s", msg );
+				throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, String.format("Remote Abort: Code:%d %s", code, msg));
 			}
 			if( xmitAbortPending != XmitState.IDLE ){				
 				if( xmitAbortPending == XmitState.PENDING ){
@@ -481,13 +498,19 @@ public class Chabu implements IChabu {
 		Utils.ensure( anlBytes.length <= 200, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, "SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.", anlBytes.length );
 		
 		xmitBuf.clear();
-		xmitBuf.putShort( (short)(PacketType.SETUP.headerSize + anlBytes.length) );
-		xmitBuf.put     ( (byte ) PacketType.SETUP.id );
-		xmitBuf.put     ( (byte ) PROTOCOL_VERSION );
-		xmitBuf.putShort( (short) infoLocal.maxReceiveSize       );
-		xmitBuf.putInt  (         infoLocal.applicationVersion );
-		xmitBuf.putShort( (short) anlBytes.length );
-		xmitBuf.put     (         anlBytes );
+		xmitBuf.putInt  ( 0 );
+		xmitBuf.putInt  ( PT_MAGIC | PacketType.SETUP.id );
+	
+		putXmitString( PROTOCOL_NAME );
+		xmitBuf.putInt  ( PROTOCOL_VERSION );
+		
+		xmitBuf.putInt  ( infoLocal.maxReceiveSize       );
+		
+		xmitBuf.putInt  ( infoLocal.applicationVersion );
+		putXmitString( infoLocal.applicationName );
+		
+		// set packet size
+		xmitBuf.putInt  ( 0, xmitBuf.position() );
 		xmitBuf.flip();
 		
 		xmitStartupCompleted = XmitState.PREPARED;
@@ -501,10 +524,11 @@ public class Chabu implements IChabu {
 		}
 		
 		xmitBuf.clear();
-		xmitBuf.putShort( (short)(PacketType.ACCEPT.headerSize) );
-		xmitBuf.put     ( (byte ) PacketType.ACCEPT.id );
+		xmitBuf.putInt( 8 );
+		xmitBuf.putInt( PT_MAGIC | PacketType.ACCEPT.id );
 		xmitBuf.flip();
 	}
+
 	private void processXmitAbort(){
 		
 		
@@ -512,11 +536,10 @@ public class Chabu implements IChabu {
 		Utils.ensure( msgBytes.length <= 200, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH, "Xmit Abort message, text must be less than 200 UTF8 bytes, but is %s", msgBytes.length );
 		
 		xmitBuf.clear();
-		xmitBuf.putShort( (short)(PacketType.ABORT.headerSize + msgBytes.length) );
-		xmitBuf.put     ( (byte ) PacketType.ABORT.id );
-		xmitBuf.putInt  (         xmitAbortCode );
-		xmitBuf.putShort( (short) msgBytes.length );
-		xmitBuf.put     (         msgBytes );
+		xmitBuf.putInt( (short)(PacketType.ABORT.headerSize + msgBytes.length) );
+		xmitBuf.putInt( PT_MAGIC | PacketType.ABORT.id );
+		xmitBuf.putInt( xmitAbortCode );
+		putXmitString( xmitAbortMessage );
 		xmitBuf.flip();
 		
 		xmitAbortMessage = "";
@@ -535,13 +558,11 @@ public class Chabu implements IChabu {
 		}
 		
 		xmitBuf.clear();
-		xmitBuf.putShort( (short)(PacketType.ARM.headerSize) );
-		xmitBuf.put     ( (byte ) PacketType.ARM.id );
-		xmitBuf.putShort( (short) channelId );
-		xmitBuf.putInt  (         arm       );
+		xmitBuf.putInt( PacketType.ARM.headerSize );
+		xmitBuf.putInt( PT_MAGIC | PacketType.ARM.id );
+		xmitBuf.putInt( channelId );
+		xmitBuf.putInt( arm );
 		xmitBuf.flip();
-		
-		
 	}
 	
 	/** 
@@ -554,19 +575,26 @@ public class Chabu implements IChabu {
 		}
 		
 		xmitBuf.clear();
-		int plPos = PacketType.SEQ.headerSize/*==9*/ + 2;
+		int plPos = 20;
 		xmitBuf.position( plPos );
 		
 		user.accept( xmitBuf );
 		
 		int pls = xmitBuf.position() - plPos;
+		// add padding
+		while( (xmitBuf.position() & 3) != 0 ){
+			xmitBuf.put((byte)0);
+		}
+
+		int ps = xmitBuf.position() - plPos +20;
+		
 		
 		if( pls > 0 ){
-			xmitBuf.putShort( 0, (short)(PacketType.SEQ.headerSize+pls) );
-			xmitBuf.put     ( 2, (byte ) PacketType.SEQ.id );
-			xmitBuf.putShort( 3, (short) channelId );
-			xmitBuf.putInt  ( 5,         seq       );
-			xmitBuf.putShort( 9, (short) pls );
+			xmitBuf.putInt( 0, ps );
+			xmitBuf.putInt( 4, PT_MAGIC | PacketType.SEQ.id );
+			xmitBuf.putInt( 8, channelId );
+			xmitBuf.putInt( 12, seq );
+			xmitBuf.putInt( 16, pls );
 			xmitBuf.flip();
 		}
 		else {
@@ -604,31 +632,6 @@ public class Chabu implements IChabu {
 			return null;
 		}
 	}
-
-//	private boolean calcNextRecvChannel() {
-//		synchronized(this){
-//			int idx = -1;
-//			for( int i = priorityCount-1; i >= 0 && idx < 0; i-- ){
-//				if( recvChannelIdx+1 < recvChannelRequest[i].size() ){
-//					idx = recvChannelRequest[i].nextSetBit(recvChannelIdx);
-//				}
-//				if( idx < 0 ){
-//					idx = recvChannelRequest[i].nextSetBit(0);
-//				}
-//				
-//				if( idx >= 0 ){
-//					recvChannelRequest[i].clear(idx);
-//				}
-//			}
-//			if( idx >= 0 ){
-//				recvChannelIdx = idx;
-//				return true;
-//			}
-//			else {
-//				return false;
-//			}
-//		}
-//	}
 	
 	public void setNetwork(IChabuNetwork nw) {
 		Utils.ensure( nw      != null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network passed in is null" );
@@ -639,14 +642,18 @@ public class Chabu implements IChabu {
 	
 	private String getRecvString(){
 		
-		int anl = recvHeader.getShort() & 0xFFFF;
-		if( recvHeader.remaining() < anl ){
-			throw new ChabuException("Chabu string length exceeds packet length" );
+		int len = recvBuf.getInt();
+		if( recvBuf.remaining() < len ){
+			throw new ChabuException(String.format("Chabu string length exceeds packet length len:%d data-remaining:%d", len, recvBuf.remaining() ));
 		}
 			
-		byte[] anlBytes = new byte[anl];
-		recvHeader.get( anlBytes );
-		return new String( anlBytes, StandardCharsets.UTF_8 );
+		byte[] bytes = new byte[len];
+		recvBuf.get( bytes );
+		while( (len & 3) != 0 ){
+			len++;
+			recvBuf.get();
+		}
+		return new String( bytes, StandardCharsets.UTF_8 );
 	}
 	@Override
 	public void setTracePrinter(PrintWriter writer) {
@@ -678,4 +685,15 @@ public class Chabu implements IChabu {
 		return nw;
 	}
 	
+	private void putXmitString(String str) {
+		byte[] anlBytes = str.getBytes( StandardCharsets.UTF_8 );
+		xmitBuf.putInt  ( anlBytes.length );
+		xmitBuf.put     ( anlBytes );
+		int len = anlBytes.length;
+		while( (len&3) != 0 ){
+			len++;
+			xmitBuf.put((byte)0);
+		}
+	}
+
 }

@@ -146,7 +146,8 @@ public class TraceRunner {
 
 	public void wireRxAutoLength(String hexData) {
 		int len = (hexData.length() + 1) / 3;
-		hexStringToBB(String.format( "%02X %02X %s", len >> 8, 0xff & len, hexData));
+		len += 4;
+		hexStringToBB(String.format( "%02X %02X %02X %02X %s", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
 		JSONObject params = new JSONObject();
 		wireRx( params, bb );
 	}
@@ -158,7 +159,8 @@ public class TraceRunner {
 	
 	public void wireTxAutoLength(String hexData) {
 		int len = (hexData.length() + 1) / 3;
-		hexStringToBB(String.format( "%02X %02X %s", len >> 8, 0xff & len, hexData));
+		len += 4;
+		hexStringToBB(String.format( "%02X %02X %02X %02X %s", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
 		JSONObject params = new JSONObject();
 		wireTx( params, bb );
 	}

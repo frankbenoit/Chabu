@@ -18,10 +18,16 @@ public class TestUtils {
 	public static String test2LengthAndHex( String text ){
 		byte[] bytes = text.getBytes( StandardCharsets.UTF_8 );
 		StringBuilder sb = new StringBuilder();
-		sb.append( String.format("%02X %02X", bytes.length >> 8, 0xFF & bytes.length  ));
+		sb.append( String.format("%02X %02X %02X %02X", bytes.length >>> 24, bytes.length >>> 16, bytes.length >>> 8, 0xFF & bytes.length  ));
 		if( bytes.length > 0 ){
+			
 			for (int i = 0; i < bytes.length; i++) {
 				sb.append( String.format(" %02X", 0xFF & bytes[i] ));
+			}
+			int idx = bytes.length;
+			while( ( idx & 3 ) != 0 ){
+				idx++;
+				sb.append(" 00");
 			}
 		}
 		return sb.toString();

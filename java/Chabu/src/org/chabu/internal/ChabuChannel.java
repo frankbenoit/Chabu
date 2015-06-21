@@ -164,11 +164,22 @@ public final class ChabuChannel implements IChabuChannel {
 		}
 	}
 
-	void handleRecvSeq(int seq, ByteBuffer buf ) {
-		int pls = buf.remaining();
+	void handleRecvSeq(int seq, ByteBuffer buf, int pls ) {
+		
 		Utils.ensure( buf.remaining() <= recvBuffer.remaining(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
+		
+		int taken = Utils.transferUpTo( buf, recvBuffer, pls );
+		
+		Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
 		recvBuffer.put( buf );
 		this.recvSeq += pls;
+		
+		int align = pls;
+		while( (align&3) != 0 ){
+			align++;
+			buf.get();
+		}
+		
 		callUserToTakeRecvData();
 	}
 	

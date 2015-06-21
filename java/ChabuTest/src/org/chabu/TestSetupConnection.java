@@ -36,12 +36,6 @@ public class TestSetupConnection {
 		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
 			ChabuBuilder .start(ci, new TestNetwork(), 3);
 		});
-		// too much
-		ci.maxReceiveSize = 0xFFFF+1;
-		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
-			ChabuBuilder .start(ci, new TestNetwork(), 3);
-		});
-		
 
 	}		
 
@@ -208,11 +202,11 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 0D F0 01 01 00 00 00 01 23 00 03 41 41 41");
-			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
-			r.wireRx("00 01 E1");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( 0x177, ()->{
-				r.wireTx("00 01 E1");
+				r.wireTx(20, "00 00 00 08 77 77 00 E1");
 			});
 		}
 	}		
@@ -220,10 +214,16 @@ public class TestSetupConnection {
 	private void assertException( ChabuErrorCode ec, Runnable r ){
 		try{
 			r.run();
-			fail();
+			fail("An Exception shall be thrown");
 		}
 		catch( ChabuException e ){
-			assertEquals( ec.getCode(), e.getCode());
+			e.printStackTrace();
+			if( e.getRemoteCode() == 0 ){
+				assertEquals( ec.getCode(), e.getCode());
+			}
+			else {
+				assertEquals( ec.getCode(), e.getRemoteCode());
+			}
 		}
 	}
 	private void assertException( int code, Runnable r ){
@@ -232,7 +232,12 @@ public class TestSetupConnection {
 			fail();
 		}
 		catch( ChabuException e ){
-			assertEquals( code, e.getCode());
+			if( e.getRemoteCode() == 0 ){
+				assertEquals( code, e.getCode());
+			}
+			else {
+				assertEquals( code, e.getRemoteCode());
+			}
 		}
 	}
 	@Test
@@ -251,44 +256,15 @@ public class TestSetupConnection {
 					.build();
 			
 			TraceRunner r = TraceRunner.test( chabu );
-			
-			r.wireRx("00 0D F0 02 01 00 00 00 01 23 00 03 41 41 41");
-			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
-			r.wireRx("00 01 E1");
+			//                                                                    <--------PV
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 01 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
-				r.wireTx("00 01 E1");
+				r.wireTx( 20, "00 00 00 08 77 77 00 E1");
 			});
 		}
-		{
-			IChabu chabu = ChabuBuilder
-					.start(ci, new TestNetwork(), 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
-					.build();
-			
-			TraceRunner r = TraceRunner.test( chabu );
-			
-			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
-			r.wireRx("00 0D F0 02 01 00 00 00 01 23 00 03 41 41 41");
-			r.wireRx("00 01 E1");
-			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
-				r.wireTx("00 01 E1");
-			});
-		}
-		{
-			IChabu chabu = ChabuBuilder
-					.start(ci, new TestNetwork(), 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
-					.build();
-			
-			TraceRunner r = TraceRunner.test( chabu );
-			
-			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
-			r.wireRx("00 0D F0 02 01 00 00 00 01 23 00 03 41 41 41");
-			//r.wireRx("00 01 E1");
-			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
-				r.wireTx("00 01 E1");
-			});
-		}
+
 	}		
 	
 	@Test
@@ -308,11 +284,11 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 0D F0 01 00 FF 00 00 01 23 00 03 41 41 41");
-			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
-			r.wireRx("00 01 E1");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 00 FF 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, ()->{
-				r.wireTx("00 01 E1");
+				r.wireTx(20, "00 00 00 08 77 77 00 E1");
 			});
 		}
 	}		
@@ -334,11 +310,14 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 0D F0 01 00 FF 00 00 01 23 00 03 41 41 41");
-			r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
-			// 7 + len
-			assertException( ChabuErrorCode.REMOTE_ABORT, ()->{
-				r.wireRx("00 0A D2 00 00 01 23 "+TestUtils.test2LengthAndHex("bla"));
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 00 FF 00 00 01 23 00 00 00 03 41 41 41 00");
+			assertException( 0x123, () -> {
+				r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+				//r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
+				
+				// Send an Abort
+				// 7 + len
+				r.wireRx("00 00 00 14 77 77 00 D2 00 00 01 23 "+TestUtils.test2LengthAndHex("bla"));
 			});
 		}
 	}		

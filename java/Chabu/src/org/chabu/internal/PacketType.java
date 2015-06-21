@@ -12,10 +12,10 @@ package org.chabu.internal;
 
 public enum PacketType {
 	SETUP ( 0xF0, 10 ),
-	ACCEPT( 0xE1,  1 ),
-	ABORT ( 0xD2,  7 ),
-	ARM   ( 0xC3,  7 ),
-	SEQ   ( 0xB4,  9 ),
+	ACCEPT( 0xE1,  8 ),
+	ABORT ( 0xD2,  12 ),
+	ARM   ( 0xC3,  16 ),
+	SEQ   ( 0xB4,  20 ),
 	;
 	
 	public final int id;

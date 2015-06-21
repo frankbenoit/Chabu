@@ -120,4 +120,13 @@ public class Utils {
 		src.limit( oldLimit );
 		return xfer;
 	}
+
+	public static int transferUpTo( ByteBuffer src, ByteBuffer trg, int maxCount ){
+		int xfer = Math.min( Math.min( src.remaining(), trg.remaining() ), maxCount );
+		int oldLimit = src.limit();
+		src.limit( src.position() + xfer );
+		trg.put( src );
+		src.limit( oldLimit );
+		return xfer;
+	}
 }

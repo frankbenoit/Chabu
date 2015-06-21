@@ -26,20 +26,20 @@ public class TestTransfer {
 
 		// recv initial ARMs
 		r.wireRx(""
-				+ "00 07 C3 00 00 00 00 07 FF "
-				+ "00 07 C3 00 01 00 00 07 FF");
+				+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 07 FF");
 
 		// send initial ARM with the first data
 		r.wireTx(""
 				// ARM[0]=64
-				+ "00 07 C3 00 00 00 00 02 00 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 02 00 "
 				// ARM[1]=64
-				+ "00 07 C3 00 01 00 00 00 64 "
-				+ "00 07 C3 00 02 00 00 00 64 "
-				+ "00 07 C3 00 03 00 00 00 64 "
-				+ "00 07 C3 00 04 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 02 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
-				+ "00 59 B4 00 00 00 00 00 00 00 50 "
+				+ "00 00 00 64 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 50 "
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 " 
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
@@ -47,7 +47,7 @@ public class TestTransfer {
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55");
 		
 		// recv some data
-		r.wireRx("00 11 B4 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08");
+		r.wireRx("00 00 00 1C 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08");
 
 		r.channelToAppl(0, "01 02 03 04 05 06 07 08");
 
@@ -75,22 +75,24 @@ public class TestTransfer {
 		
 		// SETUP
 		r.wireRxAutoLength(""
-				+ "F0 "
-				+ "01 "
-				+ "01 00 "
+				+ "77 77 00 F0 "
+				+ "00 00 00 05 43 48 41 42 55 00 00 00 "
+				+ "00 00 00 01 "
+				+ "00 00 01 00 "
 				+ "00 00 00 06 "
 				+ TestUtils.test2LengthAndHex("ABC"));
 		    
 		r.wireTxAutoLength(""
-				+ "F0 "
-				+ "01 "
-				+ "01 00 "
+				+ "77 77 00 F0 "
+				+ "00 00 00 05 43 48 41 42 55 00 00 00 "
+				+ "00 00 00 01 "
+				+ "00 00 01 00 "
 				+ "00 bc 61 4e "
 				+ TestUtils.test2LengthAndHex("ABC"));
 
 		// ACCEPT
-		r.wireRxAutoLength("E1");
-		r.wireTxAutoLength("E1");
+		r.wireRxAutoLength("77 77 00 E1");
+		r.wireTxAutoLength("77 77 00 E1");
 		return r;
 	}
 
@@ -121,22 +123,22 @@ public class TestTransfer {
 
 		// recv initial ARMs
 		r.wireRx(""
-				+ "00 07 C3 00 00 00 00 07 FF "
-				+ "00 07 C3 00 01 00 00 07 FF");
+				+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 07 FF");
 
 		// send initial ARM with the first data
 		r.wireTx( ""
 				// ARM[0]=64
-				+ "00 07 C3 00 00 00 00 02 00 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 02 00 "
 				// ARM[1]=64
-				+ "00 07 C3 00 01 00 00 00 64 "
-				+ "00 07 C3 00 02 00 00 00 64 "
-				+ "00 07 C3 00 03 00 00 00 64 "
-				+ "00 07 C3 00 04 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 02 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
 				// len   SE chan. seq........ pls..
-				+ "00 FE B4 00 00 00 00 00 00 00 F5 " + dg.getExpBytesString(245) + " "
-				+ "00 15 B4 00 00 00 00 00 F5 00 0C " + dg.getExpBytesString( 12) + " "
+				+ "00 00 01 18 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 F5 " + dg.getExpBytesString(245) + " 00 00 00 "
+				+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 F5 00 00 00 0C " + dg.getExpBytesString( 12) + " "
 				);
 		
 		r.wireTx( 20, "");
@@ -173,40 +175,42 @@ public class TestTransfer {
 
 		// ARM all channels
 		r.wireRx(""
-				+ "00 07 C3 00 00 00 00 07 FF "
-				+ "00 07 C3 00 01 00 00 07 FF "
-				+ "00 07 C3 00 02 00 00 07 FF "
-				+ "00 07 C3 00 03 00 00 07 FF "
-				+ "00 07 C3 00 04 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 02 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 07 FF "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 07 FF "
 				);
 
 		// send initial ARM with the first data
 		r.wireTx( ""
 				// ARM[0]=64
-				+ "00 07 C3 00 00 00 00 02 00 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 02 00 "
 				// ARM[1]=64
-				+ "00 07 C3 00 01 00 00 00 64 "
-				+ "00 07 C3 00 02 00 00 00 64 "
-				+ "00 07 C3 00 03 00 00 00 64 "
-				+ "00 07 C3 00 04 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 02 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
+				+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
+				
+				// 2 blocks 236+21
 				// len   SE chan. seq........ pls..
-				+ "00 FE B4 00 00 00 00 00 00 00 F5 " + dg0.getExpBytesString(245) + " "
-				+ "00 15 B4 00 00 00 00 00 F5 00 0C " + dg0.getExpBytesString( 12) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg0.getExpBytesString(236) + " "
+				+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg0.getExpBytesString(21) + " 00 00 00 "
 				);
 		
 		// see the data of same priority in round robin
 		// 1, 2, 3, 1, 2, 3
 		r.wireTx( ""
-				+ "00 FE B4 00 01 00 00 00 00 00 F5 " + dg1.getExpBytesString(245) + " "
-				+ "00 FE B4 00 02 00 00 00 00 00 F5 " + dg2.getExpBytesString(245) + " "
-				+ "00 FE B4 00 03 00 00 00 00 00 F5 " + dg3.getExpBytesString(245) + " "
-				+ "00 15 B4 00 01 00 00 00 F5 00 0C " + dg1.getExpBytesString( 12) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 01 00 00 00 00 00 00 00 EC " + dg1.getExpBytesString(236) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 00 00 00 00 00 EC " + dg2.getExpBytesString(236) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 00 00 00 00 00 EC " + dg3.getExpBytesString(236) + " "
+				+ "00 00 00 2C 77 77 00 B4 00 00 00 01 00 00 00 EC 00 00 00 15 " + dg1.getExpBytesString(21) + " 00 00 00 "
 				);
 
 		r.wireTx( ""
-				+ "00 15 B4 00 02 00 00 00 F5 00 0C " + dg2.getExpBytesString( 12) + " "
-				+ "00 15 B4 00 03 00 00 00 F5 00 0C " + dg3.getExpBytesString( 12) + " "
+				+ "00 00 00 2C 77 77 00 B4 00 00 00 02 00 00 00 EC 00 00 00 15 " + dg2.getExpBytesString( 21) + " 00 00 00 "
+				+ "00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 00 EC 00 00 00 15 " + dg3.getExpBytesString( 21) + " 00 00 00 "
 				);
 		
 //		r.wireTx( 20, "");
@@ -214,8 +218,8 @@ public class TestTransfer {
 		dg0.ensureSamePosition();
 		
 		r.wireRx(""
-		+ "00 FE B4 00 00 00 00 00 00 00 F5 " + dg0.getExpBytesString(245) + " "
-		+ "00 15 B4 00 00 00 00 00 F5 00 0C " + dg0.getExpBytesString( 12));
+		+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg0.getExpBytesString(236) + " "
+		+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg0.getExpBytesString( 21) + " 00 00 00");
 		
 		r.applToChannel( 2, dg2.getGenBytesString( 257 ) );
 		r.applToChannel( 3, dg3.getGenBytesString( 257 ) );

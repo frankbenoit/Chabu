@@ -40,11 +40,12 @@ public enum ChabuErrorCode {
 	PROTOCOL_ACCEPT_TWICE        ( 54 ),
 	PROTOCOL_EXPECTED_SETUP        ( 55 ),
 	PROTOCOL_CHANNEL_RECV_OVERFLOW ( 56 ),  
+	PROTOCOL_DATA_OVERFLOW(57),
 	
 	REMOTE_ABORT                 (100), 
 
 	// Application can use code starting with 0x100 .. 0x1FF
-	APPLICATION_VALIDATOR   ( 0x100 ),
+	APPLICATION_VALIDATOR   ( 0x100 ), 
 	;
 	
 	private final int code;

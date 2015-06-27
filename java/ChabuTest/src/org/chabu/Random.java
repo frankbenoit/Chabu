@@ -2,8 +2,9 @@ package org.chabu;
 
 public class Random {
 
-    private long seed;
-    private byte[] buffer = new byte[0x2000];
+    private static final int BUFFER_SZ = 0x2000;
+	private long seed;
+    private byte[] buffer = new byte[BUFFER_SZ];
     private int idx = 0;
 
     private static final long multiplier = 0x5_DEEC_E66DL;
@@ -25,26 +26,19 @@ public class Random {
     public void nextBytes(byte[] bytes, int offset, int length ) {
     	int endOffset = offset+length;
     	while( offset < endOffset ){
-    		int cpySz = Math.min( endOffset - offset, buffer.length - idx );
-    		try{
-    			
-    			System.arraycopy( buffer, idx, bytes, offset, cpySz );
-    		}
-    		catch( IndexOutOfBoundsException e){
-    			System.out.printf("%s %s %s %s %s \n", buffer.length, idx, bytes.length, offset, cpySz );
-    			throw e;
-    		}
+    		int cpySz = Math.min( endOffset - offset, BUFFER_SZ - idx );
+    		System.arraycopy( buffer, idx, bytes, offset, cpySz );
     		offset += cpySz;
     		idx += cpySz;
-    		if( idx == buffer.length ){
+    		if( idx == BUFFER_SZ ){
     			idx = 0;
     		}
     	}
     }
 
     public byte nextByte() {
-    	byte res = buffer[ idx++ % buffer.length ];
-    	if( idx == buffer.length ){
+    	byte res = buffer[ idx++ % BUFFER_SZ ];
+    	if( idx == BUFFER_SZ ){
     		idx = 0;
     	}
     	return res;

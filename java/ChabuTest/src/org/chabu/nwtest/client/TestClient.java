@@ -169,9 +169,7 @@ public class TestClient {
 			}
 		}
 	}
-	void msrLatency(){
-		
-	}
+
 	
 	private void pause(int durationMs) {
 		try {

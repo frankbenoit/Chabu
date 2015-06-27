@@ -42,7 +42,7 @@ public class Chabu implements IChabu {
 //	private int      recvChannelIdx = 0;
 	
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
-	private ByteBuffer recvBuf = ByteBuffer.allocate( 0x100 );
+	private ByteBuffer recvBuf;
 
 	private Runnable xmitRequestListener;
 	
@@ -86,6 +86,9 @@ public class Chabu implements IChabu {
 		Utils.ensure( info.maxReceiveSize >= 0x100, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
 				"maxReceiveSize must be at least 0x100, but is %s", info.maxReceiveSize );
 		
+		Utils.ensure( ( info.maxReceiveSize & 3 ) == 0, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
+				"maxReceiveSize must 4-byte aligned: %s", info.maxReceiveSize );
+		
 		Utils.ensure( info.applicationName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, 
 				"applicationName must not be null" );
 		
@@ -95,6 +98,7 @@ public class Chabu implements IChabu {
 		
 		this.infoLocal = info;
 		
+		recvBuf = ByteBuffer.allocate( info.maxReceiveSize );
 		recvBuf.order(ByteOrder.BIG_ENDIAN);
 		recvBuf.clear();
 		
@@ -338,6 +342,8 @@ public class Chabu implements IChabu {
 					String.format("MaxReceiveSize must be on range 0x100 .. 0xFFFF bytes, but SETUP from remote contained 0x%02X", 
 					infoRemote.maxReceiveSize));
 			}
+			Utils.ensure( ( infoRemote.maxReceiveSize & 3 ) == 0, ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, 
+					"maxReceiveSize must 4-byte aligned: %s", infoRemote.maxReceiveSize );
 
 			boolean isOk = true;
 			if( val != null ){

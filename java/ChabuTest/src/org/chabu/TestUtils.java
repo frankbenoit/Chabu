@@ -183,5 +183,10 @@ public class TestUtils {
         }
         
         return buffer;
-    }    
+    }
+
+	public static void ensure(boolean b) {
+		if( b ) return;
+		throw new RuntimeException();
+	}    
 }

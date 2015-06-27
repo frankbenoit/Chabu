@@ -74,13 +74,11 @@ public class TraceRunner {
 			JSONObject setupParams = new JSONObject(sb.toString());
 //			System.out.println( "Setup: "+ setupParams);
 			
-			ChabuSetupInfo ci = new ChabuSetupInfo();
-			
-			ci.maxReceiveSize = setupParams.getInt    ("MaxReceiveSize");
-			ci.applicationVersion    = setupParams.getInt    ("ApplicationVersion"   );
-			ci.applicationName       = setupParams.getString ("ApplicationName"      );
-			
-			ChabuBuilder builder = ChabuBuilder.start(ci, new TestNetwork(), setupParams.getInt ("PriorityCount" ));
+			ChabuBuilder builder = ChabuBuilder.start(
+					setupParams.getInt    ("ApplicationVersion"),
+					setupParams.getString ("ApplicationName"   ),
+					setupParams.getInt    ("MaxReceiveSize"    ),
+					setupParams.getInt    ("PriorityCount"     ));
 			
 			JSONArray channels = setupParams.getJSONArray("Channels");
 			for( int channelIdx = 0; channelIdx < channels.length(); channelIdx ++ ){

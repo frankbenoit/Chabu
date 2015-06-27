@@ -35,4 +35,8 @@ public interface IChabuChannel {
 	 * Retrieve the associated user object.
 	 */
 	IChabuChannelUser getUser();
+
+	int getChannelId();
+
+	int getPriority();
 }

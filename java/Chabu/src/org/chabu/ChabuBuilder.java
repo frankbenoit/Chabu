@@ -19,14 +19,17 @@ public class ChabuBuilder {
 	private Chabu chabu;
 	private int channelId;
 
-	private ChabuBuilder( ChabuSetupInfo ci, IChabuNetwork nw, int priorityCount ){
+	private ChabuBuilder( ChabuSetupInfo ci, int priorityCount ){
 		chabu = new Chabu( ci );
 		chabu.setPriorityCount(priorityCount);
-		chabu.setNetwork(nw);
 	}
 
-	public static ChabuBuilder start( ChabuSetupInfo ci, IChabuNetwork nw, int priorityCount ){
-		return new ChabuBuilder(ci, nw, priorityCount);
+	public static ChabuBuilder start( int applicationVersion, String applicationName, int recvBufferSz, int priorityCount ){
+		ChabuSetupInfo ci = new ChabuSetupInfo();
+		ci.applicationName = applicationName;
+		ci.applicationVersion = applicationVersion;
+		ci.maxReceiveSize = recvBufferSz;
+		return new ChabuBuilder(ci, priorityCount);
 	}
 
 	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, IChabuChannelUser user ){
@@ -39,6 +42,11 @@ public class ChabuBuilder {
 	
 	public ChabuBuilder setConnectionValidator( IChabuConnectingValidator val ) {
 		chabu.setConnectingValidator( val );
+		return this;
+	}
+	
+	public ChabuBuilder addXmitRequestListener( Runnable r ) {
+		chabu.addXmitRequestListener(r);
 		return this;
 	}
 	

@@ -215,145 +215,6 @@ public final class ChabuChannel implements IChabuChannel {
 	void handleXmitData() {
 		chabu.processXmitSeq( channelId, xmitSeq, this::callUserToGiveXmit );
 	}
-	void handleXmit() {
-		
-
-		
-////		if( !buf.hasRemaining() ){
-////			return ( xmitLastLength > 0 && xmitLastIndex < xmitLastLength );
-////		}
-//		
-//
-//
-//		// get/fill xmit data from user
-//		// xmitBuffer in filling mode
-//		if( xmitBuffer.hasRemaining() ){
-//			callUserToGiveXmit();
-//		}
-//
-//		if( xmitLastIndex == 0 && xmitLastLength == 0 ){
-//			// start new header
-//			
-//			if( recvArmShouldBeXmit ){
-//				recvArmShouldBeXmit = false;
-//				
-//				xmitHeader.clear();
-//				
-//				xmitHeader.putShort( (short)channelId );      // CID
-//				xmitHeader.putShort( (short)PACKETFLAG_ARM ); // PKF
-//				xmitHeader.putInt( recvArm );                 // ARM
-//				xmitHeader.flip();
-//				xmitLastLength = Chabu_HEADER_ARM_SIZE;
-//			}
-//			else {
-//				int pls = xmitBuffer.position();
-//				Utils.ensure( pls >= 0 && pls <= 0xFFFF );
-//				if( pls > org.chabu.getMaxXmitPayloadSize() ){
-//					pls = org.chabu.getMaxXmitPayloadSize();
-//				}
-//				int remainArm = xmitArm - xmitSeq;
-//				if( pls > remainArm ){
-//					pls = remainArm;
-//				}
-//
-//				Utils.ensure( pls >= 0 ); // negative shall not occur
-//				if( pls > 0 ){
-//
-//					xmitHeader.clear();
-//					
-//					xmitHeader.putShort( (short)channelId );
-//					xmitHeader.putShort( (short)PACKETFLAG_SEQ );
-//					xmitHeader.putInt( xmitSeq );
-//					xmitHeader.putShort( (short)pls );
-//					xmitLastLength = pls + Chabu_HEADER_SEQ_SIZE;
-//					xmitSeq += pls;
-//					
-//					xmitHeader.flip();
-//				}
-//
-//			}
-//			
-//		}
-//		
-//
-//		if( xmitLastLength != 0 ){
-//
-//			// block header
-//			if(( xmitLastIndex < Chabu_HEADER_SIZE_MAX ) && ( xmitLastIndex < xmitLastLength ) && buf.hasRemaining()){
-//
-//				int copySz = xmitLastLength - xmitLastIndex;
-//				if( copySz > Chabu_HEADER_SIZE_MAX ){
-//					copySz = Chabu_HEADER_SIZE_MAX;
-//				}
-//				if( copySz > buf.remaining() ){
-//					copySz = buf.remaining();
-//				}
-//
-//				Utils.ensure( copySz >= 0 );
-//
-//				int hdrLimit = xmitHeader.limit();
-//				xmitHeader.limit( xmitHeader.position() + copySz );
-//
-//				int oldPos = buf.position();
-//				buf.put( xmitHeader );
-//				Utils.ensure( oldPos + copySz == buf.position() );
-//				xmitHeader.limit(hdrLimit);
-//				xmitLastIndex += copySz;
-//
-//			}
-//
-//			// block payload
-//			if(( xmitLastIndex >= Chabu_HEADER_SIZE_MAX ) && ( xmitLastIndex < xmitLastLength ) && buf.hasRemaining() ){
-//
-//				int copySz = xmitLastLength - xmitLastIndex;
-//				if( copySz > buf.remaining() ){
-//					copySz = buf.remaining();
-//				}
-//
-//				// xmitBuffer to consume/xmit mode
-//				xmitBuffer.flip();
-//				
-//				Utils.ensure(( copySz >= 0 ) && ( copySz <= buf.remaining() ) && ( copySz <= xmitBuffer.remaining() ), "copySz:%s, buf.remaining():%s, xmitBuffer.remaining():%s", copySz, buf.remaining(), xmitBuffer.remaining());
-//				
-//				int xmitLimit = xmitBuffer.limit();
-//				xmitBuffer.limit( xmitBuffer.position() + copySz );
-//				int oldPos = buf.position();
-//				buf.put( xmitBuffer );
-//				Utils.ensure( oldPos + copySz == buf.position(), "oldPos:%s copySz:%s oldPos+copySz:%s buf.position():%s", oldPos, copySz, oldPos + copySz, buf.position() );
-//				xmitBuffer.limit(xmitLimit);
-//
-//				xmitLastIndex += copySz;
-//
-//				// xmitBuffer to back to filling mode
-//				xmitBuffer.compact();
-//				
-//				Utils.ensure( xmitBuffer.position() >= (xmitLastLength - xmitLastIndex), "xmitBuffer.position():%s >= (xmitLastLength:%s - xmitLastIndex:%s)", xmitBuffer.position(), xmitLastLength, xmitLastIndex );
-//			}
-//			
-//
-//			// block completed
-//			if( xmitLastIndex >= xmitLastLength ){
-//				Utils.ensure( xmitLastIndex == xmitLastLength );
-//				xmitLastIndex  = 0;
-//				xmitLastLength = 0;
-////				userCallback( userData, channel, Chabu_Channel_Event_Transmitted );
-//			}
-//		}
-//
-//		// get/fill xmit data from user
-//		// xmitBuffer in filling mode
-//		if( xmitBuffer.hasRemaining() ){
-//			callUserToGiveXmit();
-//		}
-//		//Check if data is still available
-//		if( xmitBuffer.position() > 0 ){
-//			//register next xmit on same channel.
-//			org.chabu.evUserXmitRequest(channelId);
-//		}
-//		
-//		// true if there is outstanding data for the current block
-//		return ( xmitLastLength > 0 ) && ( xmitLastIndex < xmitLastLength );
-	}
 
 	private void callUserToGiveXmit(ByteBuffer buf) {
 		PrintWriter trc = chabu.getTraceWriter();
@@ -377,11 +238,13 @@ public final class ChabuChannel implements IChabuChannel {
 		return String.format("Channel[%s recvS:%s recvA:%s xmitS:%s xmitA:%s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
 	}
 
-	int getId() {
+	@Override
+	public int getChannelId() {
 		return channelId;
 	}
 
-	int getPriority() {
+	@Override
+	public int getPriority() {
 		return priority;
 	}
 

@@ -29,5 +29,6 @@ public interface IChabu {
 	
 	IChabuChannel getChannel( int channelId );
 	
-	IChabuNetwork getNetwork();
+	public void addXmitRequestListener( Runnable r);
+//	IChabuNetwork getNetwork();
 }

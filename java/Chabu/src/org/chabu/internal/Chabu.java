@@ -25,7 +25,6 @@ import org.chabu.ChabuSetupInfo;
 import org.chabu.IChabu;
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuConnectingValidator;
-import org.chabu.IChabuNetwork;
 
 
 public class Chabu implements IChabu {
@@ -45,7 +44,7 @@ public class Chabu implements IChabu {
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 	private ByteBuffer recvBuf = ByteBuffer.allocate( 0x100 );
 
-	private IChabuNetwork nw;
+	private Runnable xmitRequestListener;
 	
 	/**
 	 * The setup data is completely received.
@@ -373,8 +372,14 @@ public class Chabu implements IChabu {
 		xmitAbortMessage = message;
 		xmitAbortPending = XmitState.PENDING;
 		
-		nw.evUserXmitRequest();
+		callXmitRequestListener();
 
+	}
+
+	private void callXmitRequestListener() {
+		if( xmitRequestListener != null ){
+			xmitRequestListener.run();
+		}
 	}
 
 	
@@ -392,7 +397,7 @@ public class Chabu implements IChabu {
 			Utils.ensure(priority < xmitChannelRequestData.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestData.length );
 			xmitChannelRequestData[priority].set( channelId );
 		}
-		nw.evUserXmitRequest();
+		callXmitRequestListener();
 	}
 	void channelXmitRequestArm(int channelId){
 		synchronized(this){
@@ -400,7 +405,7 @@ public class Chabu implements IChabu {
 			Utils.ensure(priority < xmitChannelRequestArm.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestArm.length );
 			xmitChannelRequestArm[priority].set( channelId );
 		}
-		nw.evUserXmitRequest();
+		callXmitRequestListener();
 	}
 
 
@@ -633,12 +638,16 @@ public class Chabu implements IChabu {
 		}
 	}
 	
-	public void setNetwork(IChabuNetwork nw) {
-		Utils.ensure( nw      != null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network passed in is null" );
-		Utils.ensure( this.nw == null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network is already set" );
-		this.nw = nw;
-		nw.setChabu(this);
+	public void addXmitRequestListener( Runnable r) {
+		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, "Listener passed in is null" );
+		this.xmitRequestListener = r;
 	}
+//	public void setNetwork(IChabuNetwork nw) {
+//		Utils.ensure( nw      != null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network passed in is null" );
+//		Utils.ensure( this.nw == null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network is already set" );
+//		this.nw = nw;
+//		nw.setChabu(this);
+//	}
 	
 	private String getRecvString(){
 		
@@ -680,11 +689,11 @@ public class Chabu implements IChabu {
 		return channels.get(channelId);
 	}
 
-	@Override
-	public IChabuNetwork getNetwork() {
-		return nw;
-	}
-	
+//	@Override
+//	public IChabuNetwork getNetwork() {
+//		return nw;
+//	}
+//	
 	private void putXmitString(String str) {
 		byte[] anlBytes = str.getBytes( StandardCharsets.UTF_8 );
 		xmitBuf.putInt  ( anlBytes.length );

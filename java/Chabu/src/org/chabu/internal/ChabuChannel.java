@@ -21,24 +21,13 @@ import org.chabu.IChabuChannelUser;
 
 public final class ChabuChannel implements IChabuChannel {
 
-//	private static final int PACKETFLAG_ARM = 0x0001;
-//	private static final int PACKETFLAG_SEQ = 0x0002;
-//	private static final int Chabu_HEADER_SEQ_SIZE = 10;
-//	private static final int Chabu_HEADER_SIZE_MAX = 10;
-//	private static final int Chabu_HEADER_ARM_SIZE = 8;
-
 	private int     channelId    = -1;
 	
 	private Chabu        chabu;
 	private final IChabuChannelUser user;
 	
-//	private ByteBuffer xmitBuffer;
 	private int        xmitSeq = 0;
 	private int        xmitArm = 0;
-	
-//	private ByteBuffer xmitHeader = ByteBuffer.allocate(10);
-//	private int        xmitLastIndex = 0;
-//	private int        xmitLastLength = 0;
 	
 	private boolean    recvArmShouldBeXmit  = false;
 	
@@ -66,8 +55,6 @@ public final class ChabuChannel implements IChabuChannel {
 	
 	void activate(Chabu chabu, int channelId ){
 
-//		this.xmitHeader.order( ByteOrder.BIG_ENDIAN );
-		
 		this.chabu      = chabu;
 		this.channelId  = channelId;
 
@@ -79,57 +66,6 @@ public final class ChabuChannel implements IChabuChannel {
 	public void evUserXmitRequest(){
 		chabu.channelXmitRequestData(channelId);
 	}
-
-//	void handleRecv( ByteBuffer buf ) {
-//
-//		callUserToTakeRecvData();
-//
-//		if( buf == null ){
-//			return;
-//		}
-//		
-//		if( buf.remaining() < 8 ){
-//			return;
-//		}
-//		int pkf = buf.getShort(buf.position()+2) & 0xFFFF;
-//		if( pkf == PACKETFLAG_ARM ){
-//			handleRecvArm( buf.getInt(buf.position()+4) );
-//			buf.position( buf.position() + 8 );
-//			return;
-//		}
-//		else if( pkf == PACKETFLAG_SEQ ){
-//			
-//			if( buf.remaining() < 10 ){
-//				return;
-//			}
-//			int seq = buf.getInt  (buf.position()+4);
-//			int pls = buf.getShort(buf.position()+8) & 0xFFFF;
-//			
-//			Utils.ensure( this.recvSeq == seq );
-//			
-//			if( buf.remaining() < 10+pls ){
-//				return; // packet not yet complete
-//			}
-//			if( recvBuffer.remaining() < pls ){
-//				return; // cannot take all payload, yet
-//			}
-//			
-//			buf.position( buf.position() + 10 );
-//			
-//			if( pls > 0 ){
-//				int oldLimit = buf.limit();
-//				buf.limit( buf.position() + pls );
-//				recvBuffer.put( buf );
-//				buf.limit( oldLimit );
-//				this.recvSeq += pls;
-//				callUserToTakeRecvData();
-//			}
-//			return;
-//		}
-//		else{
-//			throw Utils.fail("Unknown PKF %04X", pkf );
-//		}
-//	}
 
 	@Override
 	public void evUserRecvRequest() {

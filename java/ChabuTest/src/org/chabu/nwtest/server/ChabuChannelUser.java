@@ -33,7 +33,7 @@ class ChabuChannelUser implements IChabuChannelUser {
 	@Override
 	public void evRecv(ByteBuffer bufferToConsume) {
 		
-		System.out.printf("chabu recv %d\n", bufferToConsume.remaining() );
+		//System.out.printf("chabu recv %d\n", bufferToConsume.remaining() );
 		
 		while( bufferToConsume.hasRemaining() && recvPending.get() > 0 ){
 			int recvByte = bufferToConsume.get() & 0xFF;
@@ -47,18 +47,18 @@ class ChabuChannelUser implements IChabuChannelUser {
 	}
 	@Override
 	public boolean evXmit(ByteBuffer bufferToFill) {
-		int r = bufferToFill.remaining();
+		//int r = bufferToFill.remaining();
 		while( bufferToFill.hasRemaining() && xmitPending.get() > 0 ){
 			bufferToFill.put( (byte)xmitRandom.nextInt() );
-			recvStreamPosition++;
+			xmitStreamPosition++;
 			xmitPending.decrementAndGet();
 		}
-		System.out.printf("chabu xmit %d\n", r - bufferToFill.remaining() );
+		//System.out.printf("chabu xmit %d\n", r - bufferToFill.remaining() );
 		return false;
 	}
 	
 	public void addXmitAmount( int amount ){
-		System.out.printf("chabu xmit addXmitAmount %d\n", amount );
+		//System.out.printf("chabu xmit addXmitAmount %d\n", amount );
 		xmitPending.addAndGet(amount);
 		channel.evUserXmitRequest();
 	}

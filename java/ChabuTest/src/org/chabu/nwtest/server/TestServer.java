@@ -64,14 +64,14 @@ public class TestServer {
 					String reqStr = StandardCharsets.UTF_8.decode(recvBuffer).toString().trim();
 					if( !reqStr.isEmpty() ){
 						JSONObject req = new JSONObject( reqStr );
-						System.out.printf( "ctrl req : %s\n", req );
+						//System.out.printf( "ctrl req : %s\n", req );
 						
 						JSONObject resp = process( req );
 						if( resp == null ){
 							// closing, so go out without writing
 							return;
 						}
-						System.out.printf( "ctrl resp: %s\n", resp );
+						//System.out.printf( "ctrl resp: %s\n", resp );
 						xmitBuffer.put(StandardCharsets.UTF_8.encode(CharBuffer.wrap(resp.toString())));
 					}
 				}
@@ -80,11 +80,12 @@ public class TestServer {
 				}
 					
 				xmitBuffer.flip();
-				int sz = channel.write(xmitBuffer);
+//				int sz = 
+				channel.write(xmitBuffer);
 				xmitBuffer.compact();
-				if( sz > 0 ){
-					System.out.printf("ctrl written %d\n", sz );
-				}
+//				if( sz > 0 ){
+//					System.out.printf("ctrl written %d\n", sz );
+//				}
 				if( xmitBuffer.position() > 0 ){
 					t.interestOps( t.interestOps() | SelectionKey.OP_WRITE );
 				}
@@ -186,20 +187,20 @@ public class TestServer {
 		}
 
 		private JSONObject channelRecv(int channelId, int amount) {
-			System.out.printf("channelRecv( %s, %s)\n",  channel, amount );
+			System.out.printf("channelRecv( %s, %s)\n",  channelId, amount );
 			ChabuChannelUser user = chabuChannelUsers.get(channelId);
 			user.addRecvAmount(amount);
 			return new JSONObject();
 		}
 
 		private JSONObject channelXmit(int channelId, int amount) {
-			System.out.printf("channelXmit( %s, %s)\n",  channel, amount );
+			System.out.printf("channelXmit( %s, %s)\n", channelId, amount );
 			ChabuChannelUser user = chabuChannelUsers.get(channelId);
 			user.addXmitAmount(amount);
 			return new JSONObject();
 		}
 		private JSONObject channelEnsureCompleted(int channelId) {
-			System.out.printf("channelEnsureCompleted( %s )\n",  channel );
+			System.out.printf("channelEnsureCompleted( %s )\n", channelId );
 			ChabuChannelUser user = chabuChannelUsers.get(channelId);
 			user.ensureCompleted();
 			return new JSONObject();
@@ -389,18 +390,18 @@ public class TestServer {
                     continue;
                 }
 				
-                System.out.printf("Server %s%s%s%s%s %s%s%s%s %s\n",
-                		key.isValid()       ? "V" : " ",
-                		key.isAcceptable()  ? "A" : " ",
-                		key.isConnectable() ? "C" : " ",
-                		key.isWritable()    ? "W" : " ",
-                		key.isReadable()    ? "R" : " ",
-    					(key.interestOps() & SelectionKey.OP_ACCEPT  ) != 0 ? "a" : " ",
-    					(key.interestOps() & SelectionKey.OP_CONNECT ) != 0 ? "c" : " ",
-    					(key.interestOps() & SelectionKey.OP_WRITE   ) != 0 ? "w" : " ",
-    					(key.interestOps() & SelectionKey.OP_READ    ) != 0 ? "r" : " ",
-                		key.attachment()
-                				);
+//                System.out.printf("Server %s%s%s%s%s %s%s%s%s %s\n",
+//                		key.isValid()       ? "V" : " ",
+//                		key.isAcceptable()  ? "A" : " ",
+//                		key.isConnectable() ? "C" : " ",
+//                		key.isWritable()    ? "W" : " ",
+//                		key.isReadable()    ? "R" : " ",
+//    					(key.interestOps() & SelectionKey.OP_ACCEPT  ) != 0 ? "a" : " ",
+//    					(key.interestOps() & SelectionKey.OP_CONNECT ) != 0 ? "c" : " ",
+//    					(key.interestOps() & SelectionKey.OP_WRITE   ) != 0 ? "w" : " ",
+//    					(key.interestOps() & SelectionKey.OP_READ    ) != 0 ? "r" : " ",
+//                		key.attachment()
+//                				);
 				if( key.channel() == ssc ){
 					if( key.isAcceptable() ){
 						SocketChannel channel = ssc.accept();

@@ -31,6 +31,7 @@ final class NetworkThread implements Runnable {
 	private Thread thread;
 	private SelectionKey keyTest;
 	IChabu chabu;
+	boolean goToShutdown = false;
 
 	public NetworkThread(int port) {
 		remoteAddr = new InetSocketAddress(port);
@@ -66,6 +67,9 @@ final class NetworkThread implements Runnable {
 			SelectionKey keyCtrl = socketCtrl.register( selector, SelectionKey.OP_WRITE|SelectionKey.OP_CONNECT, "Ctrl" );
 			keyTest = socketTest.register( selector, SelectionKey.OP_WRITE|SelectionKey.OP_CONNECT, "Test" );
 			while( selector.isOpen() && !Thread.interrupted() ){
+
+				selector.select(500);
+				
 				boolean notify = false;
 				synchronized (this) {
 
@@ -74,7 +78,7 @@ final class NetworkThread implements Runnable {
 							ctrlXmitBuffer.flip();
 							int sz = socketCtrl.write(ctrlXmitBuffer);
 							if( sz > 0 ){
-								System.out.printf("write ctrl %s\n", sz );
+//								System.out.printf("write ctrl %s\n", sz );
 								notify = true;								
 							}
 							if( !connectionCompletedCtrl && !ctrlXmitBuffer.hasRemaining() ){
@@ -101,7 +105,7 @@ final class NetworkThread implements Runnable {
 							testXmitBuffer.flip();
 							int sz = socketTest.write(testXmitBuffer);
 							if( sz > 0 ){
-								System.out.printf("write test %s\n", sz );
+//								System.out.printf("write test %s\n", sz );
 								notify = true;								
 							}
 							if( !connectionCompletedTest && !testXmitBuffer.hasRemaining() ){
@@ -154,21 +158,18 @@ final class NetworkThread implements Runnable {
 							continue;
 						}
 
-						key.interestOps();
-						key.readyOps();
-
-						System.out.printf("Client %s%s%s%s%s %s%s%s%s %s\n",
-								key.isValid()       ? "V" : " ",
-								key.isAcceptable()  ? "A" : " ",
-								key.isConnectable() ? "C" : " ",
-								key.isWritable()    ? "W" : " ",
-								key.isReadable()    ? "R" : " ",
-								(key.interestOps() & SelectionKey.OP_ACCEPT  ) != 0 ? "a" : " ",
-								(key.interestOps() & SelectionKey.OP_CONNECT ) != 0 ? "c" : " ",
-								(key.interestOps() & SelectionKey.OP_WRITE   ) != 0 ? "w" : " ",
-								(key.interestOps() & SelectionKey.OP_READ    ) != 0 ? "r" : " ",
-								key.attachment()
-								);
+//						System.out.printf("Client %s%s%s%s%s %s%s%s%s %s\n",
+//								key.isValid()       ? "V" : " ",
+//								key.isAcceptable()  ? "A" : " ",
+//								key.isConnectable() ? "C" : " ",
+//								key.isWritable()    ? "W" : " ",
+//								key.isReadable()    ? "R" : " ",
+//								(key.interestOps() & SelectionKey.OP_ACCEPT  ) != 0 ? "a" : " ",
+//								(key.interestOps() & SelectionKey.OP_CONNECT ) != 0 ? "c" : " ",
+//								(key.interestOps() & SelectionKey.OP_WRITE   ) != 0 ? "w" : " ",
+//								(key.interestOps() & SelectionKey.OP_READ    ) != 0 ? "r" : " ",
+//								key.attachment()
+//								);
 
 						if( key.isConnectable() ){
 							SocketChannel sc = (SocketChannel) key.channel();
@@ -182,7 +183,7 @@ final class NetworkThread implements Runnable {
 								ctrlRecvBuffer.compact();
 								int sz = socketCtrl.read(ctrlRecvBuffer);
 								ctrlRecvBuffer.flip();
-								System.out.printf("ctrl read %d\n", sz );
+//								System.out.printf("ctrl read %d\n", sz );
 								if( sz > 0 ){
 									notify = true;								
 								}
@@ -191,7 +192,7 @@ final class NetworkThread implements Runnable {
 								testRecvBuffer.compact();
 								int sz = socketTest.read(testRecvBuffer);
 								testRecvBuffer.flip();
-								System.out.printf("test read %d\n", sz );
+//								System.out.printf("test read %d\n", sz );
 								if( sz > 0 ){
 									notify = true;								
 								}
@@ -205,14 +206,17 @@ final class NetworkThread implements Runnable {
 
 
 					if( notify ){
+						if( goToShutdown ){
+							selector.close();
+						}
 						this.notifyAll();
 					}
 				}
 
-				selector.select(500);
 			}
 
 		} catch (IOException e) {
+			System.out.printf("goToShutdown=%s selector.isOpen=%s\n", goToShutdown, selector.isOpen() );
 			e.printStackTrace();
 			System.exit(1);
 		}
@@ -233,31 +237,29 @@ final class NetworkThread implements Runnable {
 		return ctrlXfer( req, false );
 	}
 	JSONObject ctrlXfer( JSONObject req, boolean close ){
-		ctrlXmitBuffer.put( StandardCharsets.UTF_8.encode(req.toString()) );
-		selectorWakeup();
 		synchronized(this){
+			ctrlXmitBuffer.put( StandardCharsets.UTF_8.encode(req.toString()) );
+			if( close ){
+				goToShutdown = true;
+			}
+			selectorWakeup();
 			while( ctrlXmitBuffer.position() > 0 ){
-				System.out.printf("ctrlXfer wait %s \n", ctrlXmitBuffer.position());
+				//System.out.printf("ctrlXfer wait %s \n", ctrlXmitBuffer.position());
 				doWait();
 			}
 		}
-		System.out.printf("ctrlXfer xmitted\n");
+		//System.out.printf("ctrlXfer xmitted\n");
 		if( close ){
-			try {
-				selector.close();
-			} catch (IOException e) {
-				throw new RuntimeException(e);
-			}
 			return null;
 		}
 		JSONObject res = null;
 		synchronized(this){
 			while( (res = tryGetResponse()) == null ){
-				System.out.printf("ctrlXfer try get response wait\n");
+				//System.out.printf("ctrlXfer try get response wait\n");
 				doWait();
 			}
 		}
-		System.out.printf("ctrlXfer got response %s\n", res);
+		//System.out.printf("ctrlXfer got response %s\n", res);
 		return res;
 	}
 
@@ -266,7 +268,7 @@ final class NetworkThread implements Runnable {
 		int pos = ctrlRecvBuffer.position();
 		try{
 			String respStr = StandardCharsets.UTF_8.decode(ctrlRecvBuffer).toString();
-			System.out.printf("tryGetResponse test: %s\n", respStr );
+			//System.out.printf("tryGetResponse test: %s\n", respStr );
 			if( !respStr.isEmpty() ){
 				res = new JSONObject( respStr );
 			}

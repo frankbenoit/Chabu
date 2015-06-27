@@ -71,7 +71,7 @@ public class TestClient {
 	}
 	void remoteCloseAll() {
 		runner.ctrlXfer( new JSONObject()
-				.put("Command", "Close"), false );
+				.put("Command", "Close"), true );
 	}
 
 	
@@ -86,31 +86,43 @@ public class TestClient {
 			connect();
 			System.out.println("connect completed");
 
-			remoteBuilderStart(0x1213, "ABC", 0x100, 3);
-			remoteBuilderAddChannel( 0, 2, 1000, 1000 );
+			remoteBuilderStart(0x1213, "ABC", 1400, 3);
+			remoteBuilderAddChannel( 0, 0, 100000, 100000 );
+			remoteBuilderAddChannel( 1, 1, 100000, 100000 );
+			remoteBuilderAddChannel( 2, 1, 100000, 100000 );
+			remoteBuilderAddChannel( 3, 1, 100000, 100000 );
+			remoteBuilderAddChannel( 4, 1, 100000, 100000 );
+			remoteBuilderAddChannel( 5, 1, 100000, 100000 );
+			remoteBuilderAddChannel( 6, 2, 100000, 100000 );
 			remoteBuilderBuild();
 
 
 			channelUsers.clear();
 			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser() );
 
+//			ChannelUser ch0 = channelUsers.get(0);
 			chabu = ChabuBuilder
-					.start( 0x13, "AAA", 0x100, 3 )
-					.addChannel(0, 0x100, 0, channelUsers.get(0) )
+					.start( 0x13, "AAA", 1400, 3 )
+					.addChannel(0, 100000, 0, channelUsers.get(0) )
+					.addChannel(1, 100000, 0, channelUsers.get(1) )
+					.addChannel(2, 100000, 1, channelUsers.get(2) )
+					.addChannel(3, 100000, 1, channelUsers.get(3) )
+					.addChannel(4, 100000, 1, channelUsers.get(4) )
+					.addChannel(5, 100000, 1, channelUsers.get(5) )
+					.addChannel(6, 100000, 2, channelUsers.get(6) )
 					.addXmitRequestListener( runner::setTestWriteRequest )
 					.build();
 			runner.setChabu(chabu);
 			
-			channelUsers.get(0).addRecvAmount(20000);
-			channelUsers.get(0).addXmitAmount(20000);
-			remoteChannelXmit( 0, 20000 );
-			remoteChannelRecv( 0, 20000 );
-
-			pause( 1_000 );
-
-			remoteChannelEnsureCompleted( 0 );
-			channelUsers.get(0).ensureCompleted();
-
+			msrBandwith();
+			
+			System.out.println( remoteChannelState(0) );
 			remoteChabuClose();
 			remoteCloseAll();
 
@@ -119,6 +131,45 @@ public class TestClient {
 		}
 	}
 
+	void msrBandwith(){
+		ChannelUser ch0 = channelUsers.get(0);
+		
+		for( int testSize = 20000; testSize < 0x7FFF_FFFF; testSize <<= 1 ){
+			System.out.println("TestSize "+testSize  	);
+			ch0.addRecvAmount(testSize);
+			ch0.addXmitAmount(testSize);
+			remoteChannelXmit( 0, testSize );
+			remoteChannelRecv( 0, testSize );
+			
+			long ts = System.nanoTime();
+			int max = 2000;
+			while( ch0.hasPending() && max-- > 0 ){
+				pause( 1 );
+			}
+			ts = System.nanoTime() - ts;
+			ts /= 1000;
+
+			if( max == 0 ){
+				System.err.println("Timeout exceeded");
+			}
+			remoteChannelEnsureCompleted( 0 );
+			ch0.ensureCompleted();
+			
+			if( ts > 1000_000 ){
+				System.out.printf("time: %d.%03dms size=%d bandwidth %dKb/s\n", ts / 1000, ts % 1000, testSize, testSize / (ts/1000) );
+				System.out.printf("xmit: %s %s recv: %s %s\n", 
+						ch0.getXmitStreamPosition(),
+						ch0.getXmitPending(),
+						ch0.getRecvStreamPosition(),
+						ch0.getRecvPending());
+				break;
+			}
+		}
+	}
+	void msrLatency(){
+		
+	}
+	
 	private void pause(int durationMs) {
 		try {
 			Thread.sleep(durationMs);

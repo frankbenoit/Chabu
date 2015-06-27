@@ -26,7 +26,7 @@ class ChannelUser implements IChabuChannelUser {
 
 		public void evRecv(ByteBuffer bufferToConsume) {
 			
-			int r = bufferToConsume.remaining();
+//			int r = bufferToConsume.remaining();
 			
 			while( bufferToConsume.hasRemaining() && recvPending.get() > 0 ){
 				int recvByte = bufferToConsume.get() & 0xFF;
@@ -37,20 +37,20 @@ class ChannelUser implements IChabuChannelUser {
 				recvStreamPosition++;
 				recvPending.decrementAndGet();
 			}
-			System.out.printf("recv %d\n", r-bufferToConsume.remaining() );
+//			System.out.printf("recv %d\n", r-bufferToConsume.remaining() );
 //			if( recvPending.get() > 0 ){
 //				throw new RuntimeException(String.format("Channel[%d] evRecv data not available, missing %d bytes @0x%04X", channel.getChannelId(), recvPending.get(), recvStreamPosition ));
 //			}
 		}
 
 		public boolean evXmit(ByteBuffer bufferToFill) {
-			int r = bufferToFill.remaining();
+//			int r = bufferToFill.remaining();
 			while( bufferToFill.hasRemaining() && xmitPending.get() > 0 ){
 				bufferToFill.put( (byte)xmitRandom.nextInt() );
-				recvStreamPosition++;
+				xmitStreamPosition++;
 				xmitPending.decrementAndGet();
 			}
-			System.out.printf("xmit %d\n", r - bufferToFill.remaining() );
+//			System.out.printf("xmit %d\n", r - bufferToFill.remaining() );
 			return false;
 		}
 		
@@ -70,5 +70,22 @@ class ChannelUser implements IChabuChannelUser {
 			if( xmitPending.get() != 0 ){
 				throw new RuntimeException(String.format("Channel[%d] xmit data not yet sent, %d bytes remaining @0x%04X", channel.getChannelId(), xmitPending.get(), xmitStreamPosition ));
 			}
+		}
+
+		public boolean hasPending() {
+			return ( recvPending.get() != 0 ) || ( xmitPending.get() != 0 );
+		}
+
+		public long getRecvStreamPosition() {
+			return recvStreamPosition;
+		}
+		public int getRecvPending() {
+			return recvPending.get();
+		}
+		public long getXmitStreamPosition() {
+			return xmitStreamPosition;
+		}
+		public int getXmitPending() {
+			return xmitPending.get();
 		}
 	}

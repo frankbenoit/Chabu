@@ -6,13 +6,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
 import org.chabu.Random;
+import org.chabu.nwtest.Const;
 
 class ChannelUser implements IChabuChannelUser {
 		private IChabuChannel channel;
 		
 		private org.chabu.Random xmitRandom;
 		private org.chabu.Random recvRandom;
-		
+		private byte[] recvTestBytes = new byte[0x2000];
+
 		private long recvStreamPosition = 0;
 		private long xmitStreamPosition = 0;
 		private AtomicInteger recvPending = new AtomicInteger();
@@ -28,14 +30,29 @@ class ChannelUser implements IChabuChannelUser {
 			
 //			int r = bufferToConsume.remaining();
 			
-			while( bufferToConsume.hasRemaining() && recvPending.get() > 0 ){
-				int recvByte = bufferToConsume.get() & 0xFF;
-				int exptByte = recvRandom.nextInt() & 0xFF;
-				if( recvByte != exptByte ){
-					throw new RuntimeException(String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", channel.getChannelId(), recvByte, exptByte, recvStreamPosition ));
+			if( Const.DATA_RANDOM ){
+				int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
+				if( recvTestBytes.length < putSz ){
+					recvTestBytes = new byte[ putSz ];
 				}
-				recvStreamPosition++;
-				recvPending.decrementAndGet();
+				recvRandom.nextBytes(recvTestBytes, 0, putSz);
+				boolean ok = true;
+				byte[] readArray = bufferToConsume.array();
+				int readIdx = bufferToConsume.arrayOffset() + bufferToConsume.position();
+				for( int i = 0; i < putSz; i++ , readIdx++ ){
+					if( ok && recvTestBytes[i] != readArray[ readIdx ] ){
+						throw new RuntimeException( String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", channel.getChannelId(), readArray[ readIdx ], recvTestBytes[i], recvStreamPosition ));
+					}
+				}
+				recvPending.addAndGet(-putSz);
+				bufferToConsume.position(bufferToConsume.position() + putSz );
+				recvStreamPosition+=putSz;
+			}
+			else {
+				int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
+				recvPending.addAndGet(-putSz);
+				bufferToConsume.position(bufferToConsume.position() + putSz );
+				recvStreamPosition+=putSz;
 			}
 //			System.out.printf("recv %d\n", r-bufferToConsume.remaining() );
 //			if( recvPending.get() > 0 ){
@@ -45,10 +62,18 @@ class ChannelUser implements IChabuChannelUser {
 
 		public boolean evXmit(ByteBuffer bufferToFill) {
 //			int r = bufferToFill.remaining();
-			while( bufferToFill.hasRemaining() && xmitPending.get() > 0 ){
-				bufferToFill.put( (byte)xmitRandom.nextInt() );
-				xmitStreamPosition++;
-				xmitPending.decrementAndGet();
+			if( Const.DATA_RANDOM ){
+				int putSz = Math.min( bufferToFill.remaining(), xmitPending.get() );
+				xmitPending.addAndGet(-putSz);
+				xmitRandom.nextBytes( bufferToFill.array(), bufferToFill.arrayOffset()+bufferToFill.position(), putSz );
+				bufferToFill.position(bufferToFill.position() + putSz );
+				xmitStreamPosition+=putSz;
+			}
+			else {
+				int putSz = Math.min( bufferToFill.remaining(), xmitPending.get() );
+				xmitPending.addAndGet(-putSz);
+				bufferToFill.position(bufferToFill.position() + putSz );
+				xmitStreamPosition+=putSz;
 			}
 //			System.out.printf("xmit %d\n", r - bufferToFill.remaining() );
 			return false;

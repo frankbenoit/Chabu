@@ -17,8 +17,10 @@ abstract class AConnection  {
 	
 	public void registerWrite() throws ClosedChannelException {
 		key.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+		key.selector().wakeup();
 	}
 	public void unregisterWrite() throws ClosedChannelException {
 		key.interestOps(SelectionKey.OP_READ);
+		key.selector().wakeup();
 	}
 }

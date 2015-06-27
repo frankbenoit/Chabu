@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.Set;
 
 import org.chabu.IChabu;
+import org.chabu.nwtest.Const;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -68,7 +69,7 @@ final class NetworkThread implements Runnable {
 			keyTest = socketTest.register( selector, SelectionKey.OP_WRITE|SelectionKey.OP_CONNECT, "Test" );
 			while( selector.isOpen() && !Thread.interrupted() ){
 
-				selector.select(500);
+				selector.select(2000);
 				
 				boolean notify = false;
 				synchronized (this) {
@@ -105,6 +106,8 @@ final class NetworkThread implements Runnable {
 							testXmitBuffer.flip();
 							int sz = socketTest.write(testXmitBuffer);
 							if( sz > 0 ){
+								if( Const.LOG_TIMING ) System.out.printf("socketTest.write %5d\n", System.currentTimeMillis() % 10_000 );
+
 //								System.out.printf("write test %s\n", sz );
 								notify = true;								
 							}
@@ -123,10 +126,9 @@ final class NetworkThread implements Runnable {
 
 					if( !connectionCompleted && connectionCompletedCtrl && connectionCompletedTest ){
 						connectionCompleted = true;
-						System.out.println("compl");
+						//System.out.println("compl");
 					}
 
-					selector.selectNow();
 					Set<SelectionKey> selectedKeys = selector.selectedKeys();
 
 					Iterator<SelectionKey> keyIterator = selectedKeys.iterator();
@@ -154,6 +156,7 @@ final class NetworkThread implements Runnable {
 						//get the key itself
 						SelectionKey key = keyIterator.next();
 						keyIterator.remove();
+						
 						if(!key.isValid()) {
 							continue;
 						}
@@ -289,7 +292,8 @@ final class NetworkThread implements Runnable {
 
 	public void setTestWriteRequest(){
 		synchronized(this){
-			keyTest.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
+			keyTest.interestOps( keyTest.interestOps() | SelectionKey.OP_WRITE );
+			selector.wakeup();
 		}
 	}
 	public void setChabu(IChabu chabu) {

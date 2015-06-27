@@ -17,6 +17,7 @@ import java.util.LinkedList;
 import org.chabu.ChabuBuilder;
 import org.chabu.IChabu;
 import org.chabu.TestUtils;
+import org.chabu.nwtest.Const;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -194,7 +195,7 @@ public class TestServer {
 		}
 
 		private JSONObject channelXmit(int channelId, int amount) {
-			System.out.printf("channelXmit( %s, %s)\n", channelId, amount );
+			if(Const.LOG_TIMING) System.out.printf("channelXmit( %s, %s)\n", channelId, amount );
 			ChabuChannelUser user = chabuChannelUsers.get(channelId);
 			user.addXmitAmount(amount);
 			return new JSONObject();
@@ -221,6 +222,7 @@ public class TestServer {
 
 		private void errorReceiver( String msg ){
 			if( firstError == null ){
+				System.out.println("Error: "+msg);
 				firstError = msg;
 			}
 		}
@@ -241,11 +243,12 @@ public class TestServer {
 
 		public void accept(SelectionKey t) {
 			try{
+				
 				if( t.isReadable() ){
 					recvBuffer.compact();
 					channel.read(recvBuffer);
 					recvBuffer.flip();
-					if( recvBuffer.hasRemaining() ){
+					if( chabu != null && recvBuffer.hasRemaining() ){
 						chabu.evRecv( recvBuffer );
 					}
 				}
@@ -254,7 +257,10 @@ public class TestServer {
 					chabu.evXmit( xmitBuffer );
 					if( xmitBuffer.position() > 0 ){
 						xmitBuffer.flip();
-						channel.write(xmitBuffer);
+						int sz = channel.write(xmitBuffer);
+						
+						if( Const.LOG_TIMING ) System.out.printf("channel.write %7s time=%5s\n", sz, System.currentTimeMillis()% 10_000 );
+						
 						xmitBuffer.compact();
 					}
 				}
@@ -369,7 +375,6 @@ public class TestServer {
 		
 		while( selector.isOpen() ){
 
-			selector.select(500);
 
 			synchronized (xmitRequestsPending) {
 				for( AConnection c : xmitRequestsPending ){
@@ -378,7 +383,8 @@ public class TestServer {
 				xmitRequestsPending.clear();
 			}
 			
-			selector.selectNow();
+			selector.select(2000);
+
 			Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
             while(keyIterator.hasNext()) {
 
@@ -402,7 +408,9 @@ public class TestServer {
 //    					(key.interestOps() & SelectionKey.OP_READ    ) != 0 ? "r" : " ",
 //                		key.attachment()
 //                				);
-				if( key.channel() == ssc ){
+				
+                
+                if( key.channel() == ssc ){
 					if( key.isAcceptable() ){
 						SocketChannel channel = ssc.accept();
 						channel.configureBlocking(false);

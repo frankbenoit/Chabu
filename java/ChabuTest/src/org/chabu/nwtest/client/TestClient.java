@@ -134,12 +134,13 @@ public class TestClient {
 	void msrBandwith(){
 		ChannelUser ch0 = channelUsers.get(0);
 		
-		for( int testSize = 20000; testSize < 0x7FFF_FFFF; testSize <<= 1 ){
-			System.out.println("TestSize "+testSize  	);
+		for( int testSize = 5000; testSize < 0x7FFF_FFFF; testSize <<= 1 ){
 			ch0.addRecvAmount(testSize);
 			ch0.addXmitAmount(testSize);
 			remoteChannelXmit( 0, testSize );
 			remoteChannelRecv( 0, testSize );
+			
+			System.out.printf("TestSize %10s time=%5s\n", testSize, System.currentTimeMillis()% 10_000 );
 			
 			long ts = System.nanoTime();
 			int max = 2000;
@@ -152,11 +153,13 @@ public class TestClient {
 			if( max == 0 ){
 				System.err.println("Timeout exceeded");
 			}
-			remoteChannelEnsureCompleted( 0 );
-			ch0.ensureCompleted();
+			pause( 10 );
+//			remoteChannelEnsureCompleted( 0 );
+//			ch0.ensureCompleted();
 			
 			if( ts > 1000_000 ){
-				System.out.printf("time: %d.%03dms size=%d bandwidth %dKb/s\n", ts / 1000, ts % 1000, testSize, testSize / (ts/1000) );
+				long bw = testSize / (ts/1000);
+				System.out.printf("time: %d.%03dms size=%10d bandwidth %dKb/s\n", ts / 1000, ts % 1000, testSize, bw );
 				System.out.printf("xmit: %s %s recv: %s %s\n", 
 						ch0.getXmitStreamPosition(),
 						ch0.getXmitPending(),

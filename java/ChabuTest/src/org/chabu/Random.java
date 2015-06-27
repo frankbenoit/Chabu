@@ -1,10 +1,6 @@
 package org.chabu;
 
-
-
-
-public
-class Random  {
+public class Random {
 
     private long seed;
 
@@ -13,16 +9,7 @@ class Random  {
     private static final long mask       = (1L << 48) - 1;
 
     public Random(long seed) {
-        this.seed = initialScramble(seed);
-    }
-
-    private static long initialScramble(long seed) {
-        return (seed ^ multiplier) & mask;
-    }
-
-    protected int next(int bits) {
-        this.seed = (this.seed * multiplier + addend) & mask;
-        return (int)(this.seed >>> (48 - bits));
+        this.seed = (seed ^ multiplier) & mask;
     }
 
     public void nextBytes(byte[] bytes, int offset, int length ) {
@@ -32,7 +19,8 @@ class Random  {
     }
 
     public int nextInt() {
-        return next(32);
+        this.seed = (this.seed * multiplier + addend) & mask;
+        return (int)(this.seed >>> 16);
     }
 
 }

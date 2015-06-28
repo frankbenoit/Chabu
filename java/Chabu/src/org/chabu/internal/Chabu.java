@@ -16,7 +16,6 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.function.Consumer;
 
 import org.chabu.ChabuConnectionAcceptInfo;
 import org.chabu.ChabuErrorCode;
@@ -27,19 +26,20 @@ import org.chabu.IChabuChannel;
 import org.chabu.IChabuConnectingValidator;
 
 
-public class Chabu implements IChabu {
+public final class Chabu implements IChabu {
 
 	private static final int PT_MAGIC = 0x77770000;
-	public static final String PROTOCOL_NAME = "CHABU";
-	public static final int PROTOCOL_VERSION = 1;
+
+	private static final int ABORT_MSGLEN_MAX = 48;
+
+	public static final String PROTOCOL_NAME    = "CHABU";
+	public static final int    PROTOCOL_VERSION = 0x0000_0001; // 0.1
 
 	private ArrayList<ChabuChannel> channels = new ArrayList<>(256);
 	private int      priorityCount = 1;
 	private BitSet[] xmitChannelRequestData;
 	private BitSet[] xmitChannelRequestArm;
 	private int      xmitLastChannelIdx = 0;
-//	private BitSet[] recvChannelRequest;
-//	private int      recvChannelIdx = 0;
 	
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 	private ByteBuffer recvBuf;
@@ -150,31 +150,19 @@ public class Chabu implements IChabu {
 			ch.activate(this, i );
 		}
 		
-//		recvChannelRequest = new BitSet[ priorityCount ];
-//		for (int i = 0; i < recvChannelRequest.length; i++) {
-//			recvChannelRequest[i] = new BitSet(channels.size());
-//		}
-		
 		maxChannelId = channels.size() -1;
 		activated = true;
 		
 		processXmitSetup();
 	}
 	
-	/**
-	 * Receive the data from the network and process it into the channels.
-	 */
+	@Override
 	public void evRecv(ByteBuffer buf) {
 		// prepare trace
 		PrintWriter trc = traceWriter;
 		int trcStartPos = buf.position();
 		
 		// start real work
-		
-//		while( calcNextRecvChannel() ){
-//			ChabuChannel ch = channels.get(recvChannelIdx);
-//			ch.handleRecv(null);
-//		}
 		
 		int oldRemaining = -1;
 		while( oldRemaining != buf.remaining() ){
@@ -265,11 +253,8 @@ public class Chabu implements IChabu {
 		int av = recvBuf.getInt();
 		String an = getRecvString();
 
-		ChabuSetupInfo info = new ChabuSetupInfo();
-		info.maxReceiveSize = rs;
-		info.applicationVersion    = av;
-		info.applicationName       = an;
-		
+		ChabuSetupInfo info = new ChabuSetupInfo( rs, av, an );
+
 		this.infoRemote = info;
 
 		recvSetupCompleted = RecvState.RECVED;	
@@ -312,9 +297,9 @@ public class Chabu implements IChabu {
 	}
 
 	private void processRecvSeq() {
-		
-		if( recvBuf.limit() < PacketType.SEQ.headerSize+2 ){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvBuf.limit()-2 ));
+		final int MIN_SZ = 20;
+		if( recvBuf.limit() < MIN_SZ ){
+			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvBuf.limit() ));
 		}
 
 		int channelId = recvBuf.getInt();
@@ -324,12 +309,10 @@ public class Chabu implements IChabu {
 		if( channelId >= channels.size() ){
 			throw new ChabuException(String.format("Packet type SEQ with invalid channel ID %s, available channels %s", channelId, channels.size() ));
 		}
-		if( recvBuf.limit() < 20+pls ){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field: %s, PLS %s", recvBuf.limit()-2, pls ));
+
+		if( recvBuf.limit() != Utils.alignUpTo4( MIN_SZ+pls )){
+			throw new ChabuException(String.format("Packet type SEQ with unexpected len field: %s, PLS %s", recvBuf.limit(), pls ));
 		}
-//		if( recvBuf.remaining() != pls ){
-//			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvBuf.limit()-2 ));
-//		}
 
 		ChabuChannel channel = channels.get(channelId);
 		channel.handleRecvSeq( seq, recvBuf, pls );
@@ -388,15 +371,6 @@ public class Chabu implements IChabu {
 		}
 	}
 
-	
-//	void evUserRecvRequest(int channelId){
-//		synchronized(this){
-//			int priority = channels.get(channelId).priority;
-//			recvChannelRequest[priority].set( channelId );
-//		}
-//		nw.evUserRecvRequest();
-//	}
-
 	void channelXmitRequestData(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
@@ -405,6 +379,7 @@ public class Chabu implements IChabu {
 		}
 		callXmitRequestListener();
 	}
+	
 	void channelXmitRequestArm(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
@@ -414,15 +389,8 @@ public class Chabu implements IChabu {
 		callXmitRequestListener();
 	}
 
-
-	/**
-	 * Copy the User data from the Channel to the buffer.
-	 * 
-	 * @param buf
-	 * @return 	true 	not implemented
-	 * 			false 	no flush performed.
-	 */
-	public boolean evXmit(ByteBuffer buf) {
+	@Override
+	public void evXmit(ByteBuffer buf) {
 		// prepare trace
 		PrintWriter trc = traceWriter;
 		int trcStartPos = buf.position();
@@ -490,14 +458,13 @@ public class Chabu implements IChabu {
 			trc.printf( "WIRE_TX: {}%n");
 			Utils.printTraceHexData(trc, buf, trcStartPos, buf.position());
 		}
-		return false; // flushing not implemented
 	}
+
 	/**
 	 * Put on the buffer the needed org.chabu protocol informations: org.chabu version, byte order, payloadsize, channel count
 	 * 
 	 * These values must be set previous to infoLocal
 	 * 
-	 * @param buf
 	 */
 	private void processXmitSetup(){
 
@@ -541,16 +508,22 @@ public class Chabu implements IChabu {
 	}
 
 	private void processXmitAbort(){
-		
-		
+
+		final int MIN_SZ = 16; // PS, PT, CODE, MSG_LEN
+
 		byte[] msgBytes = xmitAbortMessage.getBytes( StandardCharsets.UTF_8 );
-		Utils.ensure( msgBytes.length <= 200, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH, "Xmit Abort message, text must be less than 200 UTF8 bytes, but is %s", msgBytes.length );
-		
+
+		Utils.ensure( msgBytes.length <= ABORT_MSGLEN_MAX, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH,
+				"Xmit Abort message, text must be less than %s UTF8 bytes, but is %s",
+				ABORT_MSGLEN_MAX, msgBytes.length );
+
 		xmitBuf.clear();
-		xmitBuf.putInt( (short)(PacketType.ABORT.headerSize + msgBytes.length) );
+		xmitBuf.position(4);
+		xmitBuf.putInt( MIN_SZ + msgBytes.length );
 		xmitBuf.putInt( PT_MAGIC | PacketType.ABORT.id );
-		xmitBuf.putInt( xmitAbortCode );
-		putXmitString( xmitAbortMessage );
+		xmitBuf.putInt(xmitAbortCode );
+		putXmitString(msgBytes);
+		xmitBuf.putInt( 0, xmitBuf.position() );
 		xmitBuf.flip();
 		
 		xmitAbortMessage = "";
@@ -569,7 +542,7 @@ public class Chabu implements IChabu {
 		}
 		
 		xmitBuf.clear();
-		xmitBuf.putInt( PacketType.ARM.headerSize );
+		xmitBuf.putInt( 16 );
 		xmitBuf.putInt( PT_MAGIC | PacketType.ARM.id );
 		xmitBuf.putInt( channelId );
 		xmitBuf.putInt( arm );
@@ -579,7 +552,7 @@ public class Chabu implements IChabu {
 	/** 
 	 * Called by channel
 	 */
-	int processXmitSeq( int channelId, int seq, Consumer<ByteBuffer> user ){
+	int processXmitSeq( int channelId, int seq, IConsumerByteBuffer user ){
 		
 		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit SEQ, buffer is not empty");
@@ -644,16 +617,11 @@ public class Chabu implements IChabu {
 		}
 	}
 	
+	@Override
 	public void addXmitRequestListener( Runnable r) {
 		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, "Listener passed in is null" );
 		this.xmitRequestListener = r;
 	}
-//	public void setNetwork(IChabuNetwork nw) {
-//		Utils.ensure( nw      != null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network passed in is null" );
-//		Utils.ensure( this.nw == null, ChabuErrorCode.CONFIGURATION_NETWORK, "Network is already set" );
-//		this.nw = nw;
-//		nw.setChabu(this);
-//	}
 	
 	private String getRecvString(){
 		
@@ -670,6 +638,7 @@ public class Chabu implements IChabu {
 		}
 		return new String( bytes, StandardCharsets.UTF_8 );
 	}
+
 	@Override
 	public void setTracePrinter(PrintWriter writer) {
 		this.traceWriter = writer;
@@ -695,16 +664,13 @@ public class Chabu implements IChabu {
 		return channels.get(channelId);
 	}
 
-//	@Override
-//	public IChabuNetwork getNetwork() {
-//		return nw;
-//	}
-//	
 	private void putXmitString(String str) {
-		byte[] anlBytes = str.getBytes( StandardCharsets.UTF_8 );
-		xmitBuf.putInt  ( anlBytes.length );
-		xmitBuf.put     ( anlBytes );
-		int len = anlBytes.length;
+		putXmitString(str.getBytes(StandardCharsets.UTF_8));
+	}
+	private void putXmitString(byte[] bytes) {
+		xmitBuf.putInt  ( bytes.length );
+		xmitBuf.put     ( bytes );
+		int len = bytes.length;
 		while( (len&3) != 0 ){
 			len++;
 			xmitBuf.put((byte)0);

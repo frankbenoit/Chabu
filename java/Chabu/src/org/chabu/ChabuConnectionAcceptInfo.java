@@ -10,20 +10,21 @@
  *******************************************************************************/
 package org.chabu;
 
-public class ChabuConnectionAcceptInfo {
+/**
+ * Return value from the {@link org.chabu.IChabuConnectingValidator}
+ */
+public final class ChabuConnectionAcceptInfo {
 	
 	/**
 	 * @see ChabuErrorCode
 	 */
-	public int code;
+	public final int code;
 	
 	/**
-	 * maximum length 200 bytes in UTF8.
+	 * maximum length 48 bytes in UTF8.
 	 */
-	public String message;
+	public final String message;
 	
-	public ChabuConnectionAcceptInfo(){
-	}
 	public ChabuConnectionAcceptInfo( int code, String message ){
 		this.code = code;
 		this.message = message;

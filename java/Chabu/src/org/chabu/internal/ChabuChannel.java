@@ -18,7 +18,10 @@ import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
 
 
-
+/**
+ *
+ * @author Frank Benoit
+ */
 public final class ChabuChannel implements IChabuChannel {
 
 	private int     channelId    = -1;
@@ -105,6 +108,7 @@ public final class ChabuChannel implements IChabuChannel {
 		int allowedRecv = this.recvArm - this.recvSeq;
 		
 		
+		Utils.ensure( this.recvSeq == seq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, seq );
 		Utils.ensure( pls <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), allowedRecv );
 		Utils.ensure( buf.remaining() <= recvBuffer.remaining(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
 		
@@ -124,8 +128,8 @@ public final class ChabuChannel implements IChabuChannel {
 	}
 	
 	/**
-	 * Receive the ARM from the partner.
-	 * @param arm
+	 * Receive the ARM from the partner. This may make the channel to prepare new data to send.
+	 * @param arm the value to update this.xmitArm to.
 	 */
 	void handleRecvArm(int arm) {
 		if( this.xmitArm != arm && this.xmitArm == this.xmitSeq ){
@@ -149,27 +153,27 @@ public final class ChabuChannel implements IChabuChannel {
 
 	}
 	void handleXmitData() {
-		chabu.processXmitSeq( channelId, xmitSeq, this::callUserToGiveXmit );
+		chabu.processXmitSeq( channelId, xmitSeq, callUserToGiveXmit );
 	}
 
-	private void callUserToGiveXmit(ByteBuffer buf) {
-		PrintWriter trc = chabu.getTraceWriter();
-		int startPos = buf.position();
-		
-		user.evXmit(buf);
-		
-		int added = buf.position() - startPos;
-		this.xmitSeq += added;
-		
-		// write out trace info
-		if( trc != null && buf.position() != startPos ){
-			trc.printf( "APPL_TO_CHANNEL: { \"ID\" : %s }%n", channelId );
-			Utils.printTraceHexData(trc, buf, startPos, buf.position());
+	private IConsumerByteBuffer callUserToGiveXmit = new IConsumerByteBuffer(){
+		public void accept(ByteBuffer buf) {
+			PrintWriter trc = chabu.getTraceWriter();
+			int startPos = buf.position();
+
+			user.evXmit(buf);
+
+			int added = buf.position() - startPos;
+			ChabuChannel.this.xmitSeq += added;
+
+			// write out trace info
+			if( trc != null && buf.position() != startPos ){
+				trc.printf( "APPL_TO_CHANNEL: { \"ID\" : %s }%n", channelId );
+				Utils.printTraceHexData(trc, buf, startPos, buf.position());
+			}
 		}
+	};
 
-
-	}
-	
 	public String toString(){
 		return String.format("Channel[%s recvS:%s recvA:%s xmitS:%s xmitA:%s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
 	}

@@ -12,6 +12,10 @@ package org.chabu;
 
 import java.nio.ByteBuffer;
 
+/**
+ * Communication from IChabuChannel to the application. The application shall give one instance
+ * of IChabuChannelUser to each channel.
+ */
 public interface IChabuChannelUser {
 
 	/**

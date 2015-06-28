@@ -11,19 +11,17 @@
 package org.chabu.internal;
 
 public enum PacketType {
-	SETUP ( 0xF0, 10 ),
-	ACCEPT( 0xE1,  8 ),
-	ABORT ( 0xD2,  12 ),
-	ARM   ( 0xC3,  16 ),
-	SEQ   ( 0xB4,  20 ),
+	SETUP ( 0xF0 ),
+	ACCEPT( 0xE1 ),
+	ABORT ( 0xD2 ),
+	ARM   ( 0xC3 ),
+	SEQ   ( 0xB4 ),
 	;
 	
 	public final int id;
-	public final int headerSize;
 
-	private PacketType( int id, int minPacketSize ){
+	private PacketType( int id ){
 		this.id = id;
-		this.headerSize = minPacketSize;
 	}
 
 	public static PacketType findPacketType( int id ){

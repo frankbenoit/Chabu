@@ -10,6 +10,9 @@
  *******************************************************************************/
 package org.chabu;
 
+/**
+ * Error codes produced by chabu.
+ */
 public enum ChabuErrorCode {
 	OK_NOERROR       ( 0 ),
 	UNKNOWN          ( 1 ),

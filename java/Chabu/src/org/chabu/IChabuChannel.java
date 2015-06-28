@@ -18,7 +18,7 @@ package org.chabu;
 public interface IChabuChannel {
 
 	/**
-	 * Schedule a call to {@link IChabuChannelUser#evXmit(java.nio.ByteBuffer)} 
+	 * Schedule a call to {@link IChabuChannelUser#evXmit(java.nio.ByteBuffer)}
 	 * when it is possible in future.
 	 * The priority of the channel is important and if the receiver 
 	 * has notified about available space for receive.
@@ -36,7 +36,13 @@ public interface IChabuChannel {
 	 */
 	IChabuChannelUser getUser();
 
+	/**
+	 * Get the number index of this channel.
+	 */
 	int getChannelId();
 
+	/**
+	 * Get the priority number configured for this channel.
+	 */
 	int getPriority();
 }

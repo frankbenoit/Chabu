@@ -16,7 +16,7 @@ import java.nio.ByteBuffer;
 import org.chabu.ChabuErrorCode;
 import org.chabu.ChabuException;
 
-public class Utils {
+public final class Utils {
 	
 	public static RuntimeException failX( String fmt, Object ... args ){
 		throw new RuntimeException( String.format( fmt, args ));
@@ -128,5 +128,30 @@ public class Utils {
 		trg.put( src );
 		src.limit( oldLimit );
 		return xfer;
+	}
+
+	
+	/**
+	 * Aligns the value to the next 4-byte value if needed.
+	 * <p/>
+	 * <pre>
+	 * 4 &rarr; 4
+	 * 5 &rarr; 8
+	 * 6 &rarr; 8
+	 * 7 &rarr; 8
+	 * 8 &rarr; 8
+	 * 9 &rarr; 12
+	 * ...
+	 * </pre>
+	 * 
+	 */
+	public static final int alignUpTo4(int v) {
+		int tv = v & ~3;
+		if( tv == v ) {
+			return v;
+		}
+		else {
+			return tv + 4;
+		}
 	}
 }

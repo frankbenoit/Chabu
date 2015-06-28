@@ -36,7 +36,6 @@ public class TestSetupConnection {
 	@Test
 	public void LocalConnectionInfo_ApplicationName() throws Exception {
 
-		ChabuSetupInfo ci = new ChabuSetupInfo();
 
 		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, ()->{
 			ChabuBuilder .start( 0x123, null, 0x100, 3);
@@ -46,9 +45,7 @@ public class TestSetupConnection {
 			ChabuBuilder .start( 0x123, APPLNAME_200 + "-", 0x100, 3);
 		});
 
-		ci.applicationName = APPLNAME_200;
 		ChabuBuilder .start(0x123, APPLNAME_200, 0x100, 3);
-		ci.applicationName = "";
 		ChabuBuilder .start(0x123, "", 0x100, 3);
 		
 		IChabu chabu = ChabuBuilder

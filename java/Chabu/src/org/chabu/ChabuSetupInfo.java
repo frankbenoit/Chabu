@@ -10,10 +10,22 @@
  *******************************************************************************/
 package org.chabu;
 
-public class ChabuSetupInfo {
+public final class ChabuSetupInfo {
 	
-	public int     maxReceiveSize = 1000;
-	public int     applicationVersion    = 0;
-	public String  applicationName       = "";
+	public final int     maxReceiveSize;
+	public final int     applicationVersion;
+	public final String  applicationName;
+
+	public ChabuSetupInfo( int maxReceiveSize, int applicationVersion, String applicationName ){
+		this.maxReceiveSize = maxReceiveSize;
+		this.applicationName = applicationName;
+		this.applicationVersion = applicationVersion;
+	}
+
+	public ChabuSetupInfo( ChabuSetupInfo other ){
+		this.maxReceiveSize = other.maxReceiveSize;
+		this.applicationName = other.applicationName;
+		this.applicationVersion = other.applicationVersion;
+	}
 
 }

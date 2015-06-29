@@ -32,7 +32,7 @@ public final class ChabuBuilder {
 	public static final int DEFAULT_PRIORITY       = 0;
 
 	private Chabu chabu;
-	private int channelId;
+	private int nextChannelId;
 
 	private ChabuBuilder( ChabuSetupInfo ci, int priorityCount ){
 		chabu = new Chabu( ci );
@@ -79,10 +79,10 @@ public final class ChabuBuilder {
 	 *
 	 */
 	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, IChabuChannelUser user ){
-		Utils.ensure( channelId == this.channelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected %s, but was %s", this.channelId, channelId );
+		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected %s, but was %s", this.nextChannelId, channelId );
 		ChabuChannel channel = new ChabuChannel( recvBufferSize, priority, user );
 		chabu.addChannel( channel );
-		this.channelId++;
+		this.nextChannelId++;
 		return this;
 	}
 

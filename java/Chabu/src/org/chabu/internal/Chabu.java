@@ -32,14 +32,20 @@ import org.chabu.IChabuConnectingValidator;
 */
 public final class Chabu implements IChabu {
 
-	private static final int PT_MAGIC = 0x77770000;
+	private static final int   PT_MAGIC = 0x77770000;
 
-	private static final int ABORT_MSGLEN_MAX = 48;
+	private static final int   ABORT_MSGLEN_MAX = 48;
 
 	public static final String PROTOCOL_NAME    = "CHABU";
-	public static final int    PROTOCOL_VERSION = 0x0000_0001; // 0.1
+	
+	/**
+	 * Number constant for the current procotcol version.<br/>
+	 * Actually this is version 0.1.
+	 */
+	public static final int    PROTOCOL_VERSION = 0x0000_0001;
 
 	private ArrayList<ChabuChannel> channels = new ArrayList<>(256);
+	
 	private int      priorityCount = 1;
 	private BitSet[] xmitChannelRequestData;
 	private BitSet[] xmitChannelRequestArm;
@@ -556,26 +562,27 @@ public final class Chabu implements IChabu {
 	/** 
 	 * Called by channel
 	 */
-	int processXmitSeq( int channelId, int seq, IConsumerByteBuffer user ){
+	int processXmitSeq( int channelId, int seq, int maxPayload, IConsumerByteBuffer user ){
 		
 		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit SEQ, buffer is not empty");
 		}
 		
+		final int HDR_SZ = 20;
 		xmitBuf.clear();
-		int plPos = 20;
-		xmitBuf.position( plPos );
+		xmitBuf.limit( Math.min( xmitBuf.capacity(), Utils.alignUpTo4( HDR_SZ + maxPayload )));
+		xmitBuf.position( HDR_SZ );
 		
 		user.accept( xmitBuf );
 		
-		int pls = xmitBuf.position() - plPos;
+		int pls = xmitBuf.position() - HDR_SZ;
+		
 		// add padding
 		while( (xmitBuf.position() & 3) != 0 ){
 			xmitBuf.put((byte)0);
 		}
 
-		int ps = xmitBuf.position() - plPos +20;
-		
+		int ps = xmitBuf.position();
 		
 		if( pls > 0 ){
 			xmitBuf.putInt( 0, ps );
@@ -681,4 +688,8 @@ public final class Chabu implements IChabu {
 		}
 	}
 
+	@Override
+	public String toString() {
+		return String.format("Chabu[ recv:%s xmit:%s ]", recvBuf, xmitBuf );
+	}
 }

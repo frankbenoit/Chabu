@@ -26,7 +26,7 @@ public final class ChabuChannel implements IChabuChannel {
 
 	private int     channelId    = -1;
 	
-	private Chabu        chabu;
+	private Chabu                   chabu;
 	private final IChabuChannelUser user;
 	
 	private int        xmitSeq = 0;
@@ -132,7 +132,7 @@ public final class ChabuChannel implements IChabuChannel {
 	 * @param arm the value to update this.xmitArm to.
 	 */
 	void handleRecvArm(int arm) {
-		if( this.xmitArm != arm && this.xmitArm == this.xmitSeq ){
+		if( this.xmitArm != arm ){
 			// was blocked by receiver
 			// now the arm is updated
 			// --> try to send new data
@@ -153,7 +153,11 @@ public final class ChabuChannel implements IChabuChannel {
 
 	}
 	void handleXmitData() {
-		chabu.processXmitSeq( channelId, xmitSeq, callUserToGiveXmit );
+		int armSize = xmitArm - xmitSeq;
+		Utils.ensure( armSize >= 0, ChabuErrorCode.ASSERT, "arm size must not be negative: %s %s %s", xmitArm, xmitSeq, armSize );
+		if( armSize > 0 ){
+			chabu.processXmitSeq( channelId, xmitSeq, armSize, callUserToGiveXmit );
+		}
 	}
 
 	private IConsumerByteBuffer callUserToGiveXmit = new IConsumerByteBuffer(){

@@ -1,6 +1,6 @@
 package org.chabu;
 
-public class Random {
+public class PseudoRandom {
 
     private static final int BUFFER_SZ = 0x2000;
 	private long seed;
@@ -11,7 +11,7 @@ public class Random {
     private static final long addend     = 0x0BL;
     private static final long mask       = (1L << 48) - 1;
 
-    public Random(long seed) {
+    public PseudoRandom(long seed) {
         this.seed = (seed ^ multiplier) & mask;
         for (int i = 0; i < buffer.length; ) {
         	int v = nextInt_();

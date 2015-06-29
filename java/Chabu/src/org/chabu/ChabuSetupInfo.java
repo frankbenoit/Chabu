@@ -10,6 +10,11 @@
  *******************************************************************************/
 package org.chabu;
 
+/**
+ * Value object to represent the information exchanged on connection setup. These are passed to {@link IChabuConnectingValidator}. 
+ * 
+ * @author Frank Benoit
+ */
 public final class ChabuSetupInfo {
 	
 	public final int     maxReceiveSize;

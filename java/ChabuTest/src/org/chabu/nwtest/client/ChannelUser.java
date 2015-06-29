@@ -5,14 +5,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
-import org.chabu.Random;
+import org.chabu.PseudoRandom;
 import org.chabu.nwtest.Const;
 
 class ChannelUser implements IChabuChannelUser {
-		private IChabuChannel channel;
+		IChabuChannel channel;
 		
-		private org.chabu.Random xmitRandom;
-		private org.chabu.Random recvRandom;
+		private org.chabu.PseudoRandom xmitRandom;
+		private org.chabu.PseudoRandom recvRandom;
 		private byte[] recvTestBytes = new byte[0x2000];
 
 		private long recvStreamPosition = 0;
@@ -22,8 +22,8 @@ class ChannelUser implements IChabuChannelUser {
 		
 		public void setChannel(IChabuChannel channel) {
 			this.channel = channel;
-			xmitRandom = new Random(channel.getChannelId()*2 + 1 );
-			recvRandom = new Random(channel.getChannelId()*2 + 0 );
+			xmitRandom = new PseudoRandom(channel.getChannelId()*2 + 1 );
+			recvRandom = new PseudoRandom(channel.getChannelId()*2 + 0 );
 		}
 
 		public void evRecv(ByteBuffer bufferToConsume) {
@@ -75,6 +75,9 @@ class ChannelUser implements IChabuChannelUser {
 				bufferToFill.position(bufferToFill.position() + putSz );
 				xmitStreamPosition+=putSz;
 			}
+			if( xmitPending.get() > 0 ){
+				channel.evUserXmitRequest();
+			}
 //			System.out.printf("xmit %d\n", r - bufferToFill.remaining() );
 			return false;
 		}
@@ -112,5 +115,10 @@ class ChannelUser implements IChabuChannelUser {
 		}
 		public int getXmitPending() {
 			return xmitPending.get();
+		}
+		
+		@Override
+		public String toString() {
+			return String.format("xmit:%s recv:%s %s", xmitPending, recvPending, channel );
 		}
 	}

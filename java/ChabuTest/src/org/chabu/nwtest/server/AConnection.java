@@ -7,20 +7,38 @@ import java.nio.channels.SocketChannel;
 abstract class AConnection  {
 	SocketChannel channel;
 	private SelectionKey key;
+	boolean writeReq = false;
+	private AConnection parent;
 
-	public AConnection(SocketChannel channel, SelectionKey key ) {
+	public AConnection(AConnection parent, SocketChannel channel, SelectionKey key ) {
+		this.parent = parent;
 		this.channel = channel;
 		this.key = key;
 	}
 	
 	abstract void accept(SelectionKey t);
 	
-	public void registerWrite() throws ClosedChannelException {
+	public void registerWriteReq() throws ClosedChannelException {
+		if( parent != null ){
+			parent.registerWriteReq();
+			return;
+		}
+		writeReq = true;
 		key.interestOps(SelectionKey.OP_READ|SelectionKey.OP_WRITE);
 		key.selector().wakeup();
 	}
-	public void unregisterWrite() throws ClosedChannelException {
+	public boolean hasWriteReq() {
+		if( parent != null ){
+			return parent.hasWriteReq();
+		}
+		return writeReq;
+	}
+	public void resetWriteReq() throws ClosedChannelException {
+		if( parent != null ){
+			parent.resetWriteReq();
+			return;
+		}
 		key.interestOps(SelectionKey.OP_READ);
-		key.selector().wakeup();
+		writeReq = false;
 	}
 }

@@ -45,8 +45,8 @@ public class TestServer {
 		ChabuBuilder builder;
 		String firstError = null;
 		
-		public ControlConnection(SocketChannel channel, SelectionKey key ) {
-			super( channel, key );
+		public ControlConnection(AConnection parent, SocketChannel channel, SelectionKey key ) {
+			super( parent, channel, key );
 		}
 		
 		public void accept(SelectionKey t) {
@@ -128,6 +128,9 @@ public class TestServer {
 			case "Chabu.close":
 				return chabuClose();
 				
+			case "Chabu.getState":
+				return chabuGetState();
+				
 			case "Channel.recv":
 				return channelRecv( 
 						req.getInt("Channel"), 
@@ -180,13 +183,19 @@ public class TestServer {
 			return new JSONObject();
 		}
 
+		private JSONObject chabuGetState() {
+			System.out.printf("chabuGetState()\n");
+			return new JSONObject()
+					.put("toString", chabu.toString());
+		}
+
 		private JSONObject chabuClose() {
-			System.out.printf("builderClose()\n");
+			System.out.printf("chabuClose()\n");
 			chabu = null;
 			chabuChannelUsers.clear();
 			return new JSONObject();
 		}
-
+		
 		private JSONObject channelRecv(int channelId, int amount) {
 			System.out.printf("channelRecv( %s, %s)\n",  channelId, amount );
 			ChabuChannelUser user = chabuChannelUsers.get(channelId);
@@ -195,7 +204,7 @@ public class TestServer {
 		}
 
 		private JSONObject channelXmit(int channelId, int amount) {
-			if(Const.LOG_TIMING) System.out.printf("channelXmit( %s, %s)\n", channelId, amount );
+			System.out.printf("channelXmit( %s, %s)\n", channelId, amount );
 			ChabuChannelUser user = chabuChannelUsers.get(channelId);
 			user.addXmitAmount(amount);
 			return new JSONObject();
@@ -231,8 +240,8 @@ public class TestServer {
 		ByteBuffer recvBuffer = ByteBuffer.allocate(3000);
 		ByteBuffer xmitBuffer = ByteBuffer.allocate(3000);
 		
-		public ChabuConnection(SocketChannel channel, SelectionKey key ) {
-			super( channel, key );
+		public ChabuConnection(AConnection parent, SocketChannel channel, SelectionKey key ) {
+			super( parent, channel, key );
 			recvBuffer.clear().limit(0);
 			xmitBuffer.clear();
 		}
@@ -243,25 +252,36 @@ public class TestServer {
 
 		public void accept(SelectionKey t) {
 			try{
-				
+
 				if( t.isReadable() ){
 					recvBuffer.compact();
-					channel.read(recvBuffer);
+					int sz = channel.read(recvBuffer);
 					recvBuffer.flip();
+
+					if( Const.LOG_TIMING ) 
+						NwtUtil.log("channel.read  %7s", sz );
+					
 					if( chabu != null && recvBuffer.hasRemaining() ){
 						chabu.evRecv( recvBuffer );
 					}
 				}
+
 				
-				if( chabu != null ){
-					chabu.evXmit( xmitBuffer );
+				if( t.isWritable() ){
+					
+					if( chabu != null ){
+						resetWriteReq();
+						chabu.evXmit( xmitBuffer );
+					}
+					
 					if( xmitBuffer.position() > 0 ){
+						
 						xmitBuffer.flip();
 						int sz = channel.write(xmitBuffer);
-						
-						if( Const.LOG_TIMING ) System.out.printf("channel.write %7s time=%5s\n", sz, System.currentTimeMillis()% 10_000 );
-						
 						xmitBuffer.compact();
+						
+						if( Const.LOG_TIMING ) 
+							NwtUtil.log("channel.write %7s", sz );
 					}
 				}
 			}
@@ -276,7 +296,7 @@ public class TestServer {
 		private AConnection client;
 
 		public BasicConnection(SocketChannel channel, SelectionKey key ) {
-			super( channel, key );
+			super( null, channel, key );
 			
 
 			recvBuffer.order(ByteOrder.BIG_ENDIAN);
@@ -306,11 +326,11 @@ public class TestServer {
 						recvBuffer.flip();
 						if( recvBuffer.get() == 0 ){
 							TestUtils.ensure( ctrlConnection == null );
-							client = ctrlConnection = new ControlConnection( channel, channel.keyFor(selector) );
+							client = ctrlConnection = new ControlConnection( this, channel, channel.keyFor(selector) );
 						}
 						else {
 							TestUtils.ensure( testConnection == null );
-							client = testConnection = new ChabuConnection( channel, channel.keyFor(selector) );
+							client = testConnection = new ChabuConnection( this, channel, channel.keyFor(selector) );
 						}
 						client.accept(key);
 					}
@@ -378,7 +398,7 @@ public class TestServer {
 
 			synchronized (xmitRequestsPending) {
 				for( AConnection c : xmitRequestsPending ){
-					c.registerWrite();
+					c.registerWriteReq();
 				}
 				xmitRequestsPending.clear();
 			}
@@ -424,8 +444,8 @@ public class TestServer {
 				}
 				else {
 					AConnection cons = (AConnection) key.attachment();
-					if( key.isWritable() ){
-						cons.unregisterWrite();
+					if( key.isWritable() && !cons.hasWriteReq() ){
+						cons.resetWriteReq();
 					}
 					if( key.channel().isOpen() ){
 						cons.accept( key );
@@ -436,5 +456,6 @@ public class TestServer {
 			}
 			
 		}
+		NwtUtil.closeLog();
 	}
 }

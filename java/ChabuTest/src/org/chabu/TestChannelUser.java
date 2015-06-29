@@ -2,9 +2,6 @@ package org.chabu;
 
 import java.nio.ByteBuffer;
 
-import org.chabu.IChabuChannel;
-import org.chabu.IChabuChannelUser;
-
 public class TestChannelUser implements IChabuChannelUser {
 
 	/**

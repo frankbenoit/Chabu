@@ -3,12 +3,6 @@ package org.chabu;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import org.chabu.ChabuBuilder;
-import org.chabu.ChabuConnectionAcceptInfo;
-import org.chabu.ChabuErrorCode;
-import org.chabu.ChabuException;
-import org.chabu.ChabuSetupInfo;
-import org.chabu.IChabu;
 import org.junit.Test;
 
 @SuppressWarnings("unused")

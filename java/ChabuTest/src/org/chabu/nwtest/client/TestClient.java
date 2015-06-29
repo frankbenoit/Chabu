@@ -46,6 +46,11 @@ public class TestClient {
 		.put("Command", "Chabu.close"));
 	}
 
+	JSONObject remoteChabuGetState() {
+		return runner.ctrlXfer( new JSONObject()
+				.put("Command", "Chabu.getState"));
+	}
+	
 	void remoteChannelRecv(int channelId, int amount) {
 		runner.ctrlXfer( new JSONObject()
 		.put("Command", "Channel.recv")
@@ -82,7 +87,7 @@ public class TestClient {
 	
 	private void run(String[] args) {
 		try{
-			runner = new NetworkThread(51504);
+			runner = new NetworkThread(15000);
 			connect();
 			System.out.println("connect completed");
 
@@ -128,6 +133,7 @@ public class TestClient {
 
 		} finally {
 			runner.interrupt();
+			NwtUtil.closeLog();
 		}
 	}
 
@@ -141,23 +147,28 @@ public class TestClient {
 			remoteChannelRecv( 0, testSize );
 			
 			System.out.printf("TestSize %10s time=%5s\n", testSize, System.currentTimeMillis()% 10_000 );
+			NwtUtil.log("TestSize %10s----------------------", testSize );
 			
 			long ts = System.nanoTime();
-			int max = 2000;
+			int max = 3000;
 			while( ch0.hasPending() && max-- > 0 ){
 				pause( 1 );
 			}
 			ts = System.nanoTime() - ts;
 			ts /= 1000;
 
-			if( max == 0 ){
-				System.err.println("Timeout exceeded");
+			if( max <= 0 ){
+				System.err.println("Timeout");
+				NwtUtil.log("Timeout  %s", ch0 );
+				NwtUtil.log("%s", remoteChabuGetState() );
+				break;
 			}
 			pause( 10 );
 //			remoteChannelEnsureCompleted( 0 );
 //			ch0.ensureCompleted();
 			
-			if( ts > 1000_000 ){
+			if( ts > 250_000 )
+			{
 				long bw = testSize / (ts/1000);
 				System.out.printf("time: %d.%03dms size=%10d bandwidth %dKb/s\n", ts / 1000, ts % 1000, testSize, bw );
 				System.out.printf("xmit: %s %s recv: %s %s\n", 
@@ -165,7 +176,9 @@ public class TestClient {
 						ch0.getXmitPending(),
 						ch0.getRecvStreamPosition(),
 						ch0.getRecvPending());
-				break;
+				if( ts > 1000_000 ) {
+					break;
+				}
 			}
 		}
 	}

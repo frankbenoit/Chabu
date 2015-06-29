@@ -6,15 +6,15 @@ import java.util.function.Consumer;
 
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
-import org.chabu.Random;
+import org.chabu.PseudoRandom;
 import org.chabu.nwtest.Const;
 import org.json.JSONObject;
 
 class ChabuChannelUser implements IChabuChannelUser {
 	
 	private IChabuChannel    channel;
-	private final Random     xmitRandom;
-	private final Random     recvRandom;
+	private final PseudoRandom     xmitRandom;
+	private final PseudoRandom     recvRandom;
 	
 	private byte[] recvTestBytes = new byte[0x2000];
 	
@@ -26,8 +26,8 @@ class ChabuChannelUser implements IChabuChannelUser {
 	
 	public ChabuChannelUser(int channelId, int xmitBufferSz, Consumer<String> errorReporter ) {
 		this.errorReporter = errorReporter;
-		xmitRandom = new Random(channelId*2+0);
-		recvRandom = new Random(channelId*2+1);
+		xmitRandom = new PseudoRandom(channelId*2+0);
+		recvRandom = new PseudoRandom(channelId*2+1);
 	}
 	@Override
 	public void setChannel(IChabuChannel channel) {
@@ -80,6 +80,9 @@ class ChabuChannelUser implements IChabuChannelUser {
 			bufferToFill.position(bufferToFill.position() + putSz );
 			xmitStreamPosition+=putSz;
 		}
+		if( xmitPending.get() > 0 ){
+			channel.evUserXmitRequest();
+		}
 
 		//System.out.printf("chabu xmit %d\n", r - bufferToFill.remaining() );
 		return false;
@@ -89,7 +92,7 @@ class ChabuChannelUser implements IChabuChannelUser {
 		//System.out.printf("chabu xmit addXmitAmount %d\n", amount );
 		xmitPending.addAndGet(amount);
 		channel.evUserXmitRequest();
-		if( Const.LOG_TIMING) System.out.printf("evUserXmitRequest %5d\n", System.currentTimeMillis() % 10_000 );
+		if( Const.LOG_TIMING) NwtUtil.log("evUserXmitRequest" );
 	}
 	public void addRecvAmount( int amount ){
 		recvPending.addAndGet(amount);

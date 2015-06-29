@@ -2,16 +2,16 @@ package org.chabu;
 
 public class DataGen {
 
-	Random gen;
-	Random exp;
+	PseudoRandom gen;
+	PseudoRandom exp;
 	long genPos = 0;
 	long expPos = 0;
 	private String name;
 	
 	public DataGen( String name, long seed ){
 		this.name = name;
-		gen = new Random(seed);
-		exp = new Random(seed);
+		gen = new PseudoRandom(seed);
+		exp = new PseudoRandom(seed);
 	}
 	
 	public void getGenBytes( byte[] bytes, int offset, int length ){
@@ -34,7 +34,7 @@ public class DataGen {
 		return getBytesString( exp, numBytes );
 	}
 
-	private String getBytesString(Random rnd, int numBytes) {
+	private String getBytesString(PseudoRandom rnd, int numBytes) {
 		if( numBytes == 0 ){
 			return "";
 		}

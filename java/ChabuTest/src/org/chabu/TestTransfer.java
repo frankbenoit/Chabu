@@ -1,14 +1,7 @@
 package org.chabu;
 
-import static org.junit.Assert.*;
-
-import org.chabu.ChabuBuilder;
-import org.chabu.ChabuSetupInfo;
-import org.chabu.IChabu;
-import org.junit.Ignore;
 import org.junit.Test;
 
-@SuppressWarnings("unused")
 public class TestTransfer {
 
 	@Test

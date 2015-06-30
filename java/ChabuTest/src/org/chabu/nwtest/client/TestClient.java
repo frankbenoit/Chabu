@@ -1,5 +1,7 @@
 package org.chabu.nwtest.client;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.chabu.ChabuBuilder;
@@ -9,6 +11,7 @@ import org.json.JSONObject;
 public class TestClient {
 
 	NetworkThread runner;
+	int bandwidth;
 
 	public static void main(String[] args) {
 		TestClient client = new TestClient();
@@ -125,7 +128,10 @@ public class TestClient {
 					.build();
 			runner.setChabu(chabu);
 			
-			msrBandwith();
+//			msrBandwith();
+			
+			highTraffic();
+			
 			
 			System.out.println( remoteChannelState(0) );
 			remoteChabuClose();
@@ -137,10 +143,55 @@ public class TestClient {
 		}
 	}
 
+	private void highTraffic() {
+		long tsStart = System.nanoTime();
+		long tsEnd = Math.round( 10 * 1e9) + tsStart;
+
+		NwtUtil.log("high Traffic ----------------------" );
+		int[] recvPending = new int[ channelUsers.size() ];
+		int[] xmitPending = new int[ channelUsers.size() ];
+		int loop = 0;
+		try( FileWriter fw = new FileWriter("bandwidth.log.txt") ){
+			while( tsEnd - System.nanoTime() > 0 ){
+
+				loop++;
+				System.out.println("Loop: "+loop);
+				for( int i = 0; i < channelUsers.size(); i++ ){
+					ChannelUser ch = channelUsers.get(i);
+					
+					fw.append(Long.toString(System.currentTimeMillis()));
+					fw.append(",");
+					fw.append(Long.toString(ch.getRecvStreamPosition()));
+					fw.append(",");
+					fw.append(Long.toString(ch.getXmitStreamPosition()));
+					
+					int recvStart = bandwidth / channelUsers.size();
+					int recvSpace = bandwidth / channelUsers.size();
+					int xmitStart = bandwidth / channelUsers.size();
+					int xmitSpace = bandwidth / channelUsers.size();
+					
+					remoteChannelRecv(i, xmitSpace);
+					remoteChannelXmit(i, recvStart);
+					ch.addRecvAmount(recvSpace);
+					ch.addXmitAmount(xmitStart);
+					
+					
+				}
+				fw.append("\r\n");
+				
+				Thread.sleep(500);
+				
+			}
+		
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	void msrBandwith(){
 		ChannelUser ch0 = channelUsers.get(0);
 		
-		for( int testSize = 5000; testSize < 0x7FFF_FFFF; testSize <<= 1 ){
+		for( int testSize = 500_000; testSize < 0x7FFF_FFFF; testSize <<= 1 ){
 			ch0.addRecvAmount(testSize);
 			ch0.addXmitAmount(testSize);
 			remoteChannelXmit( 0, testSize );
@@ -169,8 +220,8 @@ public class TestClient {
 			
 			if( ts > 250_000 )
 			{
-				long bw = testSize / (ts/1000);
-				System.out.printf("time: %d.%03dms size=%10d bandwidth %dKb/s\n", ts / 1000, ts % 1000, testSize, bw );
+				bandwidth = (int)Math.round(testSize / (ts*1e-6));
+				System.out.printf("time: %d.%03dms size=%10d bandwidth %dKb/s\n", ts / 1000, ts % 1000, testSize, bandwidth/1000 );
 				System.out.printf("xmit: %s %s recv: %s %s\n", 
 						ch0.getXmitStreamPosition(),
 						ch0.getXmitPending(),

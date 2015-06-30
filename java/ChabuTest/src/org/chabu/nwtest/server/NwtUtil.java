@@ -12,6 +12,7 @@ public class NwtUtil {
 				fw = new FileWriter( "server.log.txt" );
 			}
 			fw.append(String.format( "%-4d %s\n", System.currentTimeMillis() % 10000, String.format( fmt, args)));
+			fw.flush();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

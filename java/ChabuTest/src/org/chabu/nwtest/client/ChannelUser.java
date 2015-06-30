@@ -31,6 +31,9 @@ class ChannelUser implements IChabuChannelUser {
 //			int r = bufferToConsume.remaining();
 			
 			if( Const.DATA_RANDOM ){
+				int pos0 = bufferToConsume.position();
+				int lim0 = bufferToConsume.limit();
+				int cap0 = bufferToConsume.capacity();
 				int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
 				if( recvTestBytes.length < putSz ){
 					recvTestBytes = new byte[ putSz ];
@@ -41,11 +44,24 @@ class ChannelUser implements IChabuChannelUser {
 				int readIdx = bufferToConsume.arrayOffset() + bufferToConsume.position();
 				for( int i = 0; i < putSz; i++ , readIdx++ ){
 					if( ok && recvTestBytes[i] != readArray[ readIdx ] ){
-						throw new RuntimeException( String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", channel.getChannelId(), readArray[ readIdx ], recvTestBytes[i], recvStreamPosition ));
+						throw new RuntimeException( 
+								String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", 
+										channel.getChannelId(), 
+										readArray[ readIdx ], 
+										recvTestBytes[i], 
+										recvStreamPosition ));
 					}
 				}
 				recvPending.addAndGet(-putSz);
-				bufferToConsume.position(bufferToConsume.position() + putSz );
+				try{
+					
+					bufferToConsume.position(bufferToConsume.position() + putSz );
+				}
+				catch( IllegalArgumentException e){
+					System.err.printf("data: %d %d %d\n", putSz, bufferToConsume.position(), bufferToConsume.limit() );
+					System.err.printf("pos0:%d lim0:%d cap0:%d\n", pos0, lim0, cap0 );
+					throw e;
+				}
 				recvStreamPosition+=putSz;
 			}
 			else {

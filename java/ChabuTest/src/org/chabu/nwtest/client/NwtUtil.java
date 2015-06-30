@@ -12,13 +12,16 @@ public class NwtUtil {
 				fw = new FileWriter( "client.log.txt" );
 			}
 			fw.append(String.format( "%-4d %s\n", System.currentTimeMillis() % 10000, String.format( fmt, args)));
+			fw.flush();
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
 	}
 	public static void closeLog() {
 		try {
-			fw.close();
+			if( fw != null ){
+				fw.close();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

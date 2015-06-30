@@ -11,7 +11,7 @@ import org.json.JSONObject;
 public class TestClient {
 
 	NetworkThread runner;
-	int bandwidth;
+	int bandwidth = 1_000_000;
 
 	public static void main(String[] args) {
 		TestClient client = new TestClient();
@@ -128,7 +128,7 @@ public class TestClient {
 					.build();
 			runner.setChabu(chabu);
 			
-//			msrBandwith();
+			msrBandwith();
 			
 			highTraffic();
 			

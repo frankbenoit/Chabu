@@ -76,6 +76,7 @@ public final class ChabuChannel implements IChabuChannel {
 	}
 
 	private void callUserToTakeRecvData() {
+		int consumed = 0;
 		synchronized(this){
 			recvBuffer.flip();
 			int avail = recvBuffer.remaining();
@@ -86,7 +87,7 @@ public final class ChabuChannel implements IChabuChannel {
 			
 			user.evRecv( recvBuffer );
 			
-			int consumed = avail - recvBuffer.remaining();
+			consumed = avail - recvBuffer.remaining();
 			
 			// write out trace info
 			if( trc != null && consumed > 0 ){
@@ -95,36 +96,46 @@ public final class ChabuChannel implements IChabuChannel {
 			}
 			
 			recvBuffer.compact();
-			if( consumed > 0 ){
-				this.recvArm += consumed;
-				this.recvArmShouldBeXmit = true;
-				chabu.channelXmitRequestArm(channelId);
-			}
+			this.recvArm += consumed;
+		}
+		if( consumed > 0 ){
+			this.recvArmShouldBeXmit = true;
+			chabu.channelXmitRequestArm(channelId);
 		}
 	}
 
 	void handleRecvSeq(int seq, ByteBuffer buf, int pls ) {
 		
-		int allowedRecv = this.recvArm - this.recvSeq;
-		
-		
-		Utils.ensure( this.recvSeq == seq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, seq );
-		Utils.ensure( pls <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), allowedRecv );
-		Utils.ensure( buf.remaining() <= recvBuffer.remaining(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
-		
-		int taken = Utils.transferUpTo( buf, recvBuffer, pls );
-		
-		Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
-		//recvBuffer.put( buf );
-		this.recvSeq += pls;
-		
-		int align = pls;
-		while( (align&3) != 0 ){
-			align++;
-			buf.get();
-		}
-		
+			int allowedRecv = this.recvArm - this.recvSeq;
+			
+			
+			Utils.ensure( this.recvSeq == seq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, seq );
+			Utils.ensure( pls <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), allowedRecv );
+			
+			Utils.ensure( buf.remaining() <= recvBuffer.remaining(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
+					"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value. (this.recvArm=0x%X, this.recvSeq=0x%X, seq=0x%X)", 
+					channelId, buf.remaining(), recvBuffer.remaining(),
+					this.recvArm, this.recvSeq, seq );
+			
+			
+			synchronized(this){
+				
+				int taken = Utils.transferUpTo( buf, recvBuffer, pls );
+				
+				Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
+				//recvBuffer.put( buf );
+				this.recvSeq += pls;
+			
+			}
+			
+			int align = pls;
+			while( (align&3) != 0 ){
+				align++;
+				buf.get();
+			}
+			
 		callUserToTakeRecvData();
+		
 	}
 	
 	/**

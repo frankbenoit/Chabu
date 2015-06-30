@@ -55,6 +55,7 @@ public final class Chabu implements IChabu {
 	private ByteBuffer recvBuf;
 
 	private Runnable xmitRequestListener;
+	private boolean  xmitRequestPending = false;
 	
 	/**
 	 * The setup data is completely received.
@@ -87,6 +88,7 @@ public final class Chabu implements IChabu {
 	private int          xmitAbortCode    = 0;
 	private String       xmitAbortMessage = "";
 
+	
 	private PrintWriter traceWriter;
 
 	private IChabuConnectingValidator val;
@@ -376,6 +378,7 @@ public final class Chabu implements IChabu {
 	}
 
 	private void callXmitRequestListener() {
+		xmitRequestPending = true;
 		if( xmitRequestListener != null ){
 			xmitRequestListener.run();
 		}
@@ -401,6 +404,10 @@ public final class Chabu implements IChabu {
 
 	@Override
 	public void evXmit(ByteBuffer buf) {
+		
+		// now we are here, so reset the request
+		xmitRequestPending = false;
+		
 		// prepare trace
 		PrintWriter trc = traceWriter;
 		int trcStartPos = buf.position();
@@ -675,6 +682,10 @@ public final class Chabu implements IChabu {
 		return channels.get(channelId);
 	}
 
+	@Override
+	public boolean isXmitRequestPending() {
+		return xmitRequestPending;
+	}
 	private void putXmitString(String str) {
 		putXmitString(str.getBytes(StandardCharsets.UTF_8));
 	}

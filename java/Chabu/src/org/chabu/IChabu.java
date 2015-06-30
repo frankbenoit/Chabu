@@ -78,4 +78,9 @@ public interface IChabu {
 	 * @param r the callback
 	 */
 	void addXmitRequestListener( Runnable r );
+	
+	/**
+	 * Returns true if chabu want to receive another call to {@link #evXmit(ByteBuffer)}.
+	 */
+	boolean isXmitRequestPending();
 }

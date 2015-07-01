@@ -18,7 +18,7 @@ import java.nio.ByteBuffer;
  * 
  * @author Frank Benoit
  */
-public interface ByteQueueInport {
+public interface ByteQueueInputPort {
 
 	/**
 	 * Get the ByteQueue instance that is holding the data for this input port.

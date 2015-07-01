@@ -17,7 +17,7 @@ import java.nio.ByteBuffer;
  * @author Frank Benoit
  *
  */
-public interface ByteQueueOutport {
+public interface ByteQueueOutputPort {
 
 	/**
 	 * Get the ByteQueue instance that is holding the data for this output port.
@@ -79,6 +79,6 @@ public interface ByteQueueOutport {
 
 	void setCallbackSupplied(ByteQueueDataAvailableListener callbackSupplied);
 
-	void move(ByteQueueInport trgQueue, int size);
+	void move(ByteQueueInputPort trgQueue, int size);
 
 }

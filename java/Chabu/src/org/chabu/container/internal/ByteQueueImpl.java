@@ -11,8 +11,8 @@
 package org.chabu.container.internal;
 
 import org.chabu.container.ByteQueue;
-import org.chabu.container.ByteQueueInport;
-import org.chabu.container.ByteQueueOutport;
+import org.chabu.container.ByteQueueInputPort;
+import org.chabu.container.ByteQueueOutputPort;
 
 /**
  * 
@@ -34,8 +34,8 @@ public final class ByteQueueImpl implements ByteQueue {
 		throw new RuntimeException(String.format("ByteQueue (%s): %s", name, String.format(string, args) ));
 	}
 
-	final ByteQueueInportImpl inport = new ByteQueueInportImpl(this);
-	final ByteQueueOutportImpl outport = new ByteQueueOutportImpl(this);
+	final ByteQueueInputPortImpl inport = new ByteQueueInputPortImpl(this);
+	final ByteQueueOutputPortImpl outport = new ByteQueueOutputPortImpl(this);
 	
 	public ByteQueueImpl( String name, int capacity ){
 		this.name = name;
@@ -48,12 +48,12 @@ public final class ByteQueueImpl implements ByteQueue {
 	}
 	
 	@Override
-	public ByteQueueInport getInport() {
+	public ByteQueueInputPort getInport() {
 		return inport;
 	}
 
 	@Override
-	public ByteQueueOutport getOutport() {
+	public ByteQueueOutputPort getOutport() {
 		return outport;
 	}
 	

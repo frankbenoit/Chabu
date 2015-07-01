@@ -14,15 +14,15 @@ import java.nio.ByteBuffer;
 
 import org.chabu.container.ByteQueue;
 import org.chabu.container.ByteQueueDataAvailableListener;
-import org.chabu.container.ByteQueueInport;
-import org.chabu.container.ByteQueueOutport;
+import org.chabu.container.ByteQueueInputPort;
+import org.chabu.container.ByteQueueOutputPort;
 
 /**
  * 
  * @author Frank Benoit
  *
  */
-final class ByteQueueOutportImpl implements ByteQueueOutport {
+final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	/**
 	 * 
 	 */
@@ -31,7 +31,7 @@ final class ByteQueueOutportImpl implements ByteQueueOutport {
 	/**
 	 * @param byteQueueImpl
 	 */
-	ByteQueueOutportImpl(ByteQueueImpl byteQueueImpl) {
+	ByteQueueOutputPortImpl(ByteQueueImpl byteQueueImpl) {
 		queue = byteQueueImpl;
 	}
 
@@ -168,7 +168,7 @@ final class ByteQueueOutportImpl implements ByteQueueOutport {
 	}
 	
 	@Override
-	public void move( ByteQueueInport trgQueue, int size ){
+	public void move( ByteQueueInputPort trgQueue, int size ){
 		
 		if( ByteQueueImpl.useAsserts ) queue.Assert( trgQueue.free() >= size);
 		if( ByteQueueImpl.useAsserts ) queue.Assert( available() >= size);

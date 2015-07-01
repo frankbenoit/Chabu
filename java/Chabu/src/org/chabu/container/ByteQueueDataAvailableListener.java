@@ -16,5 +16,5 @@ package org.chabu.container;
  *
  */
 public interface ByteQueueDataAvailableListener {
-	void dataAvailable( ByteQueueOutport outport );
+	void dataAvailable( ByteQueueOutputPort outport );
 }

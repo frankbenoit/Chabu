@@ -30,12 +30,12 @@ public interface ByteQueue {
 	/**
 	 * Get the in port instance and use it for all write actions.
 	 */
-	ByteQueueInport getInport();
+	ByteQueueInputPort getInport();
 
 	/**
 	 * Get the out port instance and use it for all read actions.
 	 */
-	ByteQueueOutport getOutport();
+	ByteQueueOutputPort getOutport();
 
 
 }

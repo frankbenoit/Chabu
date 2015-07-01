@@ -13,7 +13,7 @@ package org.chabu.container.internal;
 import java.nio.ByteBuffer;
 
 import org.chabu.container.ByteQueue;
-import org.chabu.container.ByteQueueInport;
+import org.chabu.container.ByteQueueInputPort;
 import org.chabu.container.ByteQueueSpaceAvailableListener;
 
 /**
@@ -21,7 +21,7 @@ import org.chabu.container.ByteQueueSpaceAvailableListener;
  * @author Frank Benoit
  *
  */
-final class ByteQueueInportImpl implements ByteQueueInport {
+final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	
 	/**
 	 * 
@@ -31,7 +31,7 @@ final class ByteQueueInportImpl implements ByteQueueInport {
 	/**
 	 * @param byteQueueImpl
 	 */
-	ByteQueueInportImpl(ByteQueueImpl byteQueueImpl) {
+	ByteQueueInputPortImpl(ByteQueueImpl byteQueueImpl) {
 		queue = byteQueueImpl;
 	}
 	

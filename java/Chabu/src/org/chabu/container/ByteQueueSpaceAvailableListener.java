@@ -16,5 +16,5 @@ package org.chabu.container;
  *
  */
 public interface ByteQueueSpaceAvailableListener {
-	void spaceAvailable( ByteQueueInport inport );
+	void spaceAvailable( ByteQueueInputPort inport );
 }

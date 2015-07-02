@@ -29,17 +29,30 @@ public interface ByteQueueOutputPort {
 	 * This calculates between last output port commit and last input port commit.
 	 * @return number of bytes that can be read.
 	 */
-	int available();
+	int availableCommitted();
 	
 	/**
 	 * Get the amount of bytes that can be read from this output port.<br/>
 	 * This calculates between last output port read action and last input port commit.
 	 * @return number of bytes that can be read.
 	 */
-	int availableUncommitted();
+	int available();
 	
 	void read(byte[] buf, int offset, int len );
 
+	/**
+	 * Read a single byte.
+	 */
+	byte readByte();
+
+	/**
+	 * Read a single short. BIG_ENDIAN is used.
+	 */
+	int readShort();
+
+	/**
+	 * Read a single integer. BIG_ENDIAN is used.
+	 */
 	int readInt();
 
 	/**
@@ -79,12 +92,12 @@ public interface ByteQueueOutputPort {
 
 	void setCallbackSupplied(ByteQueueDataAvailableListener callbackSupplied);
 
-	void move(ByteQueueInputPort trgQueue, int size);
-
 	/**
-	 * Read a single byte.
+	 * Move data from this output port to the input port of another ByteQueue.
+	 * @param trgQueue
+	 * @param size
 	 */
-	byte readByte();
+	void move(ByteQueueInputPort trgQueue, int size);
 
 	/**
 	 * Skip bytes.

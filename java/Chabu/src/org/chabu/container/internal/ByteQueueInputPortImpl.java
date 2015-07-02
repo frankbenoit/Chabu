@@ -11,6 +11,7 @@
 package org.chabu.container.internal;
 
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 import org.chabu.container.ByteQueue;
 import org.chabu.container.ByteQueueInputPort;
@@ -35,8 +36,6 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 		queue = byteQueueImpl;
 	}
 	
-	private ByteBuffer writeBuffer = ByteBuffer.allocate(8);
-	
 	// hold the space available listener, as this is what users of the input are interested in.
 	ByteQueueSpaceAvailableListener callbackConsumed;
 	
@@ -49,7 +48,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	}
 	
 	@Override
-	public int free(){
+	public int freeCommitted(){
 		int wr = writeIdx;
 		int rd = queue.outport.readIdx;
 		if( rd > wr ){
@@ -61,7 +60,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	}
 	
 	@Override
-	public int freeUncommitted(){
+	public int free(){
 		int wr = writeMarkIdx;
 		int rd = queue.outport.readIdx;
 		if( rd > wr ){
@@ -74,7 +73,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	
 	@Override
 	public int offer( ByteBuffer bb ){
-		int cpySz = Math.min( bb.remaining(), free() );
+		int cpySz = Math.min( bb.remaining(), freeCommitted() );
 		write( bb.array(), bb.arrayOffset()+bb.position(), cpySz );
 		bb.position( bb.position() + cpySz );
 		return cpySz; 
@@ -83,7 +82,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	@Override
 	public void write(byte[] buf, int srcOffset, int len ){
 		queue.Assert( len >= 0 );
-		queue.Assert( free() >= len );
+		queue.Assert( freeCommitted() >= len );
 	
 		int wr = this.writeMarkIdx;
 		if( ByteQueueImpl.useAsserts ) queue.AssertPrintf( wr < queue.buf.length, "%d<%d in %s", wr, queue.buf.length, queue.name );
@@ -138,23 +137,80 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	@Override
 	public int write( ByteBuffer bb, int length ){
 		int cpySz = bb.remaining();
-		if( cpySz > free() ) throw new RuntimeException(String.format("ByteQueue (%s) could not take all data", queue.name ));
+		if( cpySz > freeCommitted() ) throw new RuntimeException(String.format("ByteQueue (%s) could not take all data", queue.name ));
 		write(bb.array(), bb.arrayOffset()+bb.position(), cpySz );
 		bb.position( bb.position() + cpySz );
 		return cpySz; 		
 	}
 	
 	@Override
-	public void writeInt( int value ){
-		writeBuffer.clear();
-		writeBuffer.putInt(value);
-		writeBuffer.flip();
-		write(writeBuffer);
+	public void writeByte( byte value ){
+
+		queue.Assert( 1 <= free() );
+
+		int idx = writeMarkIdx;
+		
+		queue.buf[ idx++ ] = value;
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		writeMarkIdx = idx;
 	}
 
 	@Override
-	public void writePadding( byte value, int count ){
+	public void writeShort( short value ){
+
+		queue.Assert( 2 <= free() );
+
+		int idx = writeMarkIdx;
 		
+		queue.buf[ idx++ ] = (byte)(value >> 8);
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		queue.buf[ idx++ ] = (byte)value;
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		writeMarkIdx = idx;
+	}
+	
+	@Override
+	public void writeInt( int value ){
+
+		queue.Assert( 4 <= free() );
+
+		int idx = writeMarkIdx;
+		
+		queue.buf[ idx++ ] = (byte)(value >> 24);
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		queue.buf[ idx++ ] = (byte)(value >> 16);
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		queue.buf[ idx++ ] = (byte)(value >> 8);
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		queue.buf[ idx++ ] = (byte)value;
+		if( idx >= queue.buf.length ) idx = 0;
+		
+		writeMarkIdx = idx;
+	}
+	
+	@Override
+	public void writePadding( byte value, int count ){
+
+		queue.Assert( count <= free() );
+		
+		int idx = writeMarkIdx;
+		
+		int endIdx = idx + count;
+		if( endIdx > queue.buf.length ){
+			int fillSz = queue.buf.length - idx;
+			Arrays.fill( queue.buf, idx, queue.buf.length, value );
+			idx = 0;
+			endIdx -= fillSz; 
+		}
+		Arrays.fill( queue.buf, idx, endIdx, value );
+		
+		writeMarkIdx = endIdx;
 	}
 	
 	@Override
@@ -186,7 +242,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 
 	@Override
 	public String toString() {
-		return String.format("ByteQueueInport[ free=%s freeUncom=%s ]", free(), freeUncommitted() );
+		return String.format("ByteQueueInport[ free=%s freeUncom=%s ]", freeCommitted(), free() );
 	}
 
 }

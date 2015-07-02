@@ -30,14 +30,14 @@ public interface ByteQueueInputPort {
 	 * This calculates between last input port commit and last output port commit.
 	 * @return number of bytes that can be written.
 	 */
-	int free();
+	int freeCommitted();
 	
 	/**
 	 * Get the amount of bytes that can be written into this input port.<br/>
 	 * This calculates between last input port write action and last output port commit.
 	 * @return number of bytes that can be written.
 	 */
-	int freeUncommitted();
+	int free();
 
 	/**
 	 * Write the content of the array into the queue. The content is taken starting at offset and as many bytes as length.
@@ -72,6 +72,18 @@ public interface ByteQueueInputPort {
 	 * @return amount of bytes copied
 	 */
 	public int write( ByteBuffer bb, int length );
+	
+	/**
+	 * Write a byte value into the queue.
+	 * @param value
+	 */
+	public void writeByte( byte value );
+
+	/**
+	 * Write an 2-byte integer value into the queue. BIG_ENDIAN is used.
+	 * @param value
+	 */
+	public void writeShort( short value );
 	
 	/**
 	 * Write an 4-byte integer value into the queue. BIG_ENDIAN is used.

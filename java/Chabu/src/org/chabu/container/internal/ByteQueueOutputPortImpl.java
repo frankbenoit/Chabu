@@ -35,7 +35,6 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 		queue = byteQueueImpl;
 	}
 
-	private ByteBuffer readBuffer  = ByteBuffer.allocate(8);
 	private ByteQueueDataAvailableListener  callbackSupplied;
 	volatile int    readIdx;
 	private int             readMarkIdx;
@@ -46,7 +45,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	}
 	
 	@Override
-	public int available(){
+	public int availableCommitted(){
 		int wr = queue.inport.writeIdx;
 		int rd = this.readIdx;
 		if( rd > wr ){
@@ -58,7 +57,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	}
 
 	@Override
-	public int availableUncommitted(){
+	public int available(){
 		int wr = queue.inport.writeIdx;
 		int rd = this.readMarkIdx;
 		if( rd > wr ){
@@ -70,15 +69,6 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	}
 	
 	@Override
-	public byte readByte() {
-		queue.Assert( available() > 0 );
-		byte res = queue.buf[ readMarkIdx ];
-		int nextIdx = readMarkIdx + 1;
-		readMarkIdx = ( nextIdx >= queue.buf.length ) ? 0 : nextIdx;
-		return res;
-	}
-
-	@Override
 	public void skip(int length) {
 		queue.Assert(length >= 0 && length <= available() );
 		int nextIdx = readMarkIdx + length;
@@ -87,14 +77,65 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 
 	
 	@Override
-	public int readInt(){
-		readBuffer.clear();
-		readBuffer.limit(4);
-		read(readBuffer);
-		readBuffer.flip();
-		return readBuffer.getInt();
+	public byte readByte() {
+		queue.Assert( available() >= 1 );
+		byte res = queue.buf[ readMarkIdx ];
+		int nextIdx = readMarkIdx + 1;
+		readMarkIdx = ( nextIdx >= queue.buf.length ) ? 0 : nextIdx;
+		return res;
 	}
 
+	@Override
+	public int readShort(){
+		queue.Assert( available() >= 2 );
+		
+		int idx = readMarkIdx;
+		short res;
+		
+		res = queue.buf[ idx ];
+		if( ++idx >= queue.buf.length ) idx = 0;
+		
+		res <<= 8; 
+		
+		res |= queue.buf[ idx ] & 0xFF;
+		if( ++idx >= queue.buf.length ) idx = 0;
+		
+		readMarkIdx = idx;
+
+		return res;
+	}
+
+	@Override
+	public int readInt(){
+		
+		queue.Assert( available() >= 4 );
+		
+		int idx = readMarkIdx;
+		int res;
+		
+		res = queue.buf[ idx ];
+		if( ++idx >= queue.buf.length ) idx = 0;
+		
+		res <<= 8; 
+		
+		res |= queue.buf[ idx ] & 0xFF;
+		if( ++idx >= queue.buf.length ) idx = 0;
+		
+		res <<= 8; 
+		
+		res |= queue.buf[ idx ] & 0xFF;
+		if( ++idx >= queue.buf.length ) idx = 0;
+		
+		res <<= 8; 
+		
+		res |= queue.buf[ idx ] & 0xFF;
+		if( ++idx >= queue.buf.length ) idx = 0;
+		
+		readMarkIdx = idx;
+
+		return res;
+	}
+	
 	@Override
 	public void commit() {
 		readIdx = readMarkIdx;
@@ -113,7 +154,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 
 	@Override
 	public int poll( ByteBuffer bb ){
-		int cpySz = Math.min( bb.remaining(), availableUncommitted() );
+		int cpySz = Math.min( bb.remaining(), available() );
 		read(bb.array(), bb.arrayOffset()+bb.position(), cpySz );
 		bb.position( bb.position() + cpySz );
 		return cpySz; 
@@ -122,7 +163,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	@Override
 	public int read( ByteBuffer bb ){
 		int cpySz = bb.remaining();
-		if( cpySz > availableUncommitted() ) throw new RuntimeException(String.format("ByteQueue (%s) could not read the requested amount of data", queue.name ));
+		if( cpySz > available() ) throw new RuntimeException(String.format("ByteQueue (%s) could not read the requested amount of data", queue.name ));
 		read(bb.array(), bb.arrayOffset()+bb.position(), cpySz );
 		bb.position( bb.position() + cpySz );
 		return cpySz; 
@@ -134,7 +175,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 		int rd = this.readMarkIdx;
 		int wr = queue.inport.writeMarkIdx;
 	
-		if( ByteQueueImpl.useAsserts ) queue.AssertPrintf(( availableUncommitted() >= len ) && ( len >= 0 ), "avail %s len %s", availableUncommitted(), len );
+		if( ByteQueueImpl.useAsserts ) queue.AssertPrintf(( available() >= len ) && ( len >= 0 ), "avail %s len %s", available(), len );
 	
 		int remaining = len;
 		int cpyOffset = 0;
@@ -187,7 +228,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	@Override
 	public void move( ByteQueueInputPort trgQueue, int size ){
 		
-		if( ByteQueueImpl.useAsserts ) queue.Assert( trgQueue.free() >= size);
+		if( ByteQueueImpl.useAsserts ) queue.Assert( trgQueue.freeCommitted() >= size);
 		if( ByteQueueImpl.useAsserts ) queue.Assert( available() >= size);
 	
 		while( size > 0 ){
@@ -209,7 +250,7 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 
 	@Override
 	public String toString() {
-		return String.format("ByteQueueOutport[ avail=%s availUncom=%s ]", available(), availableUncommitted() );
+		return String.format("ByteQueueOutport[ avail=%s availUncom=%s ]", availableCommitted(), available() );
 	}
 
 }

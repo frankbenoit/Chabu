@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
 import org.chabu.PseudoRandom;
+import org.chabu.container.ByteQueueOutputPort;
 import org.chabu.nwtest.Const;
 
 class ChannelUser implements IChabuChannelUser {
@@ -26,57 +27,41 @@ class ChannelUser implements IChabuChannelUser {
 			recvRandom = new PseudoRandom(channel.getChannelId()*2 + 0 );
 		}
 
-		public void evRecv(ByteBuffer bufferToConsume) {
+		@Override
+		public void recvEvent(ByteQueueOutputPort queue) {
 			
 //			int r = bufferToConsume.remaining();
+			int putSz = Math.min( queue.availableUncommitted(), recvPending.get() );
+			recvPending.addAndGet(-putSz);
 			
 			if( Const.DATA_RANDOM ){
-				int pos0 = bufferToConsume.position();
-				int lim0 = bufferToConsume.limit();
-				int cap0 = bufferToConsume.capacity();
-				int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
+
 				if( recvTestBytes.length < putSz ){
 					recvTestBytes = new byte[ putSz ];
 				}
 				recvRandom.nextBytes(recvTestBytes, 0, putSz);
 				boolean ok = true;
-				byte[] readArray = bufferToConsume.array();
-				int readIdx = bufferToConsume.arrayOffset() + bufferToConsume.position();
-				for( int i = 0; i < putSz; i++ , readIdx++ ){
-					if( ok && recvTestBytes[i] != readArray[ readIdx ] ){
+				for( int i = 0; i < putSz; i++ ){
+					byte val = queue.readByte();
+					if( ok && recvTestBytes[i] != val ){
 						throw new RuntimeException( 
 								String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", 
 										channel.getChannelId(), 
-										readArray[ readIdx ], 
+										val, 
 										recvTestBytes[i], 
 										recvStreamPosition ));
 					}
 				}
-				recvPending.addAndGet(-putSz);
-				try{
-					
-					bufferToConsume.position(bufferToConsume.position() + putSz );
-				}
-				catch( IllegalArgumentException e){
-					System.err.printf("data: %d %d %d\n", putSz, bufferToConsume.position(), bufferToConsume.limit() );
-					System.err.printf("pos0:%d lim0:%d cap0:%d\n", pos0, lim0, cap0 );
-					throw e;
-				}
-				recvStreamPosition+=putSz;
 			}
 			else {
-				int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
-				recvPending.addAndGet(-putSz);
-				bufferToConsume.position(bufferToConsume.position() + putSz );
-				recvStreamPosition+=putSz;
+				queue.skip(putSz);
 			}
-//			System.out.printf("recv %d\n", r-bufferToConsume.remaining() );
-//			if( recvPending.get() > 0 ){
-//				throw new RuntimeException(String.format("Channel[%d] evRecv data not available, missing %d bytes @0x%04X", channel.getChannelId(), recvPending.get(), recvStreamPosition ));
-//			}
+			recvStreamPosition+=putSz;
+			queue.commit();
 		}
 
-		public boolean evXmit(ByteBuffer bufferToFill) {
+		@Override
+		public boolean xmitEvent(ByteBuffer bufferToFill) {
 //			int r = bufferToFill.remaining();
 			if( Const.DATA_RANDOM ){
 				int putSz = Math.min( bufferToFill.remaining(), xmitPending.get() );
@@ -92,7 +77,7 @@ class ChannelUser implements IChabuChannelUser {
 				xmitStreamPosition+=putSz;
 			}
 			if( xmitPending.get() > 0 ){
-				channel.evUserXmitRequest();
+				channel.xmitRegisterRequest();
 			}
 //			System.out.printf("xmit %d\n", r - bufferToFill.remaining() );
 			return false;
@@ -100,11 +85,11 @@ class ChannelUser implements IChabuChannelUser {
 		
 		public void addXmitAmount( int amount ){
 			xmitPending.addAndGet( amount );
-			channel.evUserXmitRequest();
+			channel.xmitRegisterRequest();
 		}
 		public void addRecvAmount( int amount ){
 			recvPending.addAndGet( amount );
-			channel.evUserRecvRequest();
+			channel.recvRegisterRequest();
 		}
 
 		public void ensureCompleted() {

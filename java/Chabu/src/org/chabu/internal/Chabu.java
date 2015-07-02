@@ -13,6 +13,7 @@ package org.chabu.internal;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.channels.ByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -168,8 +169,14 @@ public final class Chabu implements IChabu {
 		processXmitSetup();
 	}
 	
+//	@Override
+	public int recv(ByteChannel channel) {
+		// TODO Add impl
+		return 0;
+	}
+
 	@Override
-	public void evRecv(ByteBuffer buf) {
+	public void recv(ByteBuffer buf) {
 		// prepare trace
 		PrintWriter trc = traceWriter;
 		int trcStartPos = buf.position();
@@ -402,8 +409,14 @@ public final class Chabu implements IChabu {
 		callXmitRequestListener();
 	}
 
+//	@Override
+	public int xmit(ByteChannel channel) {
+		// TODO Add impl
+		return 0;
+	}
+
 	@Override
-	public void evXmit(ByteBuffer buf) {
+	public void xmit(ByteBuffer buf) {
 		
 		// now we are here, so reset the request
 		xmitRequestPending = false;

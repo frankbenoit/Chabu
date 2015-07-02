@@ -12,6 +12,8 @@ package org.chabu;
 
 import java.nio.ByteBuffer;
 
+import org.chabu.container.ByteQueueOutputPort;
+
 /**
  * Communication from IChabuChannel to the application. The application shall give one instance
  * of IChabuChannelUser to each channel.
@@ -22,23 +24,16 @@ public interface IChabuChannelUser {
 	 * Called in the startup, so this object can notify the channel about recv/xmit requests.
 	 * @param channel
 	 */
-	public void setChannel( IChabuChannel channel );
+	void setChannel( IChabuChannel channel );
 	
 	/**
 	 * Event to receive data from the network.
-	 * If the buffer is not fully consumed in this call, 
-	 * {@link IChabuChannel#evUserRecvRequest()} can be used to get called another time.
-	 * @param bufferToConsume
 	 */
-	public void evRecv( ByteBuffer bufferToConsume );
+	void recvEvent( ByteQueueOutputPort queue );
 	
 	/**
 	 * Event to pass data to the network.
-	 * The passed buffer can be fill completely. If there is more data to be transferred,
-	 * {@link IChabuChannel#evUserXmitRequest()} shall be used to schedule a call whenever
-	 * it is possible in future.
-	 * @param bufferToFill
 	 */
-	public boolean evXmit( ByteBuffer bufferToFill );
+	boolean xmitEvent( ByteBuffer bufferToFill );
 	
 }

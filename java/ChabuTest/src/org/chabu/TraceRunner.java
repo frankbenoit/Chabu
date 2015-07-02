@@ -188,7 +188,7 @@ public class TraceRunner {
 //		System.out.printf("TraceRunner.wireRx( %s, %s )\n", params, bb.remaining());
 		int more = params.optInt("More");
 		bb.limit( bb.limit() + more );
-		chabu.evRecv(bb);
+		chabu.recv(bb);
 		ensure( bb.remaining() == more, "Chabu did not receive all data" );
 	}
 
@@ -200,7 +200,7 @@ public class TraceRunner {
 //		System.out.printf("TraceRunner.wireTx( %s, %s )\n", params, bb.remaining());
 		txBuf.clear();
 		txBuf.limit(bb.limit()+more);
-		chabu.evXmit(txBuf);
+		chabu.xmit(txBuf);
 		txBuf.flip();
 		
 		boolean isOk = true;

@@ -382,8 +382,8 @@ final class NetworkThread implements Runnable {
 		}
 	}
 	public void setChabu(IChabu chabu) {
-		ctxTest.recvTrg = chabu::evRecv;
-		ctxTest.xmitSrc = chabu::evXmit;
+		ctxTest.recvTrg = chabu::recv;
+		ctxTest.xmitSrc = chabu::xmit;
 		this.chabu = chabu;
 		setTestWriteRequest();
 	}

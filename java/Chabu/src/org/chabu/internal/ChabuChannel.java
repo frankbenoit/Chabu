@@ -16,6 +16,9 @@ import java.nio.ByteBuffer;
 import org.chabu.ChabuErrorCode;
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
+import org.chabu.container.ByteQueue;
+import org.chabu.container.ByteQueueBuilder;
+import org.chabu.container.ByteQueueInputPort;
 
 
 /**
@@ -34,7 +37,7 @@ public final class ChabuChannel implements IChabuChannel {
 	
 	private boolean    recvArmShouldBeXmit  = false;
 	
-	private final ByteBuffer recvBuffer;
+	private final ByteQueue recvBuffer;
 	private int        recvSeq = 0;
 	private int        recvArm = 0;
 	
@@ -46,7 +49,7 @@ public final class ChabuChannel implements IChabuChannel {
 		Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is %s", priority );
 		Utils.ensure( user != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 
-		this.recvBuffer  = ByteBuffer.allocate(recvBufferSize);
+		this.recvBuffer  = ByteQueueBuilder.create( "ChabuChannel", recvBufferSize);
 		this.recvArm = recvBufferSize;
 		this.recvArmShouldBeXmit = true;
 
@@ -66,36 +69,36 @@ public final class ChabuChannel implements IChabuChannel {
 		
 	}
 	
-	public void evUserXmitRequest(){
+	@Override
+	public void xmitRegisterRequest(){
 		chabu.channelXmitRequestData(channelId);
 	}
 
 	@Override
-	public void evUserRecvRequest() {
+	public void recvRegisterRequest() {
 		callUserToTakeRecvData();
 	}
 
 	private void callUserToTakeRecvData() {
 		int consumed = 0;
 		synchronized(this){
-			recvBuffer.flip();
-			int avail = recvBuffer.remaining();
+			ByteQueueInputPort inport = recvBuffer.getInport();
+			int avail = inport.free();
 			
-			// prepare trace
-			PrintWriter trc = chabu.getTraceWriter();
-			int trcStartPos = recvBuffer.position();
+//			// prepare trace
+//			PrintWriter trc = chabu.getTraceWriter();
+//			int trcStartPos = recvBuffer.position();
 			
-			user.evRecv( recvBuffer );
+			user.recvEvent( recvBuffer.getOutport() );
 			
-			consumed = avail - recvBuffer.remaining();
+			consumed = inport.free() - avail;
 			
-			// write out trace info
-			if( trc != null && consumed > 0 ){
-				trc.printf( "CHANNEL_TO_APPL: { \"ID\" : %s }%n", channelId );
-				Utils.printTraceHexData(trc, recvBuffer, trcStartPos, recvBuffer.position());
-			}
+//			// write out trace info
+//			if( trc != null && consumed > 0 ){
+//				trc.printf( "CHANNEL_TO_APPL: { \"ID\" : %s }%n", channelId );
+//				Utils.printTraceHexData(trc, recvBuffer, trcStartPos, recvBuffer.position());
+//			}
 			
-			recvBuffer.compact();
 			this.recvArm += consumed;
 		}
 		if( consumed > 0 ){
@@ -112,17 +115,19 @@ public final class ChabuChannel implements IChabuChannel {
 			Utils.ensure( this.recvSeq == seq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, seq );
 			Utils.ensure( pls <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), allowedRecv );
 			
-			Utils.ensure( buf.remaining() <= recvBuffer.remaining(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
+			Utils.ensure( buf.remaining() <= recvBuffer.getOutport().available(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
 					"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value. (this.recvArm=0x%X, this.recvSeq=0x%X, seq=0x%X)", 
-					channelId, buf.remaining(), recvBuffer.remaining(),
+					channelId, buf.remaining(), recvBuffer.getOutport().available(),
 					this.recvArm, this.recvSeq, seq );
 			
 			
 			synchronized(this){
+				int taken = recvBuffer.getInport().write( buf, pls );
+				//int taken = Utils.transferUpTo( buf, recvBuffer, pls );
 				
-				int taken = Utils.transferUpTo( buf, recvBuffer, pls );
-				
-				Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), recvBuffer.remaining() );
+				Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
+						"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", 
+						channelId, buf.remaining(), recvBuffer.getInport().free() );
 				//recvBuffer.put( buf );
 				this.recvSeq += pls;
 			
@@ -176,7 +181,7 @@ public final class ChabuChannel implements IChabuChannel {
 			PrintWriter trc = chabu.getTraceWriter();
 			int startPos = buf.position();
 
-			user.evXmit(buf);
+			user.xmitEvent(buf);
 
 			int added = buf.position() - startPos;
 			ChabuChannel.this.xmitSeq += added;

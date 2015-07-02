@@ -7,6 +7,7 @@ import java.util.function.Consumer;
 import org.chabu.IChabuChannel;
 import org.chabu.IChabuChannelUser;
 import org.chabu.PseudoRandom;
+import org.chabu.container.ByteQueueOutputPort;
 import org.chabu.nwtest.Const;
 import org.json.JSONObject;
 
@@ -34,69 +35,60 @@ class ChabuChannelUser implements IChabuChannelUser {
 		this.channel = channel;
 	}
 	@Override
-	public void evRecv(ByteBuffer bufferToConsume) {
+	public void recvEvent(ByteQueueOutputPort queue) {
 
 		//System.out.printf("chabu recv %d\n", bufferToConsume.remaining() );
 
+		int putSz = Math.min( queue.available(), recvPending.get() );
 		if( Const.DATA_RANDOM ){
-			int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
 			if( recvTestBytes.length < putSz ){
 				recvTestBytes = new byte[ putSz ];
 			}
 			recvRandom.nextBytes(recvTestBytes, 0, putSz);
 			boolean ok = true;
-			byte[] readArray = bufferToConsume.array();
-			int readIdx = bufferToConsume.arrayOffset() + bufferToConsume.position();
-			for( int i = 0; i < putSz; i++ , readIdx++ ){
-				if( ok && recvTestBytes[i] != readArray[ readIdx ] ){
-					errorReporter.accept( String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", channel.getChannelId(), readArray[ readIdx ], recvTestBytes[i], recvStreamPosition ));
+			for( int i = 0; i < putSz; i++ ){
+				byte exp = queue.readByte();
+				if( ok && recvTestBytes[i] != exp ){
+					errorReporter.accept( String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", channel.getChannelId(), exp, recvTestBytes[i], recvStreamPosition ));
 				}
 			}
-			recvPending.addAndGet(-putSz);
-			bufferToConsume.position(bufferToConsume.position() + putSz );
-			recvStreamPosition+=putSz;
 		}
 		else {
-			int putSz = Math.min( bufferToConsume.remaining(), recvPending.get() );
-			recvPending.addAndGet(-putSz);
-			bufferToConsume.position(bufferToConsume.position() + putSz );
-			recvStreamPosition+=putSz;
+			queue.skip(putSz);
 		}
+		recvStreamPosition+=putSz;
+		recvPending.addAndGet(-putSz);
+		queue.commit();
 	}
 	@Override
-	public boolean evXmit(ByteBuffer bufferToFill) {
-		//int r = bufferToFill.remaining();
+	public boolean xmitEvent(ByteBuffer bufferToFill) {
+		
+		int putSz = Math.min( bufferToFill.remaining(), xmitPending.get() );
+		xmitPending.addAndGet(-putSz);
+		
 		if( Const.DATA_RANDOM ){
-
-			int putSz = Math.min( bufferToFill.remaining(), xmitPending.get() );
-			xmitPending.addAndGet(-putSz);
 			xmitRandom.nextBytes( bufferToFill.array(), bufferToFill.arrayOffset()+bufferToFill.position(), putSz );
-			bufferToFill.position(bufferToFill.position() + putSz );
-			xmitStreamPosition+=putSz;
 		}
-		else {
-			int putSz = Math.min( bufferToFill.remaining(), xmitPending.get() );
-			xmitPending.addAndGet(-putSz);
-			bufferToFill.position(bufferToFill.position() + putSz );
-			xmitStreamPosition+=putSz;
-		}
+		
+		bufferToFill.position(bufferToFill.position() + putSz );
+		xmitStreamPosition+=putSz;
+		
 		if( xmitPending.get() > 0 ){
-			channel.evUserXmitRequest();
+			channel.xmitRegisterRequest();
 		}
 
-		//System.out.printf("chabu xmit %d\n", r - bufferToFill.remaining() );
 		return false;
 	}
 	
 	public void addXmitAmount( int amount ){
 		//System.out.printf("chabu xmit addXmitAmount %d\n", amount );
 		xmitPending.addAndGet(amount);
-		channel.evUserXmitRequest();
+		channel.xmitRegisterRequest();
 		if( Const.LOG_TIMING) NwtUtil.log("evUserXmitRequest" );
 	}
 	public void addRecvAmount( int amount ){
 		recvPending.addAndGet(amount);
-		channel.evUserRecvRequest();
+		channel.recvRegisterRequest();
 	}
 	public JSONObject getState() {
 		return new JSONObject()

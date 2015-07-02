@@ -12,6 +12,7 @@ package org.chabu;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
+import java.nio.channels.ByteChannel;
 
 /**
  * The main object communicating with the network and distributing/collecting the data to/from the
@@ -27,7 +28,10 @@ public interface IChabu {
 	 *
 	 * @param bufferToConsume buffer containing the data.
 	 */
-	void evRecv(ByteBuffer bufferToConsume);
+	void recv(ByteBuffer bufferToConsume);
+	
+	// TODO add this variant
+	//int recv(ByteChannel channel);
 
 	/**
 	 * Called by the network, offering chabu to give the next portion of transmit data.
@@ -44,7 +48,10 @@ public interface IChabu {
 	 * @param bufferToFill the buffer to be filled by chabu. Must be not null.
 	 * @return
 	 */
-	void evXmit(ByteBuffer bufferToFill);
+	void xmit(ByteBuffer bufferToFill);
+	
+	// TODO add this variant
+//	int xmit(ByteChannel channel);
 
 	/**
 	 * Set an optional printer for trace information.
@@ -80,7 +87,7 @@ public interface IChabu {
 	void addXmitRequestListener( Runnable r );
 	
 	/**
-	 * Returns true if chabu want to receive another call to {@link #evXmit(ByteBuffer)}.
+	 * Returns true if chabu want to receive another call to {@link #xmit(ByteBuffer)}.
 	 */
 	boolean isXmitRequestPending();
 }

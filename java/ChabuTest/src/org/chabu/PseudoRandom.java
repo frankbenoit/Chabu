@@ -36,6 +36,17 @@ public class PseudoRandom {
     	}
     }
 
+	public void nextBytesVerify(byte[] bytes, int offset, int length ) {
+		for( int i = 0; i < length; i++ ){
+			byte exp = buffer[ idx % buffer.length ];
+			byte cur = bytes[i+offset];
+			idx++;
+			if( exp != cur ){
+				throw new RuntimeException(String.format("mismatch at %d: exp:0x%02X != cur:0x%02X", i, exp, cur ));
+			}
+		}
+	}
+    
     public byte nextByte() {
     	byte res = buffer[ idx++ % BUFFER_SZ ];
     	if( idx == BUFFER_SZ ){
@@ -48,5 +59,5 @@ public class PseudoRandom {
     	this.seed = (this.seed * multiplier + addend) & mask;
     	return (int)(this.seed >>> 16);
     }
-    
+
 }

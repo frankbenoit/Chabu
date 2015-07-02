@@ -262,7 +262,7 @@ public class TestServer {
 						NwtUtil.log("channel.read  %7s", sz );
 					
 					if( chabu != null && recvBuffer.hasRemaining() ){
-						chabu.evRecv( recvBuffer );
+						chabu.recv( recvBuffer );
 					}
 				}
 
@@ -271,7 +271,7 @@ public class TestServer {
 					
 					if( chabu != null ){
 						resetWriteReq();
-						chabu.evXmit( xmitBuffer );
+						chabu.xmit( xmitBuffer );
 					}
 					
 					if( xmitBuffer.position() > 0 ){

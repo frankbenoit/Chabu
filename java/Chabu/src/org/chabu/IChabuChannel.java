@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.chabu;
 
+import java.nio.ByteBuffer;
+
 /**
  * The Chabu channel.
  * 
@@ -18,18 +20,18 @@ package org.chabu;
 public interface IChabuChannel {
 
 	/**
-	 * Schedule a call to {@link IChabuChannelUser#evXmit(java.nio.ByteBuffer)}
+	 * Schedule a call to {@link IChabuChannelUser#xmitEvent(java.nio.ByteBuffer)}
 	 * when it is possible in future.
 	 * The priority of the channel is important and if the receiver 
 	 * has notified about available space for receive.
 	 */
-	void evUserXmitRequest();
-
+	void xmitRegisterRequest();
+	
 	/**
 	 * Schedule a call to {@link IChabuChannelUser#evRecv(java.nio.ByteBuffer)}. 
 	 * This can happen within this method call.
 	 */
-	void evUserRecvRequest();
+	void recvRegisterRequest();
 
 	/**
 	 * Retrieve the associated user object.

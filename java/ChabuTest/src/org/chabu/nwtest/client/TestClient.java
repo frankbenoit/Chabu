@@ -130,7 +130,7 @@ public class TestClient {
 			
 			msrBandwith();
 			
-			highTraffic();
+			//highTraffic();
 			
 			
 			System.out.println( remoteChannelState(0) );

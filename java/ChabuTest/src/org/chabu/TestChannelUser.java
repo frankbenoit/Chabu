@@ -2,6 +2,8 @@ package org.chabu;
 
 import java.nio.ByteBuffer;
 
+import org.chabu.container.ByteQueueOutputPort;
+
 public class TestChannelUser implements IChabuChannelUser {
 
 	/**
@@ -22,27 +24,26 @@ public class TestChannelUser implements IChabuChannelUser {
 	}
 
 	@Override
-	public void evRecv(ByteBuffer bufferToConsume) {
+	public void recvEvent(ByteQueueOutputPort queue) {
 //		System.out.printf("TestChannelUser[%s].evRecv( bytes=%s )\n", channel.getId(), bufferToConsume.remaining() );
 
 		if( consumeRxInProgress ){
-			while( rx.hasRemaining() && bufferToConsume.hasRemaining() ){
-				rx.put( bufferToConsume.get() );
-			}
+			queue.poll(rx);
+			queue.commit();
 			//TraceRunner.ensure( !bufferToConsume.hasRemaining(), "evRecv cannot take all data");
 		}
 		
 	}
 
 	@Override
-	public boolean evXmit(ByteBuffer bufferToFill) {
+	public boolean xmitEvent(ByteBuffer bufferToFill) {
 //		System.out.printf("TestChannelUser[%s].evXmit()\n", channel.getId());
 		tx.flip();
 		while( tx.hasRemaining() && bufferToFill.hasRemaining() ){
 			bufferToFill.put( tx.get() );
 		}
 		if( tx.hasRemaining() ){
-			channel.evUserXmitRequest();
+			channel.xmitRegisterRequest();
 		}
 		tx.compact();
 		return tx.position() > 0;
@@ -58,7 +59,7 @@ public class TestChannelUser implements IChabuChannelUser {
 			}
 			tx.put( newData.get() );
 		}
-		channel.evUserXmitRequest();
+		channel.xmitRegisterRequest();
 	}
 	
 	public void consumeRxData( ByteBuffer expectedData ){
@@ -66,7 +67,7 @@ public class TestChannelUser implements IChabuChannelUser {
 		try{
 			rx.clear();
 			rx.limit( expectedData.remaining() );
-			channel.evUserRecvRequest();
+			channel.recvRegisterRequest();
 			rx.flip();
 			TraceRunner.ensure( rx.remaining() == expectedData.remaining(), "RX does not have enough data %s != %s", rx.remaining(), expectedData.remaining());
 			while( expectedData.hasRemaining() ){
@@ -78,7 +79,7 @@ public class TestChannelUser implements IChabuChannelUser {
 				TraceRunner.ensure( exp == cur, "Data mismatch %02X != %02X", cur, exp );
 			}
 			rx.compact();
-			channel.evUserXmitRequest();
+			channel.xmitRegisterRequest();
 		}
 		finally {
 			consumeRxInProgress = false;

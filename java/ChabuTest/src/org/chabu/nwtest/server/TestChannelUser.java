@@ -11,7 +11,7 @@ import org.chabu.container.ByteQueueOutputPort;
 import org.chabu.nwtest.Const;
 import org.json.JSONObject;
 
-class ChabuChannelUser implements ChabuChannelUser {
+class TestChannelUser implements ChabuChannelUser {
 	
 	private ChabuChannel    channel;
 	private final PseudoRandom     xmitRandom;
@@ -25,7 +25,7 @@ class ChabuChannelUser implements ChabuChannelUser {
 	private long           recvStreamPosition = 0;
 	private Consumer<String> errorReporter;
 	
-	public ChabuChannelUser(int channelId, int xmitBufferSz, Consumer<String> errorReporter ) {
+	public TestChannelUser(int channelId, int xmitBufferSz, Consumer<String> errorReporter ) {
 		this.errorReporter = errorReporter;
 		xmitRandom = new PseudoRandom(channelId*2+0);
 		recvRandom = new PseudoRandom(channelId*2+1);

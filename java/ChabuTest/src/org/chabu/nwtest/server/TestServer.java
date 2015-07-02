@@ -36,7 +36,7 @@ public class TestServer {
 	LinkedList<AConnection> xmitRequestsPending = new LinkedList<>();
 	
 	Chabu chabu;
-	private ArrayList<ChabuChannelUser> chabuChannelUsers = new ArrayList<>( 20 );
+	private ArrayList<TestChannelUser> chabuChannelUsers = new ArrayList<>( 20 );
 
 	class ControlConnection extends AConnection {
 	
@@ -170,7 +170,7 @@ public class TestServer {
 			while( chabuChannelUsers.size() < channel+1 ){
 				chabuChannelUsers.add(null);
 			}
-			chabuChannelUsers.set( channel, new ChabuChannelUser( channel, xmitBufferSz, this::errorReceiver ) );
+			chabuChannelUsers.set( channel, new TestChannelUser( channel, xmitBufferSz, this::errorReceiver ) );
 			builder.addChannel( channel, recvBufferSz, priority, chabuChannelUsers.get(channel));
 			return new JSONObject();
 		}
@@ -198,25 +198,25 @@ public class TestServer {
 		
 		private JSONObject channelRecv(int channelId, int amount) {
 			System.out.printf("channelRecv( %s, %s)\n",  channelId, amount );
-			ChabuChannelUser user = chabuChannelUsers.get(channelId);
+			TestChannelUser user = chabuChannelUsers.get(channelId);
 			user.addRecvAmount(amount);
 			return new JSONObject();
 		}
 
 		private JSONObject channelXmit(int channelId, int amount) {
 			System.out.printf("channelXmit( %s, %s)\n", channelId, amount );
-			ChabuChannelUser user = chabuChannelUsers.get(channelId);
+			TestChannelUser user = chabuChannelUsers.get(channelId);
 			user.addXmitAmount(amount);
 			return new JSONObject();
 		}
 		private JSONObject channelEnsureCompleted(int channelId) {
 			System.out.printf("channelEnsureCompleted( %s )\n", channelId );
-			ChabuChannelUser user = chabuChannelUsers.get(channelId);
+			TestChannelUser user = chabuChannelUsers.get(channelId);
 			user.ensureCompleted();
 			return new JSONObject();
 		}
 		private JSONObject channelState(int channelId) {
-			ChabuChannelUser user = chabuChannelUsers.get(channelId);
+			TestChannelUser user = chabuChannelUsers.get(channelId);
 			return user.getState();
 		}
 		private void close() {

@@ -12,7 +12,6 @@ package org.chabu;
 
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
 
 /**
  * The main object communicating with the network and distributing/collecting the data to/from the
@@ -30,9 +29,6 @@ public interface Chabu {
 	 */
 	void recv(ByteBuffer bufferToConsume);
 	
-	// TODO add this variant
-	//int recv(ByteChannel channel);
-
 	/**
 	 * Called by the network, offering chabu to give the next portion of transmit data.
 	 * Chabu will put as many bytes into the buffer as it can at the moment. The buffers
@@ -50,9 +46,6 @@ public interface Chabu {
 	 */
 	void xmit(ByteBuffer bufferToFill);
 	
-	// TODO add this variant
-//	int xmit(ByteChannel channel);
-
 	/**
 	 * Set an optional printer for trace information.
 	 * <p/>

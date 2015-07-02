@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.chabu;
 
-import java.nio.ByteBuffer;
-
 /**
  * The Chabu channel.
  * 

@@ -92,7 +92,7 @@ public final class ChabuChannelImpl implements ChabuChannel {
 			user.recvEvent( recvBuffer.getOutport() );
 			
 			consumed = inport.free() - avail;
-			inport.ensureCommitted();
+			recvBuffer.getOutport().ensureCommitted();
 			
 //			// write out trace info
 //			if( trc != null && consumed > 0 ){
@@ -116,19 +116,21 @@ public final class ChabuChannelImpl implements ChabuChannel {
 			Utils.ensure( this.recvSeq == seq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, seq );
 			Utils.ensure( pls <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), allowedRecv );
 			
-			Utils.ensure( buf.remaining() <= recvBuffer.getOutport().available(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
+			ByteQueueInputPort qin = recvBuffer.getInport();
+			Utils.ensure( buf.remaining() <= qin.free(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
 					"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value. (this.recvArm=0x%X, this.recvSeq=0x%X, seq=0x%X)", 
-					channelId, buf.remaining(), recvBuffer.getOutport().available(),
+					channelId, buf.remaining(), qin.free(),
 					this.recvArm, this.recvSeq, seq );
 			
 			
 			synchronized(this){
-				int taken = recvBuffer.getInport().write( buf, pls );
+				int taken = qin.write( buf, pls );
+				qin.commit();
 				//int taken = Utils.transferUpTo( buf, recvBuffer, pls );
 				
 				Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
-						"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", 
-						channelId, buf.remaining(), recvBuffer.getInport().freeCommitted() );
+						"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value. %s %s", 
+						channelId, buf.remaining(), qin.free(), taken, pls );
 				//recvBuffer.put( buf );
 				this.recvSeq += pls;
 			

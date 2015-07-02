@@ -136,7 +136,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	
 	@Override
 	public int write( ByteBuffer bb, int length ){
-		int cpySz = bb.remaining();
+		int cpySz = length;
 		if( cpySz > freeCommitted() ) throw new RuntimeException(String.format("ByteQueue (%s) could not take all data", queue.name ));
 		write(bb.array(), bb.arrayOffset()+bb.position(), cpySz );
 		bb.position( bb.position() + cpySz );
@@ -224,7 +224,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	}
 
 	public void commit() {
-		if( this.writeIdx != this.writeMarkIdx ){
+		if( this.writeIdx == this.writeMarkIdx ){
 			// no effect, do nothing
 			return;
 		}
@@ -248,7 +248,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	@Override
 	public void ensureCommitted() {
 		if( writeMarkIdx != writeIdx ){
-			throw new RuntimeException();
+			throw new RuntimeException(String.format("writeMarkIdx:%d != writeIdx:%d", writeMarkIdx, writeIdx ));
 		}
 	}
 

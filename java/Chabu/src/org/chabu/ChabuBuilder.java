@@ -10,8 +10,8 @@
  *******************************************************************************/
 package org.chabu;
 
-import org.chabu.internal.Chabu;
-import org.chabu.internal.ChabuChannel;
+import org.chabu.internal.ChabuImpl;
+import org.chabu.internal.ChabuChannelImpl;
 import org.chabu.internal.Utils;
 
 /**
@@ -31,11 +31,11 @@ public final class ChabuBuilder {
 	public static final int DEFAULT_PRIORITY_COUNT = 1;
 	public static final int DEFAULT_PRIORITY       = 0;
 
-	private Chabu chabu;
+	private ChabuImpl chabu;
 	private int nextChannelId;
 
 	private ChabuBuilder( ChabuSetupInfo ci, int priorityCount ){
-		chabu = new Chabu( ci );
+		chabu = new ChabuImpl( ci );
 		chabu.setPriorityCount(priorityCount);
 	}
 
@@ -78,9 +78,9 @@ public final class ChabuBuilder {
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 *
 	 */
-	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, IChabuChannelUser user ){
+	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, ChabuChannelUser user ){
 		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected %s, but was %s", this.nextChannelId, channelId );
-		ChabuChannel channel = new ChabuChannel( recvBufferSize, priority, user );
+		ChabuChannelImpl channel = new ChabuChannelImpl( recvBufferSize, priority, user );
 		chabu.addChannel( channel );
 		this.nextChannelId++;
 		return this;
@@ -95,7 +95,7 @@ public final class ChabuBuilder {
 	 *
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 */
-	public ChabuBuilder setConnectionValidator( IChabuConnectingValidator val ) {
+	public ChabuBuilder setConnectionValidator( ChabuConnectingValidator val ) {
 		chabu.setConnectingValidator( val );
 		return this;
 	}
@@ -119,8 +119,8 @@ public final class ChabuBuilder {
 	 *
 	 * @return the IChabu instance.
 	 */
-	public IChabu build() {
-		Chabu res = chabu;
+	public Chabu build() {
+		ChabuImpl res = chabu;
 		chabu = null;
 		res.activate();
 		return res;

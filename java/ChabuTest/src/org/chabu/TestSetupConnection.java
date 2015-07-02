@@ -42,7 +42,7 @@ public class TestSetupConnection {
 		ChabuBuilder .start(0x123, APPLNAME_200, 0x100, 3);
 		ChabuBuilder .start(0x123, "", 0x100, 3);
 		
-		IChabu chabu = ChabuBuilder
+		Chabu chabu = ChabuBuilder
 				.start(0x123, "", 0x100, 3)
 				.setConnectionValidator((local, remote) -> {
 					System.out.println("Local  "+local.applicationName);
@@ -141,7 +141,7 @@ public class TestSetupConnection {
 
 		{
 			
-			IChabu chabu = ChabuBuilder
+			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
 					.addChannel( 0, 20, 0, new TestChannelUser())
 					.setConnectionValidator( (local, remote) -> {
@@ -193,7 +193,7 @@ public class TestSetupConnection {
 	public void RemoteConnectionInfo_ChabuVersion() throws Exception {
 
 		{
-			IChabu chabu = ChabuBuilder
+			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
 					.addChannel( 0, 20, 0, new TestChannelUser())
 					.build();
@@ -214,7 +214,7 @@ public class TestSetupConnection {
 	public void RemoteConnectionInfo_MaxReceiveSize() throws Exception {
 
 		{
-			IChabu chabu = ChabuBuilder
+			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
 					.addChannel( 0, 20, 0, new TestChannelUser())
 					.build();
@@ -234,7 +234,7 @@ public class TestSetupConnection {
 	public void RemoteConnectionInfo_Validator() throws Exception {
 
 		{
-			IChabu chabu = ChabuBuilder
+			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
 					.addChannel( 0, 20, 0, new TestChannelUser())
 					.build();

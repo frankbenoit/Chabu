@@ -11,7 +11,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.chabu.IChabu;
+import org.chabu.Chabu;
 import org.chabu.nwtest.Const;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -32,7 +32,7 @@ final class NetworkThread implements Runnable {
 	Selector selector;
 	private Thread thread;
 //	private SelectionKey keyTest;
-	IChabu chabu;
+	Chabu chabu;
 	boolean goToShutdown = false;
 //	private SelectionKey keyCtrl;
 	private SocketContext ctxCtrl;
@@ -381,7 +381,7 @@ final class NetworkThread implements Runnable {
 			selector.wakeup();
 		}
 	}
-	public void setChabu(IChabu chabu) {
+	public void setChabu(Chabu chabu) {
 		ctxTest.recvTrg = chabu::recv;
 		ctxTest.xmitSrc = chabu::xmit;
 		this.chabu = chabu;

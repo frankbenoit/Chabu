@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 import org.chabu.ChabuBuilder;
-import org.chabu.IChabu;
+import org.chabu.Chabu;
 import org.json.JSONObject;
 
 public class TestClient {
@@ -83,7 +83,7 @@ public class TestClient {
 	}
 
 	
-	IChabu chabu;
+	Chabu chabu;
 	ArrayList<ChannelUser> channelUsers = new ArrayList<>();
 	
 	

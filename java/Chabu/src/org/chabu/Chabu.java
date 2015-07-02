@@ -20,7 +20,7 @@ import java.nio.channels.ByteChannel;
  *
  * @author Frank Benoit
  */
-public interface IChabu {
+public interface Chabu {
 
 	/**
 	 * Called by the network, offering chabu the next portion of received data.
@@ -74,7 +74,7 @@ public interface IChabu {
 	 *                  Must within 0 &le; channelId &lt; #getChannelCount().
 	 * @return the channel.
 	 */
-	IChabuChannel getChannel( int channelId );
+	ChabuChannel getChannel( int channelId );
 
 	/**
 	 * Adds a callback to be called when chabu wants to send over the network. It shall lead to a

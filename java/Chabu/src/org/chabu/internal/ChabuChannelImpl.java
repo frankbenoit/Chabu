@@ -14,8 +14,8 @@ import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 
 import org.chabu.ChabuErrorCode;
-import org.chabu.IChabuChannel;
-import org.chabu.IChabuChannelUser;
+import org.chabu.ChabuChannel;
+import org.chabu.ChabuChannelUser;
 import org.chabu.container.ByteQueue;
 import org.chabu.container.ByteQueueBuilder;
 import org.chabu.container.ByteQueueInputPort;
@@ -25,12 +25,12 @@ import org.chabu.container.ByteQueueInputPort;
  *
  * @author Frank Benoit
  */
-public final class ChabuChannel implements IChabuChannel {
+public final class ChabuChannelImpl implements ChabuChannel {
 
 	private int     channelId    = -1;
 	
-	private Chabu                   chabu;
-	private final IChabuChannelUser user;
+	private ChabuImpl                   chabu;
+	private final ChabuChannelUser user;
 	
 	private int        xmitSeq = 0;
 	private int        xmitArm = 0;
@@ -43,7 +43,7 @@ public final class ChabuChannel implements IChabuChannel {
 	
 	private int        priority = 0;
 	
-	public ChabuChannel(int recvBufferSize, int priority, IChabuChannelUser user ) {
+	public ChabuChannelImpl(int recvBufferSize, int priority, ChabuChannelUser user ) {
 		
 		Utils.ensure( recvBufferSize > 0, ChabuErrorCode.CONFIGURATION_CH_RECVSZ, "recvBufferSize must be > 0, but is %s", recvBufferSize );
 		Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is %s", priority );
@@ -59,7 +59,7 @@ public final class ChabuChannel implements IChabuChannel {
 		
 	}
 	
-	void activate(Chabu chabu, int channelId ){
+	void activate(ChabuImpl chabu, int channelId ){
 
 		this.chabu      = chabu;
 		this.channelId  = channelId;
@@ -176,7 +176,7 @@ public final class ChabuChannel implements IChabuChannel {
 		}
 	}
 
-	private IConsumerByteBuffer callUserToGiveXmit = new IConsumerByteBuffer(){
+	private ConsumerByteBuffer callUserToGiveXmit = new ConsumerByteBuffer(){
 		public void accept(ByteBuffer buf) {
 			PrintWriter trc = chabu.getTraceWriter();
 			int startPos = buf.position();
@@ -184,7 +184,7 @@ public final class ChabuChannel implements IChabuChannel {
 			user.xmitEvent(buf);
 
 			int added = buf.position() - startPos;
-			ChabuChannel.this.xmitSeq += added;
+			ChabuChannelImpl.this.xmitSeq += added;
 
 			// write out trace info
 			if( trc != null && buf.position() != startPos ){
@@ -209,7 +209,7 @@ public final class ChabuChannel implements IChabuChannel {
 	}
 
 	@Override
-	public IChabuChannelUser getUser() {
+	public ChabuChannelUser getUser() {
 		return user;
 	}
 

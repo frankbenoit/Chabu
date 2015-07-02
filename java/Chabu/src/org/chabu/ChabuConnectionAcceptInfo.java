@@ -11,7 +11,7 @@
 package org.chabu;
 
 /**
- * Return value from the {@link org.chabu.IChabuConnectingValidator}
+ * Return value from the {@link org.chabu.ChabuConnectingValidator}
  */
 public final class ChabuConnectionAcceptInfo {
 	

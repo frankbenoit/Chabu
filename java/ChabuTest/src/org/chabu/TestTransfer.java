@@ -51,7 +51,7 @@ public class TestTransfer {
 
 	private TraceRunner setupTraceRunner() {
 		
-		IChabu chabu = ChabuBuilder
+		Chabu chabu = ChabuBuilder
 				.start(12345678, "ABC", 0x100, 3)
 				.addChannel(0, 0x200, 2, new TestChannelUser())
 				.addChannel(1, 100, 1, new TestChannelUser())

@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 
 import org.chabu.container.ByteQueueOutputPort;
 
-public class TestChannelUser implements IChabuChannelUser {
+public class TestChannelUser implements ChabuChannelUser {
 
 	/**
 	 * Normally in filling mode.
@@ -16,10 +16,10 @@ public class TestChannelUser implements IChabuChannelUser {
 	 */
 	private ByteBuffer tx = ByteBuffer.allocate(1000);
 	
-	private IChabuChannel channel;
+	private ChabuChannel channel;
 	private boolean consumeRxInProgress = false;
 	@Override
-	public void setChannel(IChabuChannel channel) {
+	public void setChannel(ChabuChannel channel) {
 		this.channel = channel;
 	}
 

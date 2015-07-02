@@ -4,16 +4,16 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
-import org.chabu.IChabuChannel;
-import org.chabu.IChabuChannelUser;
+import org.chabu.ChabuChannel;
+import org.chabu.ChabuChannelUser;
 import org.chabu.PseudoRandom;
 import org.chabu.container.ByteQueueOutputPort;
 import org.chabu.nwtest.Const;
 import org.json.JSONObject;
 
-class ChabuChannelUser implements IChabuChannelUser {
+class ChabuChannelUser implements ChabuChannelUser {
 	
-	private IChabuChannel    channel;
+	private ChabuChannel    channel;
 	private final PseudoRandom     xmitRandom;
 	private final PseudoRandom     recvRandom;
 	
@@ -31,7 +31,7 @@ class ChabuChannelUser implements IChabuChannelUser {
 		recvRandom = new PseudoRandom(channelId*2+1);
 	}
 	@Override
-	public void setChannel(IChabuChannel channel) {
+	public void setChannel(ChabuChannel channel) {
 		this.channel = channel;
 	}
 	@Override

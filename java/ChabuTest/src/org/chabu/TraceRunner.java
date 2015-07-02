@@ -32,14 +32,14 @@ public class TraceRunner {
 	String line;
 	int ln = 0;
 	private BufferedReader br;
-	private IChabu chabu;
+	private Chabu chabu;
 	
 	private int blockLineNum;
 
 	public TraceRunner(){
 	}
 
-	public TraceRunner(IChabu chabu) {
+	public TraceRunner(Chabu chabu) {
 		this.chabu = chabu;
 	}
 
@@ -48,7 +48,7 @@ public class TraceRunner {
 			throw new RuntimeException(String.format(fmt, args));
 		}
 	}
-	public void run( IChabu givenChabu, Reader reader ) throws IOException {
+	public void run( Chabu givenChabu, Reader reader ) throws IOException {
 		br = new BufferedReader(reader);
 		nextLine();
 		ensure( "<ChabuTrace Format=1>".equals( line ), "wrong format: %s", line);
@@ -314,12 +314,12 @@ public class TraceRunner {
 		TraceRunner r = new TraceRunner();
 		r.run( null, new StringReader(string));
 	}
-	public static void testText(IChabu givenChabu, String string) throws Exception {
+	public static void testText(Chabu givenChabu, String string) throws Exception {
 		TraceRunner r = new TraceRunner();
 		r.run( givenChabu, new StringReader(string));
 	}
 
-	public static TraceRunner test(IChabu chabu) {
+	public static TraceRunner test(Chabu chabu) {
 		TraceRunner r = new TraceRunner(chabu);
 		return r;
 	}

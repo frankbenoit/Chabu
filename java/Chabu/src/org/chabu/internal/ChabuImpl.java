@@ -22,16 +22,16 @@ import org.chabu.ChabuConnectionAcceptInfo;
 import org.chabu.ChabuErrorCode;
 import org.chabu.ChabuException;
 import org.chabu.ChabuSetupInfo;
-import org.chabu.IChabu;
-import org.chabu.IChabuChannel;
-import org.chabu.IChabuConnectingValidator;
+import org.chabu.Chabu;
+import org.chabu.ChabuChannel;
+import org.chabu.ChabuConnectingValidator;
 
 
 /**
 *
 * @author Frank Benoit
 */
-public final class Chabu implements IChabu {
+public final class ChabuImpl implements Chabu {
 
 	private static final int   PT_MAGIC = 0x77770000;
 
@@ -45,7 +45,7 @@ public final class Chabu implements IChabu {
 	 */
 	public static final int    PROTOCOL_VERSION = 0x0000_0001;
 
-	private ArrayList<ChabuChannel> channels = new ArrayList<>(256);
+	private ArrayList<ChabuChannelImpl> channels = new ArrayList<>(256);
 	
 	private int      priorityCount = 1;
 	private BitSet[] xmitChannelRequestData;
@@ -92,9 +92,9 @@ public final class Chabu implements IChabu {
 	
 	private PrintWriter traceWriter;
 
-	private IChabuConnectingValidator val;
+	private ChabuConnectingValidator val;
 	
-	public Chabu( ChabuSetupInfo info ){
+	public ChabuImpl( ChabuSetupInfo info ){
 		
 		Utils.ensure( info.maxReceiveSize >= 0x100, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
 				"maxReceiveSize must be at least 0x100, but is %s", info.maxReceiveSize );
@@ -126,7 +126,7 @@ public final class Chabu implements IChabu {
 	 * The Cte must ensure itself that the channel is available at firmware side.
 	 * @param channel
 	 */
-	public void addChannel( ChabuChannel channel ){
+	public void addChannel( ChabuChannelImpl channel ){
 		channels.add(channel);
 	}
 	public void setPriorityCount( int priorityCount ){
@@ -144,7 +144,7 @@ public final class Chabu implements IChabu {
 	}
 	
 	/**
-	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannel)} or {@link #setPriorityCount(int)} are allowed.
+	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannelImpl)} or {@link #setPriorityCount(int)} are allowed.
 	 */
 	public void activate(){
 		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
@@ -158,7 +158,7 @@ public final class Chabu implements IChabu {
 		}
 		
 		for( int i = 0; i < channels.size(); i++ ){
-			ChabuChannel ch = channels.get(i);
+			ChabuChannelImpl ch = channels.get(i);
 			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, "Channel %s has higher priority (%s) as the max %s", i, ch.getPriority(), priorityCount );
 			ch.activate(this, i );
 		}
@@ -311,7 +311,7 @@ public final class Chabu implements IChabu {
 		int channelId = recvBuf.getInt();
 		int arm       = recvBuf.getInt();
 
-		ChabuChannel channel = channels.get(channelId);
+		ChabuChannelImpl channel = channels.get(channelId);
 		channel.handleRecvArm(arm);
 	}
 
@@ -333,7 +333,7 @@ public final class Chabu implements IChabu {
 			throw new ChabuException(String.format("Packet type SEQ with unexpected len field: %s, PLS %s", recvBuf.limit(), pls ));
 		}
 
-		ChabuChannel channel = channels.get(channelId);
+		ChabuChannelImpl channel = channels.get(channelId);
 		channel.handleRecvSeq( seq, recvBuf, pls );
 	}
 	private void checkConnectingValidator() {
@@ -468,7 +468,7 @@ public final class Chabu implements IChabu {
 				}
 			}
 
-			ChabuChannel ch = calcNextXmitChannel(xmitChannelRequestArm);
+			ChabuChannelImpl ch = calcNextXmitChannel(xmitChannelRequestArm);
 			if( ch != null ){
 				ch.handleXmitArm();
 				continue;
@@ -582,7 +582,7 @@ public final class Chabu implements IChabu {
 	/** 
 	 * Called by channel
 	 */
-	int processXmitSeq( int channelId, int seq, int maxPayload, IConsumerByteBuffer user ){
+	int processXmitSeq( int channelId, int seq, int maxPayload, ConsumerByteBuffer user ){
 		
 		if( xmitBuf.hasRemaining() ){
 			throw new ChabuException("Cannot xmit SEQ, buffer is not empty");
@@ -619,7 +619,7 @@ public final class Chabu implements IChabu {
 	}
 
 
-	private ChabuChannel calcNextXmitChannel(BitSet[] prioBitSets) {
+	private ChabuChannelImpl calcNextXmitChannel(BitSet[] prioBitSets) {
 		synchronized(this){
 			for( int prio = priorityCount-1; prio >= 0; prio-- ){
 				int idxCandidate = -1;
@@ -639,7 +639,7 @@ public final class Chabu implements IChabu {
 				if( idxCandidate >= 0 ){
 					prioBitSet.clear(idxCandidate);
 					xmitLastChannelIdx = idxCandidate;
-					ChabuChannel channel = channels.get(idxCandidate);
+					ChabuChannelImpl channel = channels.get(idxCandidate);
 					Utils.ensure( channel.getPriority() == prio, ChabuErrorCode.ASSERT, "Channels prio does not match the store prio." );
 					return channel;
 				}
@@ -679,7 +679,7 @@ public final class Chabu implements IChabu {
 		return traceWriter;
 	}
 
-	public void setConnectingValidator(IChabuConnectingValidator val) {
+	public void setConnectingValidator(ChabuConnectingValidator val) {
 		Utils.ensure( val      != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "ConnectingValidator passed in is null" );
 		Utils.ensure( this.val == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "ConnectingValidator is already set" );
 		this.val = val;
@@ -691,7 +691,7 @@ public final class Chabu implements IChabu {
 	}
 
 	@Override
-	public IChabuChannel getChannel(int channelId) {
+	public ChabuChannel getChannel(int channelId) {
 		return channels.get(channelId);
 	}
 

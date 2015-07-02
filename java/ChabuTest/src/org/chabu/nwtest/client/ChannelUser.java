@@ -3,14 +3,14 @@ package org.chabu.nwtest.client;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.chabu.IChabuChannel;
-import org.chabu.IChabuChannelUser;
+import org.chabu.ChabuChannel;
+import org.chabu.ChabuChannelUser;
 import org.chabu.PseudoRandom;
 import org.chabu.container.ByteQueueOutputPort;
 import org.chabu.nwtest.Const;
 
-class ChannelUser implements IChabuChannelUser {
-		IChabuChannel channel;
+class ChannelUser implements ChabuChannelUser {
+		ChabuChannel channel;
 		
 		private org.chabu.PseudoRandom xmitRandom;
 		private org.chabu.PseudoRandom recvRandom;
@@ -21,7 +21,7 @@ class ChannelUser implements IChabuChannelUser {
 		private AtomicInteger recvPending = new AtomicInteger();
 		private AtomicInteger xmitPending = new AtomicInteger();
 		
-		public void setChannel(IChabuChannel channel) {
+		public void setChannel(ChabuChannel channel) {
 			this.channel = channel;
 			xmitRandom = new PseudoRandom(channel.getChannelId()*2 + 1 );
 			recvRandom = new PseudoRandom(channel.getChannelId()*2 + 0 );

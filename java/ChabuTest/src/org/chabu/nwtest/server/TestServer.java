@@ -15,7 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 
 import org.chabu.ChabuBuilder;
-import org.chabu.IChabu;
+import org.chabu.Chabu;
 import org.chabu.TestUtils;
 import org.chabu.nwtest.Const;
 import org.json.JSONException;
@@ -35,7 +35,7 @@ public class TestServer {
 	ChabuConnection   testConnection;
 	LinkedList<AConnection> xmitRequestsPending = new LinkedList<>();
 	
-	IChabu chabu;
+	Chabu chabu;
 	private ArrayList<ChabuChannelUser> chabuChannelUsers = new ArrayList<>( 20 );
 
 	class ControlConnection extends AConnection {

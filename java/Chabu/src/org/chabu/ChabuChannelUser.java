@@ -14,42 +14,26 @@ import java.nio.ByteBuffer;
 
 import org.chabu.container.ByteQueueOutputPort;
 
-public class ChabuChannelUser implements IChabuChannelUser {
-		protected ByteBuffer recv;
-		protected ByteBuffer xmit;
-		protected IChabuChannel channel;
-		
-		public ChabuChannelUser( ByteBuffer recv, ByteBuffer xmit ){
-			this.recv = recv;
-			this.xmit = xmit;
-			recv.limit( recv.position() );
-		}
-		
-		@Override
-		public void setChannel(IChabuChannel channel) {
-			this.channel = channel;
-		}
-		
-		@Override
-		public boolean xmitEvent( ByteBuffer bufferToFill ) {
-			xmit.flip();
-			int oldLimit = xmit.limit();
-			if( xmit.remaining() > bufferToFill.remaining() ){
-				xmit.limit( xmit.position() + bufferToFill.remaining() );
-			}
-			bufferToFill.put(xmit);
-			xmit.limit(oldLimit);
-			xmit.compact();
+/**
+ * Communication from IChabuChannel to the application. The application shall give one instance
+ * of IChabuChannelUser to each channel.
+ */
+public interface ChabuChannelUser {
 
-			return false;
-		}
-
-		@Override
-		public void recvEvent(ByteQueueOutputPort queueOutput) {
-			recv.compact();
-			queueOutput.poll( recv );
-			queueOutput.commit();
-			recv.flip();
-		}
-
-	}
+	/**
+	 * Called in the startup, so this object can notify the channel about recv/xmit requests.
+	 * @param channel
+	 */
+	void setChannel( ChabuChannel channel );
+	
+	/**
+	 * Event to receive data from the network.
+	 */
+	void recvEvent( ByteQueueOutputPort queue );
+	
+	/**
+	 * Event to pass data to the network.
+	 */
+	boolean xmitEvent( ByteBuffer bufferToFill );
+	
+}

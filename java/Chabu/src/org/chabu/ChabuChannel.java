@@ -17,10 +17,10 @@ import java.nio.ByteBuffer;
  * 
  * @author Frank Benoit
  */
-public interface IChabuChannel {
+public interface ChabuChannel {
 
 	/**
-	 * Schedule a call to {@link IChabuChannelUser#xmitEvent(java.nio.ByteBuffer)}
+	 * Schedule a call to {@link ChabuChannelUser#xmitEvent(java.nio.ByteBuffer)}
 	 * when it is possible in future.
 	 * The priority of the channel is important and if the receiver 
 	 * has notified about available space for receive.
@@ -28,7 +28,7 @@ public interface IChabuChannel {
 	void xmitRegisterRequest();
 	
 	/**
-	 * Schedule a call to {@link IChabuChannelUser#evRecv(java.nio.ByteBuffer)}. 
+	 * Schedule a call to {@link ChabuChannelUser#evRecv(java.nio.ByteBuffer)}. 
 	 * This can happen within this method call.
 	 */
 	void recvRegisterRequest();
@@ -36,7 +36,7 @@ public interface IChabuChannel {
 	/**
 	 * Retrieve the associated user object.
 	 */
-	IChabuChannelUser getUser();
+	ChabuChannelUser getUser();
 
 	/**
 	 * Get the number index of this channel.

@@ -104,4 +104,8 @@ public interface ByteQueueOutputPort {
 	 */
 	void skip(int length);
 
+	/**
+	 * Throw an exception if the output port is not in committed state.
+	 */
+	void ensureCommitted();
 }

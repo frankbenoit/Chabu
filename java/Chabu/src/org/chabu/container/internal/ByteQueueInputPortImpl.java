@@ -245,4 +245,11 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 		return String.format("ByteQueueInport[ free=%s freeUncom=%s ]", freeCommitted(), free() );
 	}
 
+	@Override
+	public void ensureCommitted() {
+		if( writeMarkIdx != writeIdx ){
+			throw new RuntimeException();
+		}
+	}
+
 }

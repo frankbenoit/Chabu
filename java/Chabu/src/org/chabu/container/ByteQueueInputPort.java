@@ -115,6 +115,11 @@ public interface ByteQueueInputPort {
 	 */
 	void setCallbackConsumed(ByteQueueSpaceAvailableListener callbackConsumed);
 
+	/**
+	 * Throw an exception if the input port is not in committed state.
+	 */
+	void ensureCommitted();
+
 
 	
 }

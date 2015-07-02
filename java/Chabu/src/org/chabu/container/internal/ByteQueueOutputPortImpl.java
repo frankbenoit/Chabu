@@ -253,4 +253,11 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 		return String.format("ByteQueueOutport[ avail=%s availUncom=%s ]", availableCommitted(), available() );
 	}
 
+	@Override
+	public void ensureCommitted() {
+		if( readMarkIdx != readIdx ){
+			throw new RuntimeException();
+		}
+	}
+
 }

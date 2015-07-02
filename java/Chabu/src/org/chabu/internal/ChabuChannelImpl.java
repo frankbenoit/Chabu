@@ -92,6 +92,7 @@ public final class ChabuChannelImpl implements ChabuChannel {
 			user.recvEvent( recvBuffer.getOutport() );
 			
 			consumed = inport.free() - avail;
+			inport.ensureCommitted();
 			
 //			// write out trace info
 //			if( trc != null && consumed > 0 ){
@@ -127,7 +128,7 @@ public final class ChabuChannelImpl implements ChabuChannel {
 				
 				Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
 						"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", 
-						channelId, buf.remaining(), recvBuffer.getInport().free() );
+						channelId, buf.remaining(), recvBuffer.getInport().freeCommitted() );
 				//recvBuffer.put( buf );
 				this.recvSeq += pls;
 			

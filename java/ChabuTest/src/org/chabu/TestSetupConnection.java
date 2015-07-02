@@ -166,11 +166,12 @@ public class TestSetupConnection {
 			fail("An Exception shall be thrown");
 		}
 		catch( ChabuException e ){
-			e.printStackTrace();
 			if( e.getRemoteCode() == 0 ){
+				if( ec.getCode() != e.getCode()) e.printStackTrace();
 				assertEquals( ec.getCode(), e.getCode());
 			}
 			else {
+				if( ec.getCode() != e.getRemoteCode()) e.printStackTrace();
 				assertEquals( ec.getCode(), e.getRemoteCode());
 			}
 		}

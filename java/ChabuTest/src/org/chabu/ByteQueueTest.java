@@ -23,7 +23,7 @@ public class ByteQueueTest {
 			int remaining = LEN;
 			Random rnd = new Random();
 			while( remaining > 0 ){
-				int free = inport.free();
+				int free = inport.freeCommitted();
 				if( free == 0 ){
 					continue;
 				}

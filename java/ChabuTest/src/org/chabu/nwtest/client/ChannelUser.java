@@ -31,7 +31,7 @@ class ChannelUser implements ChabuChannelUser {
 		public void recvEvent(ByteQueueOutputPort queue) {
 			
 //			int r = bufferToConsume.remaining();
-			int putSz = Math.min( queue.availableUncommitted(), recvPending.get() );
+			int putSz = Math.min( queue.available(), recvPending.get() );
 			recvPending.addAndGet(-putSz);
 			
 			if( Const.DATA_RANDOM ){

@@ -132,6 +132,11 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 
 	@Override
 	public int write( ByteBuffer bb ){
+		return write( bb, bb.remaining() );
+	}
+	
+	@Override
+	public int write( ByteBuffer bb, int length ){
 		int cpySz = bb.remaining();
 		if( cpySz > free() ) throw new RuntimeException(String.format("ByteQueue (%s) could not take all data", queue.name ));
 		write(bb.array(), bb.arrayOffset()+bb.position(), cpySz );

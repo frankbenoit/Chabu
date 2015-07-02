@@ -63,6 +63,15 @@ public interface ByteQueueInputPort {
 	 * @return amount of bytes copied
 	 */
 	public int write( ByteBuffer bb );
+
+	/**
+	 * Write data from the ByteBuffer into the ByteQueue. Transfer the amount of bytes given as length.
+	 * Throw a RuntimeException if the ByteQueue could not take all data, or if the ByteBuffer does not have enough remaining.
+	 * 
+	 * @param bb
+	 * @return amount of bytes copied
+	 */
+	public int write( ByteBuffer bb, int length );
 	
 	/**
 	 * Write an 4-byte integer value into the queue. BIG_ENDIAN is used.

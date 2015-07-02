@@ -28,12 +28,12 @@ public interface ByteQueue {
 	int capacity();
 
 	/**
-	 * Get the in port instance and use it for all write actions.
+	 * Get the input port instance and use it for all write actions.
 	 */
 	ByteQueueInputPort getInport();
 
 	/**
-	 * Get the out port instance and use it for all read actions.
+	 * Get the output port instance and use it for all read actions.
 	 */
 	ByteQueueOutputPort getOutport();
 

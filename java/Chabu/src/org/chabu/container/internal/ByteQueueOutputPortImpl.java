@@ -70,6 +70,23 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	}
 	
 	@Override
+	public byte readByte() {
+		queue.Assert( available() > 0 );
+		byte res = queue.buf[ readMarkIdx ];
+		int nextIdx = readMarkIdx + 1;
+		readMarkIdx = ( nextIdx >= queue.buf.length ) ? 0 : nextIdx;
+		return res;
+	}
+
+	@Override
+	public void skip(int length) {
+		queue.Assert(length >= 0 && length <= available() );
+		int nextIdx = readMarkIdx + length;
+		readMarkIdx = ( nextIdx >= queue.buf.length ) ? 0 : nextIdx;
+	}
+
+	
+	@Override
 	public int readInt(){
 		readBuffer.clear();
 		readBuffer.limit(4);
@@ -194,4 +211,5 @@ final class ByteQueueOutputPortImpl implements ByteQueueOutputPort {
 	public String toString() {
 		return String.format("ByteQueueOutport[ avail=%s availUncom=%s ]", available(), availableUncommitted() );
 	}
+
 }

@@ -81,4 +81,14 @@ public interface ByteQueueOutputPort {
 
 	void move(ByteQueueInputPort trgQueue, int size);
 
+	/**
+	 * Read a single byte.
+	 */
+	byte readByte();
+
+	/**
+	 * Skip bytes.
+	 */
+	void skip(int length);
+
 }

@@ -56,6 +56,8 @@
 #define CHABU_SEQPACKET_OFFSET_DATASIZE 16
 #define CHABU_SEQPACKET_OFFSET_DATADATA 20
 
+
+
 void Chabu_Init(
 		struct Chabu_Data* data,
 
@@ -293,7 +295,7 @@ static void handleRecvSetup( struct Chabu_Data* data ){
 		}
 		memcpy( data->connectionInfoRemote.applicationName, anStr, anLen );
 		data->connectionInfoRemote.applicationName[anLen] = 0;
-		data->connectionInfoRemote.applicationNameLength = anLen;
+		data->connectionInfoRemote.applicationNameLength = (uint8)anLen;
 
 		data->connectionInfoRemote.applicationVersion = av;
 
@@ -335,7 +337,7 @@ static void handleRecvArm( struct Chabu_Data* data ){
 
 	Chabu_Assert( data->recvBuffer.position == 16 );
 
-	uint32 channelId  = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_ARMPACKET_OFFSET_CHANNEL );
+	int channelId  = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_ARMPACKET_OFFSET_CHANNEL );
 	uint32 arm        = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_ARMPACKET_OFFSET_ARM     );
 
 	Chabu_Assert( channelId < data->channelCount );
@@ -351,9 +353,9 @@ static void handleRecvSeq( struct Chabu_Data* data ){
 
 	Chabu_Assert( data->recvBuffer.position >= 20 );
 
-	uint32 channelId = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_CHANNEL  );
+	int    channelId = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_CHANNEL  );
 	uint32 seq       = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_SEQ      );
-	uint32 dataSize  = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_DATASIZE );
+	int    dataSize  = UINT32_GET_UNALIGNED_HTON( data->recvBuffer.data + CHABU_SEQPACKET_OFFSET_DATASIZE );
 
 	Chabu_Assert( data->recvBuffer.position >= 20 + dataSize );
 	Chabu_Assert( channelId < data->channelCount );
@@ -388,11 +390,11 @@ void Chabu_PutRecvData ( struct Chabu_Data* data, void* recvData, int length ){
 	while( idx < length ){
 
 		// try to fill recvBuffer
-		idx += copyMemoryToBuffer( &data->recvBuffer, recvData + idx, length - idx );
+		idx += copyMemoryToBuffer( &data->recvBuffer, ((char*)recvData) + idx, length - idx );
 
 		// if this was PS, prepare full recv and again.
 		if( data->recvBuffer.position == CHABU_MINIMUM_PACKET_SIZE && data->recvBuffer.limit == CHABU_MINIMUM_PACKET_SIZE){
-			uint32 ps = UINT32_GET_UNALIGNED_HTON(data->recvBuffer.data);
+			int ps = UINT32_GET_UNALIGNED_HTON(data->recvBuffer.data);
 
 			Chabu_Assert( ps >= CHABU_MINIMUM_PACKET_SIZE && ps <= data->recvBuffer.capacity );
 

@@ -9,10 +9,10 @@
 #define CHABU_SRC_COMMON_H_
 
 #include <string.h>
-#include <stdbool.h>
+//#include <stdbool.h>
 #include <stdio.h>
 #include "ChabuOpts.h"
-#include <pthread.h>
+//#include <pthread.h>
 
 #define countof(_v) (sizeof(_v)/(sizeof(_v[0])))
 
@@ -131,6 +131,10 @@ enum TYPE_ID {
 
 #define UINT32_HI(v) (uint16)(((uint32)(v))>>16)
 #define UINT32_LO(v) (uint16)(((uint32)(v)))
+#define UINT32_B3(v) (uint8)(((uint32)(v))>>24)
+#define UINT32_B2(v) (uint8)(((uint32)(v))>>16)
+#define UINT32_B1(v) (uint8)(((uint32)(v))>>8)
+#define UINT32_B0(v) (uint8)(((uint32)(v)))
 
 #define UINT64_HI(v) (uint32)(((uint64)(v))>>32)
 #define UINT64_LO(v) (uint32)(((uint64)(v)))
@@ -150,10 +154,13 @@ enum TYPE_ID {
 #define UINT32_GET_UNALIGNED(_p) ({ void* _p2 = (_p); UINT32_COMP4( ((uint8*)_p2)[3], ((uint8*)_p2)[2], ((uint8*)_p2)[1], ((uint8*)_p2)[0] ); })
 #define UINT64_GET_UNALIGNED(_p) ({ void* _p2 = (_p); UINT64_COMP8( ((uint8*)_p2)[7], ((uint8*)_p2)[6], ((uint8*)_p2)[5], ((uint8*)_p2)[4], ((uint8*)_p2)[3], ((uint8*)_p2)[2], ((uint8*)_p2)[1], ((uint8*)_p2)[0] ); })
 
-#define UINT8_GET_UNALIGNED_HTON(_p)  ({ void* _p2 = (_p); *((uint8*)_p2)[0]; })
-#define UINT16_GET_UNALIGNED_HTON(_p) ({ void* _p2 = (_p); UINT16_COMP2( ((uint8*)_p2)[0], ((uint8*)_p2)[1] ); })
-#define UINT32_GET_UNALIGNED_HTON(_p) ({ void* _p2 = (_p); UINT32_COMP4( ((uint8*)_p2)[0], ((uint8*)_p2)[1], ((uint8*)_p2)[2], ((uint8*)_p2)[3] ); })
-#define UINT64_GET_UNALIGNED_HTON(_p) ({ void* _p2 = (_p); UINT64_COMP8( ((uint8*)_p2)[0], ((uint8*)_p2)[1], ((uint8*)_p2)[2], ((uint8*)_p2)[3], ((uint8*)_p2)[4], ((uint8*)_p2)[5], ((uint8*)_p2)[6], ((uint8*)_p2)[7] ); })
+#define UINT8_GET(p,o) (*(((uint8*)(p))+(o)))
+#define UINT8_PUT(p,o,v) (*(((uint8*)(p))+(o)))=(v)
+
+#define UINT8_GET_UNALIGNED_HTON(p)  UINT8_GET(p,0)
+#define UINT16_GET_UNALIGNED_HTON(p) UINT16_COMP2(UINT8_GET(p,0),UINT8_GET(p,1))
+#define UINT32_GET_UNALIGNED_HTON(p) UINT32_COMP4(UINT8_GET(p,0),UINT8_GET(p,1),UINT8_GET(p,2),UINT8_GET(p,3))
+#define UINT64_GET_UNALIGNED_HTON(p) UINT64_COMP8(UINT8_GET(p,0),UINT8_GET(p,1),UINT8_GET(p,2),UINT8_GET(p,3),UINT8_GET(p,4),UINT8_GET(p,5),UINT8_GET(p,6),UINT8_GET(p,7))
 
 #define UINT8_PUT_UNALIGNED(_p,_v)  ({ uint8* _p2 = (uint8*)(_p); uint8  _v2 = (uint8 )_v; _p2[0] = _v2; })
 #define UINT16_PUT_UNALIGNED(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint16 _v2 = (uint16)_v; _p2[0] = _v2; _p2[1] = _v2 >>  8; })
@@ -161,8 +168,10 @@ enum TYPE_ID {
 #define UINT64_PUT_UNALIGNED(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint64 _v2 = (uint64)_v; _p2[0] = _v2; _p2[1] = _v2 >>  8;  _p2[2] = _v2 >> 16; _p2[3] = _v2 >> 24; _p2[4] = _v2 >> 32; _p2[5] = _v2 >> 40;  _p2[6] = _v2 >> 48; _p2[7] = _v2 >> 56; })
 
 #define UINT8_PUT_UNALIGNED_HTON(_p,_v)  ({ uint8* _p2 = (uint8*)(_p); uint8  _v2 = (uint8 )_v; _p2[0] = _v2; })
-#define UINT16_PUT_UNALIGNED_HTON(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint16 _v2 = (uint16)_v; _p2[1] = _v2; _p2[0] = _v2 >>  8; })
-#define UINT32_PUT_UNALIGNED_HTON(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint32 _v2 = (uint32)_v; _p2[3] = _v2; _p2[2] = _v2 >>  8;  _p2[1] = _v2 >> 16; _p2[0] = _v2 >> 24; })
+#define UINT16_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT32_B1(_v)),UINT8_PUT(_p,1,UINT32_B0(_v))
+//({ uint8* _p2 = (uint8*)(_p); uint16 _v2 = (uint16)_v; _p2[1] = _v2; _p2[0] = _v2 >>  8; })
+#define UINT32_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT32_B3(_v)),UINT8_PUT(_p,1,UINT32_B1(_v)),UINT8_PUT(_p,2,UINT32_B2(_v)),UINT8_PUT(_p,3,UINT32_B0(_v))
+//({ uint8* _p2 = (uint8*)(_p); uint32 _v2 = (uint32)_v; _p2[3] = _v2; _p2[2] = _v2 >>  8;  _p2[1] = _v2 >> 16; _p2[0] = _v2 >> 24; })
 #define UINT64_PUT_UNALIGNED_HTON(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint64 _v2 = (uint64)_v; _p2[7] = _v2; _p2[6] = _v2 >>  8;  _p2[5] = _v2 >> 16; _p2[4] = _v2 >> 24; _p2[3] = _v2 >> 32; _p2[2] = _v2 >> 40;  _p2[1] = _v2 >> 48; _p2[0] = _v2 >> 56; })
 
 #define UINT16_SWAP(_v) UINT16_COMP2( (_v), (_v) >> 8 )
@@ -294,7 +303,8 @@ enum {
 //#define RC_RUNTIME_STATE  8
 
 #define Assert(c) Chabu_Assert(c)
-#define AssertPrintf(c, fmt, args... ) Chabu_AssertPrintf(c, fmt, ##args )
+//#define AssertPrintf(c, fmt, arg... ) Chabu_AssertPrintf(c, fmt, ##args )
+#define AssertPrintf(c, fmt, ... ) Chabu_AssertPrintf(c, fmt, __VA_ARGS__ )
 
 /** A compile time assertion check.
  *
@@ -334,9 +344,9 @@ struct LinkedItem {
 };
 
 
-extern pthread_mutex_t Common_global_mutex;
-#define Common_CriticalEnter() do{ pthread_mutex_lock  (&Common_global_mutex); }while(false)
-#define Common_CriticalLeave() do{ pthread_mutex_unlock(&Common_global_mutex); }while(false)
+//extern pthread_mutex_t Common_global_mutex;
+//#define Common_CriticalEnter() do{ pthread_mutex_lock  (&Common_global_mutex); }while(false)
+//#define Common_CriticalLeave() do{ pthread_mutex_unlock(&Common_global_mutex); }while(false)
 
 extern void Common_Init();
 extern void Common_Exit();
@@ -394,7 +404,7 @@ static inline void _Common_MemCopy( void* _trg, int _trgSz, int _trgOff, const v
 #else
 
 #define _Common_MemCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \
-	memcpy( ((void*)(_trg))+(_trgOff), ((void*)(_src))+(_srcOff), (_len))
+	memcpy( ((char*)(_trg))+(_trgOff), ((char*)(_src))+(_srcOff), (_len))
 
 
 #define _Common_ArrayCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \

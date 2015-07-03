@@ -1,0 +1,79 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{8A6C0DA8-91BA-4D15-BDCE-9FD301795827}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>Chabu</RootNamespace>
+    <AssemblyName>Chabu</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="org\chabu\Extensions.cs" />
+    <Compile Include="org\chabu\Chabu.cs" />
+    <Compile Include="org\chabu\ChabuBuilder.cs" />
+    <Compile Include="org\chabu\ChabuChannel.cs" />
+    <Compile Include="org\chabu\ChabuChannelUser.cs" />
+    <Compile Include="org\chabu\ChabuChannelUserDefault.cs" />
+    <Compile Include="org\chabu\ChabuConnectingValidator.cs" />
+    <Compile Include="org\chabu\ChabuConnectionAcceptInfo.cs" />
+    <Compile Include="org\chabu\ChabuErrorCode.cs" />
+    <Compile Include="org\chabu\ChabuException.cs" />
+    <Compile Include="org\chabu\ChabuSetupInfo.cs" />
+    <Compile Include="org\chabu\container\ByteQueue.cs" />
+    <Compile Include="org\chabu\container\ByteQueueBuilder.cs" />
+    <Compile Include="org\chabu\container\ByteQueueDataAvailableListener.cs" />
+    <Compile Include="org\chabu\container\ByteQueueInputPort.cs" />
+    <Compile Include="org\chabu\container\ByteQueueOutputPort.cs" />
+    <Compile Include="org\chabu\container\ByteQueueSpaceAvailableListener.cs" />
+    <Compile Include="org\chabu\container\internal\ByteQueueImpl.cs" />
+    <Compile Include="org\chabu\container\internal\ByteQueueInputPortImpl.cs" />
+    <Compile Include="org\chabu\container\internal\ByteQueueOutputPortImpl.cs" />
+    <Compile Include="org\chabu\internal\ChabuChannelImpl.cs" />
+    <Compile Include="org\chabu\internal\ChabuImpl.cs" />
+    <Compile Include="org\chabu\internal\ConsumerByteBuffer.cs" />
+    <Compile Include="org\chabu\internal\PacketType.cs" />
+    <Compile Include="org\chabu\internal\RecvState.cs" />
+    <Compile Include="org\chabu\internal\Utils.cs" />
+    <Compile Include="org\chabu\internal\XmitState.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

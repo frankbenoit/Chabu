@@ -1,11 +1,10 @@
 package org.chabu.nwtest.client;
 
 import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 
-import org.chabu.ChabuBuilder;
 import org.chabu.Chabu;
+import org.chabu.ChabuBuilder;
 import org.json.JSONObject;
 
 public class TestClient {
@@ -130,7 +129,7 @@ public class TestClient {
 			
 			msrBandwith();
 			
-			//highTraffic();
+			highTraffic();
 			
 			
 			System.out.println( remoteChannelState(0) );
@@ -148,8 +147,6 @@ public class TestClient {
 		long tsEnd = Math.round( 10 * 1e9) + tsStart;
 
 		NwtUtil.log("high Traffic ----------------------" );
-		int[] recvPending = new int[ channelUsers.size() ];
-		int[] xmitPending = new int[ channelUsers.size() ];
 		int loop = 0;
 		try( FileWriter fw = new FileWriter("bandwidth.log.txt") ){
 			while( tsEnd - System.nanoTime() > 0 ){
@@ -209,7 +206,7 @@ public class TestClient {
 			ts /= 1000;
 
 			if( max <= 0 ){
-				System.err.println("Timeout");
+				System.err.println("Timeout "+ch0);
 				NwtUtil.log("Timeout  %s", ch0 );
 				NwtUtil.log("%s", remoteChabuGetState() );
 				break;

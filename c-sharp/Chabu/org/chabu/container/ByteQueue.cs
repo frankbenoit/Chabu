@@ -20,7 +20,7 @@ namespace org.chabu.container
      * 
      * @author Frank Benoit
      *
-     */
+     **/
     public interface ByteQueue
     {
 

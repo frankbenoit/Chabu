@@ -7,7 +7,7 @@ using org.chabu.intern;
 
 namespace org.chabu
 {
-    static class Extensions
+    public static class Extensions
     {
         public static bool isByteOrderBigEndian = true;
 
@@ -138,6 +138,12 @@ namespace org.chabu
             }
             return (int)res;
         }
+        public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, sbyte[] bytes)
+        {
+            Array.Copy(bytes, bytes.Length, ms.GetBuffer(), ms.Position, bytes.Length);
+            ms.position(ms.position() + bytes.Length);
+            return ms;
+        }
         public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, byte[] bytes)
         {
             Array.Copy(bytes, bytes.Length, ms.GetBuffer(), ms.Position, bytes.Length);
@@ -152,17 +158,23 @@ namespace org.chabu
             other.position(other.position() + copySz);
             return ms;
         }
-        public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, byte value)
+        public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, sbyte value)
         {
             put(ms, ms.position(), value);
             ms.position(ms.position() + 1);
             return ms;
         }
-        public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, int pos, byte value)
+        public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, byte value)
+        {
+            put(ms, ms.position(), (sbyte)value);
+            ms.position(ms.position() + 1);
+            return ms;
+        }
+        public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, int pos, sbyte value)
         {
             Utils.ensure(pos >= 0 && pos + 1 >= ms.Length, 0, "" );
             byte[] buffer = ms.GetBuffer();
-            buffer[pos] = value;
+            buffer[pos] = (byte)value;
             return ms;
         }
         public static System.IO.MemoryStream putShort(this System.IO.MemoryStream ms, short value)
@@ -288,6 +300,63 @@ namespace org.chabu
             {
                 originalArray[i] = with;
             }
-        }          
+        } 
+        
+ 
+        ///////////////////////////////////////////////////////
+        // StringBuilder
+        public static void append(this StringBuilder sb, string str)
+        {
+            sb.Append(str);
+        }
+        public static void append(this StringBuilder sb, char c)
+        {
+            sb.Append(c);
+        }
+        public static string toString(this StringBuilder sb)
+        {
+            return sb.ToString();
+        }
+        public static int length(this StringBuilder sb)
+        {
+            return sb.Length;
+        }
+
+        ///////////////////////////////////////////////////////
+        // String
+        public static string toString(this String s)
+        {
+            return s.ToString();
+        }
+        public static bool isEmpty(this String s)
+        {
+            return s.Length == 0;
+        }
+        public static int length(this String s)
+        {
+            return s.Length;
+        }
+        public static char charAt(this String s, int idx)
+        {
+            return s[idx];
+        }
+        public static string trim(this String s)
+        {
+            return s.Trim();
+        }
+        public static bool equals(this String s, string o)
+        {
+            return s.Equals(o);
+        }
+        public static byte[] getBytes(this String s, Encoding enc)
+        {
+            return enc.GetBytes(s);
+        }
+
+        public static int length(this byte[] a)
+        {
+            return a.Length;
+        }
+
     }
 }

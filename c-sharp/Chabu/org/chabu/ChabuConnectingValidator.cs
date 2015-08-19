@@ -11,13 +11,8 @@
 namespace org.chabu
 {
 
-    public interface ChabuConnectingValidator
-    {
-
         /**
          * For accepted, either returns null or a ChabuConnectionAcceptInfo with code set to 0.
          */
-        ChabuConnectionAcceptInfo isAccepted(ChabuSetupInfo local, ChabuSetupInfo remote);
-
-    }
+    public delegate ChabuConnectionAcceptInfo ChabuConnectingValidator(ChabuSetupInfo local, ChabuSetupInfo remote);
 }

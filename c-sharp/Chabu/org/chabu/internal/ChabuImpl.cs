@@ -346,7 +346,7 @@ public sealed class ChabuImpl : Chabu {
 
 			bool isOk = true;
 			if( val != null ){
-				ChabuConnectionAcceptInfo acceptInfo = val.isAccepted(infoLocal, infoRemote);
+				ChabuConnectionAcceptInfo acceptInfo = val(infoLocal, infoRemote);
 				if( acceptInfo != null && acceptInfo.code != 0 ){
 					isOk = false;
 

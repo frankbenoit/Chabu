@@ -15,3 +15,6 @@ bin/
 hs_err_pid*
 /java/ChabuTest/server.log.txt
 /java/ChabuTest/client.log.txt
+/c-sharp/Chabu/obj
+/c-sharp/ChabuCSTest/bin
+/c-sharp/ChabuCSTest/obj

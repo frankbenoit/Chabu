@@ -301,7 +301,7 @@ namespace org.chabu
 	    }
 	
 	    private void skipEmpyLines()  {
-		    while( line != null && line.trim().isEmpty() ){
+		    while( line != null && line.Trim().isEmpty() ){
 			    nextLine();
 		    }
 	    }

@@ -9,14 +9,15 @@
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
 namespace org.chabu.container.intern{
-using System;
+
+    using System;
     using org.chabu.container;
 
-/**
- * 
- * @author Frank Benoit
- *
- */
+    /**
+     * 
+     * @author Frank Benoit
+     *
+     */
     internal sealed class ByteQueueImpl : ByteQueue
     {
 
@@ -64,6 +65,10 @@ using System;
             return outport;
         }
 
+        public override string ToString()
+        {
+            return toString();
+        }
 
         //@Override
         public String toString()

@@ -10,16 +10,16 @@
  *******************************************************************************/
 namespace org.chabu.intern {
 
-/**
- *
- * @author Frank Benoit
- */
-public enum PacketType : int {
-    NULL  = 0,
-	SETUP = 0xF0 ,
-	ACCEPT= 0xE1 ,
-	ABORT = 0xD2 ,
-	ARM   = 0xC3 ,
-	SEQ   = 0xB4 
-}
+    /**
+     *
+     * @author Frank Benoit
+     */
+    internal enum PacketType : int {
+        NULL  = 0,
+	    SETUP = 0xF0 ,
+	    ACCEPT= 0xE1 ,
+	    ABORT = 0xD2 ,
+	    ARM   = 0xC3 ,
+	    SEQ   = 0xB4 
+    }
 }

@@ -11,18 +11,18 @@
 namespace org.chabu.container{
 
     using System;
-using org.chabu.container.intern;
+    using org.chabu.container.intern;
 
-/**
- * 
- * @author Frank Benoit
- *
- */
-public class ByteQueueBuilder {
+    /**
+     * 
+     * @author Frank Benoit
+     *
+     */
+    public class ByteQueueBuilder {
 
-	public static ByteQueue create(String name, int capacity ){
-		return new ByteQueueImpl( name, capacity );
-	}
+	    public static ByteQueue create(String name, int capacity ){
+		    return new ByteQueueImpl( name, capacity );
+	    }
 	
-}
+    }
 }

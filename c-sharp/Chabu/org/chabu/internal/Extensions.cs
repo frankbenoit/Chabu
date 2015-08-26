@@ -14,6 +14,7 @@ namespace org.chabu
         public static void compact(this System.IO.MemoryStream ms)
         {
             int cpySz = ms.remaining();
+            if( ms.position() > 0 )
             {
                 byte[] buffer = ms.GetBuffer();
                 // Array.Copy behaves like memmove

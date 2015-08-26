@@ -10,15 +10,15 @@
  *******************************************************************************/
 namespace org.chabu.intern {
 
-/**
- * 
- * @author Frank Benoit
- *
- */
-public enum RecvState {
-	IDLE,
-	WAITING,
-	RECVING,
-	RECVED
-}
+    /**
+     * 
+     * @author Frank Benoit
+     *
+     */
+    internal enum RecvState {
+	    IDLE,
+	    WAITING,
+	    RECVING,
+	    RECVED
+    }
 }

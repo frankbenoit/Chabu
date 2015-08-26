@@ -10,15 +10,15 @@
  *******************************************************************************/
 namespace org.chabu.intern {
 
-/**
- * 
- * @author Frank Benoit
- *
- */
-public enum XmitState {
-	IDLE,
-	PENDING,
-	PREPARED, 
-	XMITTED
-}
+    /**
+     * 
+     * @author Frank Benoit
+     *
+     */
+    internal enum XmitState {
+	    IDLE,
+	    PENDING,
+	    PREPARED, 
+	    XMITTED
+    }
 }

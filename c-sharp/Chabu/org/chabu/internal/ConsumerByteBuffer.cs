@@ -10,16 +10,16 @@
  *******************************************************************************/
 namespace org.chabu.intern {
 
-using ByteBuffer=System.IO.MemoryStream;
+    using ByteBuffer=System.IO.MemoryStream;
 
-/**
- * A replacement for Java8 <code>Consumer&lt;ByteBuffer&gt;</code>
- *
- * @author Frank Benoit
- */
-public interface ConsumerByteBuffer {
+    /**
+     * A replacement for Java8 <code>Consumer&lt;ByteBuffer&gt;</code>
+     *
+     * @author Frank Benoit
+     */
+    public interface ConsumerByteBuffer {
 
-    void accept( ByteBuffer buffer );
+        void accept( ByteBuffer buffer );
 
-}
+    }
 }

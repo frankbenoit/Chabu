@@ -23,7 +23,6 @@ namespace ChabuTestServer
 
 
             ArrayList sockList = new ArrayList(2);
-            ArrayList copyList = new ArrayList(2);
             Socket main = new Socket(AddressFamily.InterNetwork,
                                 SocketType.Stream, ProtocolType.Tcp);
 
@@ -53,9 +52,13 @@ namespace ChabuTestServer
 
             while (true)
             {
-                copyList = new ArrayList(sockList);
-                Console.WriteLine("Monitoring {0} sockets...", copyList.Count);
-                Socket.Select(copyList, null, null, 10000000);
+                ArrayList readList = new ArrayList(sockList);
+                ArrayList writeList = new ArrayList(sockList);
+                ArrayList errorList = new ArrayList(sockList);
+                ArrayList copyList = new ArrayList(sockList);
+
+                //Console.WriteLine("Monitoring {0} sockets...", copyList.Count);
+                Socket.Select(readList, writeList, errorList, 10000000);
 
                 foreach (Socket client in copyList)
                 {

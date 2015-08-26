@@ -13,13 +13,14 @@ namespace org.chabu
 
         public static void compact(this System.IO.MemoryStream ms)
         {
-            if (ms.Position > 0)
+            int cpySz = ms.remaining();
             {
                 byte[] buffer = ms.GetBuffer();
-                Array.Copy(buffer, ms.Position, buffer, 0, ms.Length);
+                // Array.Copy behaves like memmove
+                Array.Copy(buffer, ms.Position, buffer, 0, cpySz);
             }
-            ms.SetLength(ms.Length - ms.Position);
-            ms.Position = 0;
+            ms.limit(ms.capacity());
+            ms.position(cpySz);
         }
         public static void flip(this System.IO.MemoryStream ms)
         {
@@ -32,7 +33,7 @@ namespace org.chabu
         }
         public static bool hasRemaining(this System.IO.MemoryStream ms)
         {
-            return ms.Position == ms.Length;
+            return ms.remaining() > 0;
         }
         public static int position(this System.IO.MemoryStream ms)
         {
@@ -62,7 +63,7 @@ namespace org.chabu
         }
         public static System.IO.MemoryStream get(this System.IO.MemoryStream ms, byte[] trg)
         {
-            Utils.ensure(ms.Position + trg.Length >= ms.Length, 0, "");
+            Utils.ensure(ms.Position + trg.Length <= ms.Length, 0, "");
             Array.Copy(ms.GetBuffer(), ms.Position, trg, 0, trg.Length);
             ms.Position += trg.Length;
             return ms;
@@ -75,7 +76,7 @@ namespace org.chabu
         }
         public static sbyte get(this System.IO.MemoryStream ms, int pos )
         {
-            Utils.ensure(ms.Position + 1 >= ms.Length, 0, "" );
+            Utils.ensure(ms.Position + 1 <= ms.Length, 0, "" );
             byte[] buffer = ms.GetBuffer();
             sbyte res = (sbyte)buffer[pos];
             return res;
@@ -113,7 +114,7 @@ namespace org.chabu
         }
         public static int getInt(this System.IO.MemoryStream ms, int pos)
         {
-            Utils.ensure(pos >= 0 && pos + 4 >= ms.Length, 0, "");
+            Utils.ensure(pos >= 0 && pos + 4 <= ms.Length, 0, "");
             uint res;
             byte[] buffer = ms.GetBuffer();
             if (isByteOrderBigEndian)
@@ -140,13 +141,13 @@ namespace org.chabu
         }
         public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, sbyte[] bytes)
         {
-            Array.Copy(bytes, bytes.Length, ms.GetBuffer(), ms.Position, bytes.Length);
+            Array.Copy(bytes, 0, ms.GetBuffer(), ms.Position, bytes.Length);
             ms.position(ms.position() + bytes.Length);
             return ms;
         }
         public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, byte[] bytes)
         {
-            Array.Copy(bytes, bytes.Length, ms.GetBuffer(), ms.Position, bytes.Length);
+            Array.Copy(bytes, 0, ms.GetBuffer(), ms.Position, bytes.Length);
             ms.position(ms.position() + bytes.Length);
             return ms;
         }
@@ -172,7 +173,7 @@ namespace org.chabu
         }
         public static System.IO.MemoryStream put(this System.IO.MemoryStream ms, int pos, sbyte value)
         {
-            Utils.ensure(pos >= 0 && pos + 1 >= ms.Length, 0, "" );
+            Utils.ensure(pos >= 0 && pos + 1 <= ms.Length, 0, "{0} {1}", pos, ms.Length );
             byte[] buffer = ms.GetBuffer();
             buffer[pos] = (byte)value;
             return ms;
@@ -185,7 +186,7 @@ namespace org.chabu
         }
         public static System.IO.MemoryStream putShort(this System.IO.MemoryStream ms, int pos, short value)
         {
-            Utils.ensure(pos >= 0 && pos + 2 >= ms.Length, 0, "");
+            Utils.ensure(pos >= 0 && pos + 2 <= ms.Length, 0, "");
             byte[] buffer = ms.GetBuffer();
             if (isByteOrderBigEndian)
             {
@@ -207,7 +208,7 @@ namespace org.chabu
         }
         public static System.IO.MemoryStream putInt(this System.IO.MemoryStream ms, int pos, int value)
         {
-            Utils.ensure(pos >= 0 && pos + 4 >= ms.Length, 0, "");
+            Utils.ensure(pos >= 0 && pos + 4 <= ms.Length, 0, "pos {0}, ms.Length {1}", pos, ms.Length );
             byte[] buffer = ms.GetBuffer();
             if (isByteOrderBigEndian)
             {

@@ -19,7 +19,7 @@ namespace org.chabu
 		    StringBuilder sb = new StringBuilder();
 		    for (int i = 0; i < bytes.Length; i++) {
 			    if( sb.length() > 0 ) sb.append(" ");
-			    sb.append( String.Format("{1:2X}", 0xFF & bytes[i] ));
+			    sb.append( String.Format("{0:X2}", 0xFF & bytes[i] ));
 		    }
 		    return sb.toString();
 	    }
@@ -27,7 +27,7 @@ namespace org.chabu
 	    public static String test2LengthAndHex( String text ){
 		    byte[] bytes = text.getBytes( Encoding.UTF8 );
 		    StringBuilder sb = new StringBuilder();
-            sb.append(String.Format("{1:2X} {2:2X} {3:2X} {4:2X}", bytes.length() >> 24, bytes.length() >> 16, bytes.length() >> 8, 0xFF & bytes.length()));
+            sb.append(String.Format("{0:X2} {1:X2} {2:X2} {3:X2}", bytes.length() >> 24, bytes.length() >> 16, bytes.length() >> 8, 0xFF & bytes.length()));
 		    if( bytes.Length > 0 ){
 			
 			    for (int i = 0; i < bytes.Length; i++) {

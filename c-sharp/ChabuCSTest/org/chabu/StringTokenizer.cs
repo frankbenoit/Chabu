@@ -2,17 +2,18 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace ChabuCSTest.org.chabu
 {
     class StringTokenizer
     {
-        private string line;
+        private IEnumerable<string> words;
 
         public StringTokenizer(string line)
         {
-            // TODO: Complete member initialization
-            this.line = line;
+            var regex = new Regex(@"\b[\s,\.-:;]*");
+            words = regex.Split(line).Where(x => !string.IsNullOrEmpty(x));
         }
 
         internal bool hasMoreTokens()

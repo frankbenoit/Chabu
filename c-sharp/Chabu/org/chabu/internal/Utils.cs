@@ -119,19 +119,18 @@ public sealed class Utils {
 
 	public static int transferRemaining( ByteBuffer src, ByteBuffer trg ){
 		int xfer = Math.Min( src.remaining(), trg.remaining() );
-		int oldLimit = src.limit();
-		src.limit( src.position() + xfer );
-		trg.put( src );
-		src.limit( oldLimit );
+		trg.Write( src.GetBuffer(), src.position(), xfer );
+        src.Position += xfer;
 		return xfer;
 	}
 
 	public static int transferUpTo( ByteBuffer src, ByteBuffer trg, int maxCount ){
         int xfer = Math.Min(Math.Min(src.remaining(), trg.remaining()), maxCount);
-		int oldLimit = src.limit();
-		src.limit( src.position() + xfer );
-		trg.put( src );
-		src.limit( oldLimit );
+		//int oldLimit = src.limit();
+		//src.limit( src.position() + xfer );
+		trg.Write( src.GetBuffer(), (int)src.Position, xfer );
+        src.Position += xfer;
+		//src.limit( oldLimit );
 		return xfer;
 	}
 

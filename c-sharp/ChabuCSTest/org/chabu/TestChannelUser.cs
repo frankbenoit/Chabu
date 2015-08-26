@@ -22,6 +22,10 @@ namespace org.chabu
 	    private ChabuChannel channel;
 	    private bool consumeRxInProgress = false;
 
+        public TestChannelUser()
+        {
+            tx.limit(tx.capacity());
+        }
 	    public void setChannel(ChabuChannel channel) {
 		    this.channel = channel;
 	    }
@@ -78,7 +82,7 @@ namespace org.chabu
 				    }
 				    int exp = 0xFF & expectedData.get();
 				    int cur = 0xFF & rx.get();
-				    TraceRunner.ensure( exp == cur, "Data mismatch %02X != %02X", cur, exp );
+				    TraceRunner.ensure( exp == cur, "Data mismatch {0:X2} != {1:X2}", cur, exp );
 			    }
 			    rx.compact();
 			    channel.xmitRegisterRequest();

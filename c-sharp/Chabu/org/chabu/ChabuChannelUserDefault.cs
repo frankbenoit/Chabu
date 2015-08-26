@@ -15,6 +15,7 @@ namespace org.chabu
     using ByteBuffer = System.IO.MemoryStream;
 
     using org.chabu.container;
+    using System;
 
     public class ChabuChannelUserDefault : ChabuChannelUser
     {
@@ -39,13 +40,18 @@ namespace org.chabu
         public bool xmitEvent(ByteBuffer bufferToFill)
         {
             xmit.flip();
-            int oldLimit = xmit.limit();
-            if (xmit.remaining() > bufferToFill.remaining())
-            {
-                xmit.limit(xmit.position() + bufferToFill.remaining());
-            }
-            bufferToFill.put(xmit);
-            xmit.limit(oldLimit);
+            //int oldLimit = xmit.limit();
+            //if (xmit.remaining() > bufferToFill.remaining())
+            //{
+            //    xmit.limit(xmit.position() + bufferToFill.remaining());
+            //}
+            //bufferToFill.put(xmit);
+            //xmit.limit(oldLimit);
+
+            int xfer = Math.Min(xmit.remaining(), bufferToFill.remaining());
+            bufferToFill.Write(xmit.GetBuffer(), xmit.position(), xfer);
+            xmit.Position += xfer;
+            
             xmit.compact();
 
             return false;

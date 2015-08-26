@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChabuTestServer", "ChabuTes
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ChabuC", "..\c\main\ChabuC.vcxproj", "{273519BC-E3C6-412E-AD0F-AC238FCE7A4F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChabuCSTest", "ChabuCSTest\ChabuCSTest.csproj", "{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -47,6 +49,16 @@ Global
 		{273519BC-E3C6-412E-AD0F-AC238FCE7A4F}.Release|Mixed Platforms.Build.0 = Release|Win32
 		{273519BC-E3C6-412E-AD0F-AC238FCE7A4F}.Release|Win32.ActiveCfg = Release|Win32
 		{273519BC-E3C6-412E-AD0F-AC238FCE7A4F}.Release|Win32.Build.0 = Release|Win32
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Win32.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

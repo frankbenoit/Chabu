@@ -36,12 +36,16 @@ namespace org.chabu
 
         internal void put(string p, int more)
         {
-            throw new NotImplementedException();
+            data[p] = more.ToString();
         }
 
         internal int optInt(string p)
         {
-            throw new NotImplementedException();
+            if (!data.ContainsKey(p))
+            {
+                return 0;
+            }
+            return Convert.ToInt32(data[p]);
         }
     }
 }

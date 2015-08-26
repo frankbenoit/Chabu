@@ -6,12 +6,14 @@ namespace org.chabu
 {
     using System.Text;
     using System.Text.RegularExpressions;
+    using System.Linq;
 
     using TextWriter = System.IO.TextWriter;
     using ByteBuffer = System.IO.MemoryStream;
     using RuntimeException = System.SystemException;
     using BufferedReader = System.IO.StreamReader ;
     using System.IO;
+    using System.Diagnostics;
 
     //import java.io.BufferedReader;
     //import java.io.FileReader;
@@ -153,7 +155,7 @@ namespace org.chabu
 	    public void wireRxAutoLength(String hexData) {
 		    int len = (hexData.Length + 1) / 3;
 		    len += 4;
-		    hexStringToBB(String.Format( "{0:2X} {1:2X} {2:2X} {3:2X} {4}", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
+		    hexStringToBB(String.Format( "{0:X2} {1:X2} {2:X2} {3:X2} {4}", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
 		    JSONObject params__ = new JSONObject();
 		    wireRx( params__, bb );
 	    }
@@ -166,7 +168,7 @@ namespace org.chabu
 	    public void wireTxAutoLength(String hexData) {
 		    int len = (hexData.Length + 1) / 3;
 		    len += 4;
-		    hexStringToBB(String.Format( "{0:2X} {1:2X} {2:2X} {3:2X} {4}", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
+		    hexStringToBB(String.Format( "{0:X2} {1:X2} {2:X2} {3:X2} {4}", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
 		    JSONObject params__ = new JSONObject();
 		    wireTx( params__, bb );
 	    }
@@ -184,12 +186,11 @@ namespace org.chabu
 
 	    private void hexStringToBB(String hexData) {
 		    bb.clear();
-		    StringTokenizer tokenizer = new StringTokenizer(hexData);
-		    while( tokenizer.hasMoreTokens()){
-			    String token = tokenizer.nextToken();
-			    ensure( token.Length == 2, "RAW number has not length 2. Line: {1}", ln );
-			    bb.put( (sbyte) Convert.ToInt32(token, 16));
-		    }
+            foreach (var word in hexData.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries ))
+            {
+                ensure(word.Length == 2, "RAW number has not length 2: \"{0}\" \"{1}\". Line: {2}", hexData, word, ln);
+                bb.put((sbyte)Convert.ToInt32(word, 16));
+            }
 		    bb.flip();
 	    }
 	    /**
@@ -232,13 +233,13 @@ namespace org.chabu
 		    }
 
 		    if( !isOk ){
-			    Console.WriteLine("TX by org.chabu:"+TestUtils.dumpHexString( txBuf ));
-                Console.WriteLine("Expected   :" + TestUtils.dumpHexString(bb));
-			    ensure( txBuf.limit() == bb.limit(), "WIRE_TX @%s: TX length (%s) does not match the expected length (%s). First mismatch at pos %s", blockLineNum, txBuf.limit(), bb.limit(), mismatchPos );
+                Trace.WriteLine("TX by org.chabu:" + TestUtils.dumpHexString(txBuf));
+                Trace.WriteLine("Expected   :" + TestUtils.dumpHexString(bb));
+			    ensure( txBuf.limit() == bb.limit(), "WIRE_TX @{0}: TX length ({1}) does not match the expected length ({2}). First mismatch at pos {3}", blockLineNum, txBuf.limit(), bb.limit(), mismatchPos );
 			    for( int i = 0; i < bb.limit(); i++ ){
 				    int exp = 0xFF & bb.get(i);
 				    int cur = 0xFF & txBuf.get(i);
-				    ensure( cur == exp, "TX data (0x%02X) != expected (0x%02X) at index 0x%X", cur, exp, i );
+                    ensure(cur == exp, "TX data (0x{0:X2}) != expected (0x{1:X2}) at index 0x{2:X2}", cur, exp, i);
 			    }
 		    }
 	    }

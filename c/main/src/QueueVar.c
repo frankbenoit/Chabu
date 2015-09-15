@@ -2,7 +2,27 @@
 #include "Common.h"
 #include "QueueVar.h"
 
-void QueueVar_Init( struct QueueVar* queue, const char* name, uint8* buf, int buf_size ){
+#define Assert( c ) AssertPrintf(c, "");
+#define Assert0( c ) AssertPrintf0(c, "");
+
+#define AssertPrintf(_cond, fmt, ... ) 												\
+	do{ 																			\
+		if( !(_cond) ){																\
+			queue->assertFunction( queue, __FILE__, __LINE__, fmt, __VA_ARGS__ );	\
+			return;																	\
+		} 																			\
+	}while(false)
+
+#define AssertPrintf0(_cond, fmt, ... ) 											\
+	do{ 																			\
+		if( !(_cond) ){																\
+			queue->assertFunction( queue, __FILE__, __LINE__, fmt, __VA_ARGS__ );	\
+			return 0;																\
+		} 																			\
+	}while(false)
+
+
+void   QueueVar_Init( struct QueueVar* queue, const char* name, uint8* buf, int buf_size ){
 	queue->name = name;
 	queue->buf = buf;
 	queue->buf_size = buf_size;
@@ -11,6 +31,7 @@ void QueueVar_Init( struct QueueVar* queue, const char* name, uint8* buf, int bu
 	queue->callbackSupplied = NULL;
 	queue->callbackConsumed = NULL;
 }
+
 void   QueueVar_SetCallbackSupplied( struct QueueVar* queue, TQueueVar_NotifySupplied* callbackSupplied, void* ctx ){
 	if( callbackSupplied ){
 		// avoid reconfigure by accident.
@@ -20,6 +41,7 @@ void   QueueVar_SetCallbackSupplied( struct QueueVar* queue, TQueueVar_NotifySup
 	queue->callbackSupplied = callbackSupplied;
 	queue->callbackSuppliedData = ctx;
 }
+
 void   QueueVar_SetCallbackConsumed( struct QueueVar* queue, TQueueVar_NotifyConsumed* callbackConsumed, void* ctx ){
 	if( callbackConsumed ){
 		// avoid reconfigure by accident.
@@ -102,23 +124,23 @@ void   QueueVar_WriteBufferAsPacket( struct QueueVar* queue, Buffer* buf ){
 
 int QueueVar_Free( struct QueueVar* queue ){
 	int res = queue->buf_size -1 -QueueVar_Available(queue);
-	Assert( res >= 0 );
+	Assert0( res >= 0 );
 	return res;
 }
 
-void QueueVar_Move( struct QueueVar* src_queue, struct QueueVar* trg_queue, int size ){
+void QueueVar_Move( struct QueueVar* queue, struct QueueVar* trg_queue, int size ){
 
 	Assert( QueueVar_Free(trg_queue) >= size);
-	Assert( QueueVar_Available(src_queue) >= size);
+	Assert( QueueVar_Available(queue) >= size);
 
 	while( size > 0 ){
-		void* ptr = QueueVar_ReadPtr(src_queue);
-		int cpy_len = QueueVar_ReadChunkSize(src_queue);
+		void* ptr = QueueVar_ReadPtr(queue);
+		int cpy_len = QueueVar_ReadChunkSize(queue);
 		if( cpy_len > size ) {
 			cpy_len = size;
 		}
 		QueueVar_Write(trg_queue, ptr, cpy_len);
-		QueueVar_ReadCommit( src_queue, cpy_len );
+		QueueVar_ReadCommit( queue, cpy_len );
 		size -= cpy_len;
 	}
 }
@@ -134,10 +156,7 @@ int QueueVar_Available( struct QueueVar* queue ){
 		wr += queue->buf_size;
 	}
 	int res = wr - rd;
-	if( res < 0 ) {
-		Chabu_dbg_printf( "queue name %s, r=%d, w=%d\n\r", queue->name, queue->rd_idx, queue->wr_idx );
-	}
-	Assert( res >= 0 );
+	AssertPrintf0( res >= 0, "queue name %s, r=%d, w=%d\n\r", queue->name, queue->rd_idx, queue->wr_idx );
 	return res;
 }
 
@@ -258,3 +277,20 @@ void QueueVar_ReadCommit( struct QueueVar* queue, int len ){
 
 }
 
+int    QueueVar_ReadIntoByteBuffer( struct QueueVar* queue, struct ByteBuffer_Data* byteBuffer ){
+	int availQ = QueueVar_Available(queue);
+	int availB = ByteBuffer_remaining(byteBuffer);
+	int cpySz = ( availQ < availB ) ? availQ : availB;
+	QueueVar_Read( queue, byteBuffer->data + byteBuffer->position, cpySz );
+	byteBuffer->position += cpySz;
+	return cpySz;
+}
+
+int    QueueVar_WriteFromByteBuffer( struct QueueVar* queue, struct ByteBuffer_Data* byteBuffer ){
+	int availQ = QueueVar_Free(queue);
+	int availB = ByteBuffer_remaining(byteBuffer);
+	int cpySz = ( availQ < availB ) ? availQ : availB;
+	QueueVar_Write( queue, byteBuffer->data + byteBuffer->position, cpySz );
+	byteBuffer->position += cpySz;
+	return cpySz;
+}

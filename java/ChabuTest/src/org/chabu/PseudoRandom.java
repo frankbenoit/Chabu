@@ -41,6 +41,9 @@ public class PseudoRandom {
 			byte exp = buffer[ idx % buffer.length ];
 			byte cur = bytes[i+offset];
 			idx++;
+    		if( idx == BUFFER_SZ ){
+    			idx = 0;
+    		}
 			if( exp != cur ){
 				throw new RuntimeException(String.format("mismatch at %d: exp:0x%02X != cur:0x%02X", i, exp, cur ));
 			}
@@ -48,7 +51,8 @@ public class PseudoRandom {
 	}
     
     public byte nextByte() {
-    	byte res = buffer[ idx++ % BUFFER_SZ ];
+    	byte res = buffer[ idx ];
+		idx++;
     	if( idx == BUFFER_SZ ){
     		idx = 0;
     	}

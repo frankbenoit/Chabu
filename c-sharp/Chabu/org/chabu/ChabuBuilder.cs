@@ -28,8 +28,9 @@ public sealed class ChabuBuilder {
 
 	public static readonly int DEFAULT_CHABU_RECVSZ   = 1400;
 	public static readonly int DEFAULT_CHANNEL_RECVSZ = 10000;
-	public static readonly int DEFAULT_PRIORITY_COUNT = 1;
-    public static readonly int DEFAULT_PRIORITY = 0;
+    public static readonly int DEFAULT_PRIORITY_COUNT = 1;
+    public static readonly int MAX_PRIORITY_COUNT     = 20;
+    public static readonly int DEFAULT_PRIORITY       = 0;
 
 	private ChabuImpl chabu;
 	private int nextChannelId;

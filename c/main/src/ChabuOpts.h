@@ -24,27 +24,29 @@
 //#define Chabu_AssertPrintf(_cond, fmt, args... ) 								\
 //				fprintf(stderr, fmt, ##args ); 									\
 
-#define Chabu_AssertPrintf(_cond, fmt, ... ) 								\
+#define Chabu_AssertPrintf( _code, _cond, _fmt, ... ) 							\
 	do{ 																		\
 		if( !(_cond) ){															\
-				fprintf(stderr, fmt, __VA_ARGS__ );								\
-				fprintf(stderr, "\n" ); 										\
-				fprintf(stderr, "Assert failed %s:%d\n", __FILE__, __LINE__ ); 	\
-				exit(EXIT_FAILURE); 											\
+				chabu->assertFunction( (_code), chabu->userData, chabu,			\
+				__FILE__, __LINE__, (_fmt), __VA_ARGS__ );						\
+				return;															\
+		} 																		\
+	}while(false)
+
+
+#define Chabu_AssertPrintf0( _code, _cond, _fmt, ... ) 							\
+	do{ 																		\
+		if( !(_cond) ){															\
+				chabu->assertFunction( (_code), chabu->userData, chabu,			\
+				__FILE__, __LINE__, (_fmt), __VA_ARGS__ );						\
+				return 0;														\
 		} 																		\
 	}while(false)
 
 
 
-
-
-#define Chabu_Assert(_cond) 													\
-	do{ 																		\
-		if( !(_cond) ){															\
-				fprintf(stderr, "Assert failed %s:%d\n", __FILE__, __LINE__ ); 	\
-				exit(EXIT_FAILURE); 											\
-		} 																		\
-	}while(false)
+#define Chabu_Assert(_code, _cond) Chabu_AssertPrintf( (_code), (_cond), "" )
+#define Chabu_Assert0(_code, _cond) Chabu_AssertPrintf0( (_code), (_cond), "" )
 
 
 //#define Chabu_USE_LOCK

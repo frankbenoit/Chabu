@@ -47,14 +47,20 @@ namespace org.chabu
 			    byte exp = buffer[ idx % buffer.Length ];
 			    byte cur = bytes[i+offset];
 			    idx++;
-			    if( exp != cur ){
+                if (idx == BUFFER_SZ)
+                {
+                    idx = 0;
+                }
+                if (exp != cur)
+                {
                     throw new RuntimeException(String.Format("mismatch at {0}: exp:0x{1:X2} != cur:0x{2:X2}", i, exp, cur));
 			    }
 		    }
 	    }
     
         public byte nextByte() {
-    	    byte res = buffer[ idx++ % BUFFER_SZ ];
+    	    byte res = buffer[ idx ];
+            idx++;
     	    if( idx == BUFFER_SZ ){
     		    idx = 0;
     	    }

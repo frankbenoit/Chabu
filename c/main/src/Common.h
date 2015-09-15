@@ -14,6 +14,20 @@
 #include "ChabuOpts.h"
 //#include <pthread.h>
 
+#ifdef _WIN32
+#    define CALL_SPEC __cdecl
+#    ifdef _LIB
+#        define LIBRARY_API __declspec(dllexport)
+#    else
+#        define LIBRARY_API __declspec(dllimport)
+#    endif
+#elif
+#    define LIBRARY_API
+#    define CALL_SPEC
+#endif
+
+
+
 #define countof(_v) (sizeof(_v)/(sizeof(_v[0])))
 
 #define BIT_NONE 0
@@ -128,6 +142,8 @@ enum TYPE_ID {
 
 #define UINT16_HI(v) (uint8)(((uint16)(v))>>8)
 #define UINT16_LO(v) (uint8)(((uint16)(v)))
+#define UINT16_B0 UINT16_LO
+#define UINT16_B1 UINT16_HI
 
 #define UINT32_HI(v) (uint16)(((uint32)(v))>>16)
 #define UINT32_LO(v) (uint16)(((uint32)(v)))
@@ -138,6 +154,15 @@ enum TYPE_ID {
 
 #define UINT64_HI(v) (uint32)(((uint64)(v))>>32)
 #define UINT64_LO(v) (uint32)(((uint64)(v)))
+
+#define UINT64_B7(v) (uint8)(((uint64)(v))>>56)
+#define UINT64_B6(v) (uint8)(((uint64)(v))>>48)
+#define UINT64_B5(v) (uint8)(((uint64)(v))>>40)
+#define UINT64_B4(v) (uint8)(((uint64)(v))>>32)
+#define UINT64_B3(v) (uint8)(((uint64)(v))>>24)
+#define UINT64_B2(v) (uint8)(((uint64)(v))>>16)
+#define UINT64_B1(v) (uint8)(((uint64)(v))>>8)
+#define UINT64_B0(v) (uint8)(((uint64)(v)))
 
 #define UINT16_COMP(hi,lo) ((((uint16)(hi)) <<  8 ) | (((uint16)(lo)) & UINT16_LO_MASK))
 #define UINT16_COMP2 UINT16_COMP
@@ -167,12 +192,10 @@ enum TYPE_ID {
 #define UINT32_PUT_UNALIGNED(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint32 _v2 = (uint32)_v; _p2[0] = _v2; _p2[1] = _v2 >>  8;  _p2[2] = _v2 >> 16; _p2[3] = _v2 >> 24; })
 #define UINT64_PUT_UNALIGNED(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint64 _v2 = (uint64)_v; _p2[0] = _v2; _p2[1] = _v2 >>  8;  _p2[2] = _v2 >> 16; _p2[3] = _v2 >> 24; _p2[4] = _v2 >> 32; _p2[5] = _v2 >> 40;  _p2[6] = _v2 >> 48; _p2[7] = _v2 >> 56; })
 
-#define UINT8_PUT_UNALIGNED_HTON(_p,_v)  ({ uint8* _p2 = (uint8*)(_p); uint8  _v2 = (uint8 )_v; _p2[0] = _v2; })
-#define UINT16_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT32_B1(_v)),UINT8_PUT(_p,1,UINT32_B0(_v))
-//({ uint8* _p2 = (uint8*)(_p); uint16 _v2 = (uint16)_v; _p2[1] = _v2; _p2[0] = _v2 >>  8; })
-#define UINT32_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT32_B3(_v)),UINT8_PUT(_p,1,UINT32_B1(_v)),UINT8_PUT(_p,2,UINT32_B2(_v)),UINT8_PUT(_p,3,UINT32_B0(_v))
-//({ uint8* _p2 = (uint8*)(_p); uint32 _v2 = (uint32)_v; _p2[3] = _v2; _p2[2] = _v2 >>  8;  _p2[1] = _v2 >> 16; _p2[0] = _v2 >> 24; })
-#define UINT64_PUT_UNALIGNED_HTON(_p,_v) ({ uint8* _p2 = (uint8*)(_p); uint64 _v2 = (uint64)_v; _p2[7] = _v2; _p2[6] = _v2 >>  8;  _p2[5] = _v2 >> 16; _p2[4] = _v2 >> 24; _p2[3] = _v2 >> 32; _p2[2] = _v2 >> 40;  _p2[1] = _v2 >> 48; _p2[0] = _v2 >> 56; })
+#define UINT8_PUT_UNALIGNED_HTON(_p,_v)  UINT8_PUT(_p,0,UINT32_B1(_v))
+#define UINT16_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT16_B1(_v)),UINT8_PUT(_p,1,UINT16_B0(_v))
+#define UINT32_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT32_B3(_v)),UINT8_PUT(_p,1,UINT32_B2(_v)),UINT8_PUT(_p,2,UINT32_B1(_v)),UINT8_PUT(_p,3,UINT32_B0(_v))
+#define UINT64_PUT_UNALIGNED_HTON(_p,_v) UINT8_PUT(_p,0,UINT64_B7(_v)),UINT8_PUT(_p,1,UINT64_B6(_v)),UINT8_PUT(_p,2,UINT64_B5(_v)),UINT8_PUT(_p,3,UINT64_B4(_v)),UINT8_PUT(_p,4,UINT64_B3(_v)),UINT8_PUT(_p,5,UINT64_B2(_v)),UINT8_PUT(_p,6,UINT64_B1(_v)),UINT8_PUT(_p,7,UINT64_B0(_v))
 
 #define UINT16_SWAP(_v) UINT16_COMP2( (_v), (_v) >> 8 )
 #define UINT32_SWAP(_v) UINT32_COMP4( (_v), (_v) >> 8, (_v) >> 16, (_v) >> 24 )
@@ -208,6 +231,7 @@ enum TYPE_ID {
 #define UINT64_HI_MASK 0xFFFFFFFF00000000LL
 #define UINT64_LO_MASK 0x00000000FFFFFFFFLL
 
+#define bool uint8
 typedef float       float32;
 typedef double      float64;
 typedef long double float80;
@@ -302,9 +326,9 @@ enum {
 //#define RC_TOO_MUCH_DATA  7
 //#define RC_RUNTIME_STATE  8
 
-#define Assert(c) Chabu_Assert(c)
+//#define Assert(c) Chabu_Assert(c)
 //#define AssertPrintf(c, fmt, arg... ) Chabu_AssertPrintf(c, fmt, ##args )
-#define AssertPrintf(c, fmt, ... ) Chabu_AssertPrintf(c, fmt, __VA_ARGS__ )
+//#define AssertPrintf(c, fmt, ... ) Chabu_AssertPrintf(c, fmt, __VA_ARGS__ )
 
 /** A compile time assertion check.
  *

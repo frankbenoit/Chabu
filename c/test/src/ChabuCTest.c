@@ -64,7 +64,7 @@ void __cdecl Chabu_AssertFunction( enum Chabu_ErrorCode code, void* userData, st
     vprintf(fmt, myargs);
     va_end(myargs);
 	printf("\n");
-	printf("Assert in code=%d %s %d\n", code, file, line );
+	printf("Assert in Chabu code=%d %s %d\n", code, file, line );
 }
 
 void __cdecl QueueVar_AssertFunction( struct QueueVar* queue, const char* file, int line, const char* fmt, ... ){
@@ -313,6 +313,7 @@ void TestTransfers_First()  {
 	TraceRunner_WireRxHex( &r, _strdup("00 00 00 1C 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08"));
 
 	TraceRunner_ChannelToApplHex( &r, 0, _strdup("01 02 03 04 05 06 07 08"));
+	VERIFY_ERROR_CODE();
 
 }
 
@@ -388,6 +389,10 @@ void TestTransfers_PayloadLimit()  {
 			"00 00 00 10 77 77 00 C3 00 00 00 01 00 00 07 FF"));
 
 	// send initial ARM with the first data
+	{
+		const char* p1, *p2;
+		p1 =  DataGen_GetExpBytesString( &dg, 236);
+		p2 =  DataGen_GetExpBytesString( &dg, 21);
 	TraceRunner_WireTxHex( &r,  TestUtil_StrCat( 5, _strdup(""
 			// ARM[0]=64
 			"00 00 00 10 77 77 00 C3 00 00 00 00 00 00 02 00 "
@@ -398,24 +403,31 @@ void TestTransfers_PayloadLimit()  {
 			"00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
 			// SEQ[0]=0, DATA[50]
 			// len   SE chan. seq........ pls..
-			"00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC "), DataGen_GetExpBytesString( &dg, 236), _strdup(" "
-			"00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 "), DataGen_GetExpBytesString( &dg,  21), _strdup(" 00 00 00")
+			"00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC "), p1, _strdup(" "
+			"00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 "), p2, _strdup(" 00 00 00")
 			));
+	}
 		
-	TraceRunner_WireTxHexMore( &r,  20, "");
+	TraceRunner_WireTxHexMore( &r,  20, _strdup(""));
 
 	DataGen_EnsureSamePosition(&dg);
 		
-	TraceRunner_WireRxHex( &r, TestUtil_StrCat( 5,_strdup(
-	"00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC "), DataGen_GetExpBytesString( &dg, 236), _strdup(" "
-	"00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 "), DataGen_GetExpBytesString( &dg,  21), _strdup(" 00 00 00")));
+	{
+		const char *p1, *p2;
+		p1 = DataGen_GetExpBytesString( &dg, 236);
+		p2 = DataGen_GetExpBytesString( &dg, 21);
+		TraceRunner_WireRxHex( &r, TestUtil_StrCat( 5,_strdup(
+		"00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC "), p1, _strdup(" "
+		"00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 "), p2, _strdup(" 00 00 00")));
+	}
 		
 	TraceRunner_ChannelToApplHex( &r, 0, DataGen_GetGenBytesString( &dg, 257));
 	DataGen_EnsureSamePosition(&dg);
 		
 	// SEQ[0]=F5+0c=0x101 +0x200 -> ARM = 0x301
-	TraceRunner_WireTxHexMore( &r,  20, "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01" );
-	TraceRunner_WireRxHex( &r,  "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF " );
+	TraceRunner_WireTxHexMore( &r,  20, _strdup("00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01") );
+	TraceRunner_WireRxHex( &r,  _strdup("00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF ") );
+	VERIFY_ERROR_CODE();
 }
 	
 void TestTransfers_Priorities()  {
@@ -509,6 +521,7 @@ void TestTransfers_Priorities()  {
 //	// SEQ[0]=F5+0c=0x101 +0x200 -> ARM = 0x301
 //	TraceRunner_WireTxAutoLength( &r,  20, "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01" );
 //	TraceRunner_WireRxAutoLength( &r,      "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF " );
+	VERIFY_ERROR_CODE();
 }
 	
 static void TestSetupConnection(){

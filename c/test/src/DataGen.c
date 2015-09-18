@@ -9,6 +9,8 @@ static char toHexDigit(int digit);
 void DataGen_Init(struct DataGen_Data* data, const char* name, int64 seed)
 {
     data->name = name;
+	data->genPos = 0;
+	data->expPos = 0;
     PseudoRandom_Init( &data->gen, seed);
     PseudoRandom_Init( &data->exp, seed);
 }

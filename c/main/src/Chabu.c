@@ -154,7 +154,9 @@ static void Chabu_Channel_QueueSupplied( void* ctx, struct QueueVar* queue, int 
 	UNUSED(queue);
 	UNUSED(amount);
 	struct Chabu_Channel_Data* channel = (struct Chabu_Channel_Data*)ctx;
-	Chabu_Channel_XmitRequestData( channel );
+	if( QueueVar_Available( channel->xmitQueue ) > 0 ){
+		Chabu_Channel_XmitRequestData( channel );
+	}
 }
 static void Chabu_Channel_QueueConsumed( void* ctx, struct QueueVar* queue, int amount ){
 	UNUSED(queue);
@@ -586,6 +588,9 @@ static void handleChannelSeq( struct Chabu_Data* chabu, struct Chabu_Channel_Dat
 	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_SEQPACKET_OFFSET_SEQ, channel->xmitSeq );
 	UINT32_PUT_UNALIGNED_HTON( chabu->xmitBuffer.data + CHABU_SEQPACKET_OFFSET_DATASIZE, pls );
 	QueueVar_Read( channel->xmitQueue, chabu->xmitBuffer.data + 20, pls );
+
+	channel->xmitSeq += pls;
+
 	while( (pls&3) != 0 ){
 		chabu->xmitBuffer.data[ 20 + pls ] = 0;
 		pls++;
@@ -625,15 +630,16 @@ static void getXmitData(struct Chabu_Data* chabu ){
 		}
 	}
 	{
-		struct Chabu_Channel_Data* channel = calcNextXmitChannelData( chabu );
-		if( channel != NULL ){
+		struct Chabu_Channel_Data* channel;
+		while( (channel = calcNextXmitChannelData( chabu )) != NULL ){
 
 			channel->userCallback( channel->userData, channel, Chabu_Channel_Event_PreTransmit );
-			Chabu_Assert( Chabu_ErrorCode_ASSERT, QueueVar_Available(channel->xmitQueue) > 0 );
-			handleChannelSeq( chabu, channel );
+			if( QueueVar_Available(channel->xmitQueue) > 0 ){
+				handleChannelSeq( chabu, channel );
 
-			CHABU_DBGPRINTF("Chabu_GetXmitData ch[%d] %d byte supplied", channel->channelId, idx - idx2);
-			return;
+				CHABU_DBGPRINTF("Chabu_GetXmitData ch[%d] %d byte supplied", channel->channelId, idx - idx2);
+				return;
+			}
 		}
 	}
 

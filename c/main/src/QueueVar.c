@@ -67,6 +67,10 @@ void QueueVar_Write( struct QueueVar* queue, const void* buf, int len ){
 	Assert( len >= 0 );
 	Assert( QueueVar_Free(queue) >= len );
 
+	if( len == 0 ){
+		return;
+	}
+
 	int wr = queue->wr_idx;
 	AssertPrintf( wr < queue->buf_size, "%d<%d in %s", wr, queue->buf_size, queue->name );
 
@@ -251,6 +255,10 @@ int QueueVar_ReadChunkSize( struct QueueVar* queue ){
 	}
 }
 void QueueVar_ReadCommit( struct QueueVar* queue, int len ){
+	
+	
+	if( len == 0 ) return;
+
 	Assert( len >= 0 );
 	if( !(len <= QueueVar_Available(queue)) ){
 		Chabu_dbg_printf( "QueueVar_ReadCommit %x, len=%d, %s avail=%d\n\r", queue, len, queue->name, QueueVar_Available(queue) );

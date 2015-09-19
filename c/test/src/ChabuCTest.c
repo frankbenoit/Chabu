@@ -33,8 +33,8 @@ static uint8 tx_buf[0x1000];
 
 static struct QueueVar rxQueues[10];
 static struct QueueVar txQueues[10];
-static uint8 rxQueueBuffers[1000][10];
-static uint8 txQueueBuffers[1000][10];
+static uint8 rxQueueBuffers[10][1000];
+static uint8 txQueueBuffers[10][1000];
 
 static void testExit(){
 	getchar(); 
@@ -431,96 +431,130 @@ void TestTransfers_PayloadLimit()  {
 }
 	
 void TestTransfers_Priorities()  {
+	struct DataGen_Data dg0, dg1, dg2, dg3, dg4;
 	printf("--- Running %s ---\n", __FUNCTION__);
-//	TraceRunner r = setupTraceRunner();
-//	DataGen dg0 = new DataGen("0", 42 );
-//	DataGen dg1 = new DataGen("1", 42 );
-//	DataGen dg2 = new DataGen("2", 42 );
-//	DataGen dg3 = new DataGen("3", 42 );
-//	DataGen dg4 = new DataGen("4", 42 );
-//		
-//	// Fill data all 5 channels
-//	TraceRunner_ApplToChannelHex( &r, 0, dg0.getGenBytesString( 257 ) );
-//	TraceRunner_ApplToChannelHex( &r, 1, dg1.getGenBytesString( 257 ) );
-//	TraceRunner_ApplToChannelHex( &r, 2, dg2.getGenBytesString( 257 ) );
-//	TraceRunner_ApplToChannelHex( &r, 3, dg3.getGenBytesString( 257 ) );
-//	TraceRunner_ApplToChannelHex( &r, 4, dg4.getGenBytesString( 257 ) );
-//
-//	// ARM all channels
-//	TraceRunner_WireRxAutoLength( &r, ""
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 07 FF "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 07 FF "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 02 00 00 07 FF "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 07 FF "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 07 FF "
-//			);
-//
-//	// send initial ARM with the first data
-//	TraceRunner_WireTxAutoLength( &r,  ""
-//			// ARM[0]=64
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 02 00 "
-//			// ARM[1]=64
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 01 00 00 00 64 "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 02 00 00 00 64 "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
-//			+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
-//			// SEQ[0]=0, DATA[50]
-//				
-//			// 2 blocks 236+21
-//			// len   SE chan. seq........ pls..
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg0.getExpBytesString(236) + " "
-//			+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg0.getExpBytesString(21) + " 00 00 00 "
-//			);
-//		
-//	// see the data of same priority in round robin
-//	// 1, 2, 3, 1, 2, 3
-//	TraceRunner_WireTxAutoLength( &r,  ""
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 01 00 00 00 00 00 00 00 EC " + dg1.getExpBytesString(236) + " "
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 00 00 00 00 00 EC " + dg2.getExpBytesString(236) + " "
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 00 00 00 00 00 EC " + dg3.getExpBytesString(236) + " "
-//			+ "00 00 00 2C 77 77 00 B4 00 00 00 01 00 00 00 EC 00 00 00 15 " + dg1.getExpBytesString(21) + " 00 00 00 "
-//			);
-//
-//	TraceRunner_WireTxAutoLength( &r,  ""
-//			+ "00 00 00 2C 77 77 00 B4 00 00 00 02 00 00 00 EC 00 00 00 15 " + dg2.getExpBytesString( 21) + " 00 00 00 "
-//			+ "00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 00 EC 00 00 00 15 " + dg3.getExpBytesString( 21) + " 00 00 00 "
-//			);
-//		
-////		TraceRunner_WireTxAutoLength( &r,  20, "");
-//
-//	dg0.ensureSamePosition();
-//		
-//	TraceRunner_WireRxAutoLength( &r, ""
-//	+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg0.getExpBytesString(236) + " "
-//	+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg0.getExpBytesString( 21) + " 00 00 00");
-//		
-//	TraceRunner_ApplToChannelHex( &r, 2, dg2.getGenBytesString( 257 ) );
-//	TraceRunner_ApplToChannelHex( &r, 3, dg3.getGenBytesString( 257 ) );
-//
-//	TraceRunner_WireTxAutoLength( &r,  ""
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 01 00 00 00 EC " + dg2.getExpBytesString(236) + " "
-//			);
-//
-//	TraceRunner_ApplToChannelHex( &r, 2, dg2.getGenBytesString( 257 ) );
-//
-//	TraceRunner_WireTxAutoLength( &r,  ""
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 01 01 00 00 00 EC " + dg3.getExpBytesString(236) + " "
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 ED 00 00 00 EC " + dg2.getExpBytesString(236) + " "
-//			+ "00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 01 ED 00 00 00 15 " + dg3.getExpBytesString( 21) + " 00 00 00 "
-//			);
-//
-//	TraceRunner_WireTxAutoLength( &r,  ""
-//			+ "00 00 00 40 77 77 00 B4 00 00 00 02 00 00 02 D9 00 00 00 2A " + dg2.getExpBytesString(0x2A) + " 00 00 "
-//			+ "00 00 01 00 77 77 00 B4 00 00 00 04 00 00 00 00 00 00 00 EC " + dg4.getExpBytesString(236) + " "
-//			+ "00 00 00 2C 77 77 00 B4 00 00 00 04 00 00 00 EC 00 00 00 15 " + dg4.getExpBytesString( 21) + " 00 00 00"
-//			);
-//
-//	TraceRunner_ChannelToApplHex( &r, 0, dg0.getGenBytesString(257));
-//	dg0.ensureSamePosition();
-//		
-//	// SEQ[0]=F5+0c=0x101 +0x200 -> ARM = 0x301
-//	TraceRunner_WireTxAutoLength( &r,  20, "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01" );
-//	TraceRunner_WireRxAutoLength( &r,      "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF " );
+
+	setupTraceRunner();
+
+	DataGen_Init( &dg0, "0", 42 );
+	DataGen_Init( &dg1, "1", 42 );
+	DataGen_Init( &dg2, "2", 42 );
+	DataGen_Init( &dg3, "3", 42 );
+	DataGen_Init( &dg4, "4", 42 );
+
+	// Fill data all 5 channels
+	TraceRunner_ApplToChannelHex( &r, 0, DataGen_GetGenBytesString( &dg0, 257 ) );
+	TraceRunner_ApplToChannelHex( &r, 1, DataGen_GetGenBytesString( &dg1, 257 ) );
+	TraceRunner_ApplToChannelHex( &r, 2, DataGen_GetGenBytesString( &dg2, 257 ) );
+	TraceRunner_ApplToChannelHex( &r, 3, DataGen_GetGenBytesString( &dg3, 257 ) );
+	TraceRunner_ApplToChannelHex( &r, 4, DataGen_GetGenBytesString( &dg4, 257 ) );
+
+	// ARM all channels
+	TraceRunner_WireRxHex( &r, _strdup(""
+			"00 00 00 10 77 77 00 C3 00 00 00 00 00 00 07 FF "
+			"00 00 00 10 77 77 00 C3 00 00 00 01 00 00 07 FF "
+			"00 00 00 10 77 77 00 C3 00 00 00 02 00 00 07 FF "
+			"00 00 00 10 77 77 00 C3 00 00 00 03 00 00 07 FF "
+			"00 00 00 10 77 77 00 C3 00 00 00 04 00 00 07 FF "
+			));
+
+	// send initial ARM with the first data
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg0, 236);
+		const char* p2 = DataGen_GetExpBytesString( &dg0, 21);
+		TraceRunner_WireTxHex( &r, TestUtil_StrCat( 5, _strdup( ""
+				// ARM[0]=64
+				"00 00 00 10 77 77 00 C3 00 00 00 00 00 00 02 00 "
+				// ARM[1]=64
+				"00 00 00 10 77 77 00 C3 00 00 00 01 00 00 00 64 "
+				"00 00 00 10 77 77 00 C3 00 00 00 02 00 00 00 64 "
+				"00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
+				"00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
+				// SEQ[0]=0, DATA[50]
+				
+				// 2 blocks 236+21
+				// len   SE chan. seq........ pls..
+				"00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC "), p1, _strdup(" "
+				"00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 "), p2, _strdup(" 00 00 00 ")
+				));
+	}
+		
+	// see the data of same priority in round robin
+	// 1, 2, 3, 1, 2, 3
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg1, 236);
+		const char* p2 = DataGen_GetExpBytesString( &dg2, 236);
+		const char* p3 = DataGen_GetExpBytesString( &dg3, 236);
+		const char* p4 = DataGen_GetExpBytesString( &dg1,  21);
+
+		TraceRunner_WireTxHex( &r, TestUtil_StrCat( 9, _strdup(""
+				"00 00 01 00 77 77 00 B4 00 00 00 01 00 00 00 00 00 00 00 EC "), p1, _strdup(" "
+				"00 00 01 00 77 77 00 B4 00 00 00 02 00 00 00 00 00 00 00 EC "), p2, _strdup(" "
+				"00 00 01 00 77 77 00 B4 00 00 00 03 00 00 00 00 00 00 00 EC "), p3, _strdup(" "
+				"00 00 00 2C 77 77 00 B4 00 00 00 01 00 00 00 EC 00 00 00 15 "), p4, _strdup(" 00 00 00 "
+				)));
+	}
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg2, 21);
+		const char* p2 = DataGen_GetExpBytesString( &dg3, 21);
+		TraceRunner_WireTxHex( &r,  TestUtil_StrCat( 5, _strdup(""
+				"00 00 00 2C 77 77 00 B4 00 00 00 02 00 00 00 EC 00 00 00 15 "), p1, _strdup(" 00 00 00 "
+				"00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 00 EC 00 00 00 15 "), p2, _strdup(" 00 00 00 "
+				)));
+	}		
+//		TraceRunner_WireTxAutoLength( &r,  20, "");
+
+	DataGen_EnsureSamePosition( &dg0 );
+	
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg0, 236);
+		const char* p2 = DataGen_GetExpBytesString( &dg0, 21);
+		TraceRunner_WireRxHex( &r,  TestUtil_StrCat( 5, _strdup(""
+			"00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC "), p1, _strdup(" "
+			"00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 "), p2, _strdup(" 00 00 00")));
+	}
+
+	TraceRunner_ApplToChannelHex( &r, 2, DataGen_GetGenBytesString( &dg2, 257 ) );
+	TraceRunner_ApplToChannelHex( &r, 3, DataGen_GetGenBytesString( &dg3, 257 ) );
+
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg2, 236);
+		TraceRunner_WireTxHex( &r,   TestUtil_StrCat( 3, _strdup(""
+			"00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01 " // arm
+			"00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 01 00 00 00 EC "), p1, _strdup(" "
+			)));
+	}
+
+	TraceRunner_ApplToChannelHex( &r, 2, DataGen_GetGenBytesString( &dg2, 257 ) );
+
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg3, 236);
+		const char* p2 = DataGen_GetExpBytesString( &dg2, 236);
+		const char* p3 = DataGen_GetExpBytesString( &dg3, 21);
+		TraceRunner_WireTxHex( &r,   TestUtil_StrCat( 7, _strdup(""
+			"00 00 01 00 77 77 00 B4 00 00 00 03 00 00 01 01 00 00 00 EC "), p1, _strdup(" "
+			"00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 ED 00 00 00 EC "), p2, _strdup(" "
+			"00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 01 ED 00 00 00 15 "), p3, _strdup(" 00 00 00 "
+			)));
+	}
+
+	{
+		const char* p1 = DataGen_GetExpBytesString( &dg2, 0x2A);
+		const char* p2 = DataGen_GetExpBytesString( &dg4, 236);
+		const char* p3 = DataGen_GetExpBytesString( &dg4, 21);
+		TraceRunner_WireTxHex( &r,  TestUtil_StrCat( 7, _strdup( ""
+			"00 00 00 40 77 77 00 B4 00 00 00 02 00 00 02 D9 00 00 00 2A "), p1, _strdup(" 00 00 "
+			"00 00 01 00 77 77 00 B4 00 00 00 04 00 00 00 00 00 00 00 EC "), p2, _strdup(" "
+			"00 00 00 2C 77 77 00 B4 00 00 00 04 00 00 00 EC 00 00 00 15 "), p3, _strdup(" 00 00 00"
+			)));
+	}
+
+	TraceRunner_ChannelToApplHex( &r, 0, DataGen_GetGenBytesString( &dg0, 257 ) );
+	DataGen_EnsureSamePosition( &dg0 );
+		
+	// SEQ[0]=F5+0c=0x101 +0x200 -> ARM = 0x301
+	//TraceRunner_WireTxHexMore( &r,  20, _strdup("00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01") );
+	TraceRunner_WireRxHex( &r,      _strdup("00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF") );
 	VERIFY_ERROR_CODE();
 }
 	

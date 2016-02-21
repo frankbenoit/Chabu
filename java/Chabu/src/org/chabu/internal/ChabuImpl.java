@@ -23,9 +23,9 @@ import org.chabu.ChabuSetupInfo;
 
 
 /**
-*
-* @author Frank Benoit
-*/
+ * 
+ * @author Frank Benoit
+ */
 public final class ChabuImpl implements Chabu {
 
 	private final ArrayList<ChabuChannelImpl> channels = new ArrayList<>(256);
@@ -79,24 +79,22 @@ public final class ChabuImpl implements Chabu {
 	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannelImpl)} or {@link #setPriorityCount(int)} are allowed.
 	 */
 	public void activate( int priorityCount){
-		consistencyChecks(priorityCount);
+		consistencyChecks();
 		xmitter.activate(priorityCount, channels, setup, Priorizer::new );
-		activateAllChannels(priorityCount);
+		activateAllChannels();
 		activated = true;
 		xmitter.processXmitSetup();
 		receiver.activate( channels, xmitter, setup );
 	}
 
-	private void consistencyChecks( int priorityCount) {
-		Utils.ensure( priorityCount >= 1 && priorityCount <= 20, ChabuErrorCode.CONFIGURATION_PRIOCOUNT, "Priority count must be in range 1..20, but is %s", priorityCount );
+	private void consistencyChecks() {
 		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
 		Utils.ensure( channels.size() > 0, ChabuErrorCode.CONFIGURATION_NO_CHANNELS, "No channels are set." );
 	}
 
-	private void activateAllChannels(int priorityCount ) {
+	private void activateAllChannels() {
 		for( int i = 0; i < channels.size(); i++ ){
 			ChabuChannelImpl ch = channels.get(i);
-			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, "Channel %s has higher priority (%s) as the max %s", i, ch.getPriority(), priorityCount );
 			ch.activate(this, i );
 		}
 	}

@@ -49,12 +49,25 @@ public class ChabuXmitter {
 
 	}
 	
-	void activate(int priorityCount, ArrayList<ChabuChannelImpl> channels, Setup setup, BiFunction< Integer, Integer, Priorizer> priorizerFactory ) {
+	void activate(int priorityCount, ArrayList<ChabuChannelImpl> channels, Setup setup, 
+			BiFunction< Integer, Integer, Priorizer> priorizerFactory ) {
+		
+		Utils.ensure( priorityCount >= 1 && priorityCount <= 20, 
+				ChabuErrorCode.CONFIGURATION_PRIOCOUNT, 
+				"Priority count must be in range 1..20, but is %s", priorityCount );
 		this.channels = channels;
 		this.setup = setup;
 		xmitChannelRequestData = priorizerFactory.apply(priorityCount, channels.size());
 		xmitChannelRequestArm  = priorizerFactory.apply(priorityCount, channels.size());
 		this.activated = true;
+		
+		for( ChabuChannelImpl ch : channels ){
+			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, 
+					"Channel %s has higher priority (%s) as the max %s", 
+					ch.getChannelId(), ch.getPriority(), priorityCount );
+		}
+		
+
 	}
 	
 	void ensureXmitBufMatchesReceiveSize( int remoteMaxReceiveSize ) {

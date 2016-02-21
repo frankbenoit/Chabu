@@ -36,13 +36,14 @@ public final class ChabuBuilder {
 
 	private ChabuImpl chabu;
 	private int nextChannelId;
+	private int priorityCount;
 
 	private ChabuBuilder( ChabuSetupInfo ci, int priorityCount ){
+		this.priorityCount = priorityCount;
 		ChabuXmitter xmitter = new ChabuXmitter();
 		ChabuReceiver receiver = new ChabuReceiver();
 		Setup setup = new Setup();
 		chabu = new ChabuImpl( xmitter, receiver, setup, ci );
-		chabu.setPriorityCount(priorityCount);
 	}
 
 	/**
@@ -128,7 +129,7 @@ public final class ChabuBuilder {
 	public Chabu build() {
 		ChabuImpl res = chabu;
 		chabu = null;
-		res.activate();
+		res.activate(priorityCount);
 		return res;
 	}
 }

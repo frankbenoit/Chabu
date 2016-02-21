@@ -115,9 +115,9 @@ public class ChabuReceiver {
 		Utils.ensure( activated, ChabuErrorCode.NOT_ACTIVATED, "While receiving the SETUP block, org.chabu was not activated." );
 
 		String pn = getRecvString();
-		if( !ChabuImpl.PROTOCOL_NAME.equals(pn) ) {
+		if( !Constants.PROTOCOL_NAME.equals(pn) ) {
 			xmitter.delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_NAME.getCode(), 
-					String.format("Chabu protocol name mismatch. Expected %s, received %d", ChabuImpl.PROTOCOL_NAME, pn ));
+					String.format("Chabu protocol name mismatch. Expected %s, received %d", Constants.PROTOCOL_NAME, pn ));
 			return;
 		}
 		
@@ -133,9 +133,9 @@ public class ChabuReceiver {
 
 		setup.setRecvSetupCompleted( RecvState.RECVED );	
 
-		if(( pv >>> 16 ) != (ChabuImpl.PROTOCOL_VERSION >>> 16 )) {
+		if(( pv >>> 16 ) != (Constants.PROTOCOL_VERSION >>> 16 )) {
 			xmitter.delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION.getCode(), String.format("Chabu protocol version mismatch. Expected %s, received %s", 
-					protocolVersionToString(ChabuImpl.PROTOCOL_VERSION), protocolVersionToString(pv) ));
+					protocolVersionToString(Constants.PROTOCOL_VERSION), protocolVersionToString(pv) ));
 			return;
 		}
 				

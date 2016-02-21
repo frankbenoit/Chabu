@@ -58,12 +58,13 @@ public class TestSetupConnection {
 		
 		// Prio count <= 0
 		assertException( ChabuErrorCode.CONFIGURATION_PRIOCOUNT, ()->{
-			ChabuBuilder.start( 0x123, "", 0x100, 0);
+			ChabuBuilder.start( 0x123, "", 0x100, 0).build();
+			
 		});		
 
 		// Prio count > 20
 		assertException( ChabuErrorCode.CONFIGURATION_PRIOCOUNT, ()->{
-			ChabuBuilder.start( 0x123, "", 0x100, 21);
+			ChabuBuilder.start( 0x123, "", 0x100, 21).build();
 		});
 	}		
 	

@@ -5,6 +5,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 
@@ -16,7 +17,6 @@ public class ChabuXmitter {
 	
 	private static final int   PT_MAGIC = 0x77770000;
 
-//	private static final int   ABORT_MSGLEN_MAX = 48;
 	/**
 	 * The startup data is completely sent.
 	 */
@@ -27,19 +27,20 @@ public class ChabuXmitter {
 	
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 
-	private Runnable xmitRequestListener;
-//	private boolean  xmitRequestPending = false;
+	private final LinkedList<Runnable> xmitRequestListeners = new LinkedList<>();
 	private ArrayList<ChabuChannelImpl> channels;
 	
 	/**
 	 * Have sent the ACCEPT packet
 	 */
 	private XmitState xmitAccepted = XmitState.IDLE;
-	private AbortMessage abortMessage = new AbortMessage();;
+	private AbortMessage abortMessage = new AbortMessage();
 
 	private PrintWriter traceWriter;
 
 	private Setup setup;
+
+	private boolean activated;
 
 	public ChabuXmitter(){
 		
@@ -53,6 +54,7 @@ public class ChabuXmitter {
 		this.setup = setup;
 		xmitChannelRequestData = priorizerFactory.apply(priorityCount, channels.size());
 		xmitChannelRequestArm  = priorizerFactory.apply(priorityCount, channels.size());
+		this.activated = true;
 	}
 	
 	void ensureXmitBufMatchesReceiveSize( int remoteMaxReceiveSize ) {
@@ -80,15 +82,13 @@ public class ChabuXmitter {
 	}
 
 	void callXmitRequestListener() {
-//		xmitRequestPending = true;
-		if( xmitRequestListener != null ){
-			xmitRequestListener.run();
+		LinkedList<Runnable> listeners = xmitRequestListeners;
+		for( Runnable r : listeners ){
+			r.run();
 		}
 	}
 
 	public void xmit(ByteBuffer buf) {
-		// now we are here, so reset the request
-//		xmitRequestPending = false;
 		
 		// prepare trace
 		PrintWriter trc = traceWriter;
@@ -201,19 +201,6 @@ public class ChabuXmitter {
 		}
 	}
 
-//	private void xmitFillAbortPacket(byte[] msgBytes) {
-//		xmitFillStart( PacketType.ABORT );
-//		xmitBuf.putInt(xmitAbortCode );
-//		xmitFillAddString(msgBytes);
-//		xmitFillComplete();
-//	}
-//	
-//	private void setAbortSendingPrepared() {
-//		xmitAbortMessage = "";
-//		xmitAbortCode    = 0;
-//		xmitAbortPending = XmitState.PREPARED;
-//	}
-
 	/** 
 	 * Called by channel
 	 */
@@ -277,12 +264,12 @@ public class ChabuXmitter {
 		return pls;
 	}
 
-
 	public void addXmitRequestListener( Runnable r) {
-		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, 
-				"Listener passed in is null" );
-		this.xmitRequestListener = r;
+		Utils.ensure( r != null && !this.activated, ChabuErrorCode.ASSERT, 
+				"Listener passed in is null or Chabu already activated" );
+		this.xmitRequestListeners.add(r);
 	}
+	
 	/**
 	 * Put on the buffer the needed org.chabu protocol informations: org.chabu version, 
 	 * byte order, payloadsize, channel count
@@ -302,8 +289,8 @@ public class ChabuXmitter {
 		ChabuSetupInfo infoLocal = setup.getInfoLocal();
 		
 		xmitFillStart( PacketType.SETUP );
-		xmitFillAddString( ChabuImpl.PROTOCOL_NAME );
-		xmitFillAddInt( ChabuImpl.PROTOCOL_VERSION );
+		xmitFillAddString( Constants.PROTOCOL_NAME );
+		xmitFillAddInt( Constants.PROTOCOL_VERSION );
 		xmitFillAddInt( infoLocal.maxReceiveSize       );
 		xmitFillAddInt( infoLocal.applicationVersion );
 		xmitFillAddString( infoLocal.applicationName );
@@ -322,21 +309,6 @@ public class ChabuXmitter {
 		xmitAccepted = XmitState.PREPARED;
 	}
 
-//	private void processXmitAbort(){
-//		byte[] msgBytes = getAbortMessageBytesAndCheckLength();
-//		xmitFillAbortPacket(msgBytes);
-//		setAbortSendingPrepared();
-//	}
-//
-//	private byte[] getAbortMessageBytesAndCheckLength() {
-//		byte[] msgBytes = xmitAbortMessage.getBytes( StandardCharsets.UTF_8 );
-//
-//		Utils.ensure( msgBytes.length <= ABORT_MSGLEN_MAX, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH,
-//				"Xmit Abort message, text must be less than %s UTF8 bytes, but is %s",
-//				ABORT_MSGLEN_MAX, msgBytes.length );
-//		return msgBytes;
-//	}
-	
 	private void xmitFillAddInt(int value) {
 		xmitBuf.putInt( value );
 	}
@@ -351,10 +323,6 @@ public class ChabuXmitter {
 		xmitFillAligned();
 	}
 
-//	public boolean isXmitRequestPending() {
-//		return xmitRequestPending;
-//	}
-	
 	void delayedAbort(int code, String message) {
 		Utils.ensure( abortMessage.isIdle(), 
 				ChabuErrorCode.ASSERT, 

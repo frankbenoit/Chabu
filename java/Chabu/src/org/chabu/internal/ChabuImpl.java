@@ -28,26 +28,14 @@ import org.chabu.ChabuSetupInfo;
 */
 public final class ChabuImpl implements Chabu {
 
-	public static final String PROTOCOL_NAME    = "CHABU";
-	
-	/**
-	 * Number constant for the current protocol version.<br/>
-	 * Actually this is version 0.1.
-	 */
-	public static final int    PROTOCOL_VERSION = 0x0000_0001;
-
-	private ArrayList<ChabuChannelImpl> channels = new ArrayList<>(256);
-	
-	private int      priorityCount = 1;
+	private final ArrayList<ChabuChannelImpl> channels = new ArrayList<>(256);
 	
 	private final ChabuXmitter xmitter;	
+	
 	private final ChabuReceiver receiver;	
-
 	
 	private boolean activated = false;
 
-	int maxChannelId;
-	
 	private final Setup setup;
 	
 	private PrintWriter traceWriter;
@@ -87,44 +75,30 @@ public final class ChabuImpl implements Chabu {
 		channels.add(channel);
 	}
 	
-	public void setPriorityCount( int priorityCount ){
-		Utils.ensure( !activated, ChabuErrorCode.IS_ACTIVATED, "Priority count cannot be set when alread activated." );
-		Utils.ensure( priorityCount >= 1 && priorityCount <= 20, ChabuErrorCode.CONFIGURATION_PRIOCOUNT, "Priority count must be in range 1..20, but is %s", priorityCount );
-		this.priorityCount = priorityCount;
-	}
-	
-	/**
-	 * Priority that forces the processing to be done with highest possible priority.
-	 * Lower priority values result in later processing.
-	 */
-	public int getHighestValidPriority(){
-		return priorityCount-1;
-	}
-	
 	/**
 	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannelImpl)} or {@link #setPriorityCount(int)} are allowed.
 	 */
-	public void activate(){
-		consistencyChecks();
+	public void activate( int priorityCount){
+		consistencyChecks(priorityCount);
 		xmitter.activate(priorityCount, channels, setup, Priorizer::new );
-		activateAllChannels();
+		activateAllChannels(priorityCount);
 		activated = true;
 		xmitter.processXmitSetup();
 		receiver.activate( channels, xmitter, setup );
 	}
 
-	private void consistencyChecks() {
+	private void consistencyChecks( int priorityCount) {
+		Utils.ensure( priorityCount >= 1 && priorityCount <= 20, ChabuErrorCode.CONFIGURATION_PRIOCOUNT, "Priority count must be in range 1..20, but is %s", priorityCount );
 		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
 		Utils.ensure( channels.size() > 0, ChabuErrorCode.CONFIGURATION_NO_CHANNELS, "No channels are set." );
 	}
 
-	private void activateAllChannels() {
+	private void activateAllChannels(int priorityCount ) {
 		for( int i = 0; i < channels.size(); i++ ){
 			ChabuChannelImpl ch = channels.get(i);
 			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, "Channel %s has higher priority (%s) as the max %s", i, ch.getPriority(), priorityCount );
 			ch.activate(this, i );
 		}
-		maxChannelId = channels.size() -1;
 	}
 
 	@Override
@@ -174,10 +148,6 @@ public final class ChabuImpl implements Chabu {
 		return channels.get(channelId);
 	}
 
-//	@Override
-//	public boolean isXmitRequestPending() {
-//		return xmitter.isXmitRequestPending();
-//	}
 	@Override
 	public String toString() {
 		return String.format("Chabu[ recv:%s xmit:%s ]", receiver, xmitter );

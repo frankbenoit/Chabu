@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import org.chabu.ChabuErrorCode;
 import org.chabu.ChabuException;
@@ -15,7 +16,7 @@ public class ChabuXmitter {
 	
 	private static final int   PT_MAGIC = 0x77770000;
 
-	private static final int   ABORT_MSGLEN_MAX = 48;
+//	private static final int   ABORT_MSGLEN_MAX = 48;
 	/**
 	 * The startup data is completely sent.
 	 */
@@ -27,17 +28,14 @@ public class ChabuXmitter {
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 
 	private Runnable xmitRequestListener;
-	private boolean  xmitRequestPending = false;
+//	private boolean  xmitRequestPending = false;
 	private ArrayList<ChabuChannelImpl> channels;
 	
 	/**
 	 * Have sent the ACCEPT packet
 	 */
 	private XmitState xmitAccepted = XmitState.IDLE;
-	
-	private XmitState    xmitAbortPending = XmitState.IDLE;
-	private int          xmitAbortCode    = 0;
-	private String       xmitAbortMessage = "";
+	private AbortMessage abortMessage = new AbortMessage();;
 
 	private PrintWriter traceWriter;
 
@@ -47,10 +45,9 @@ public class ChabuXmitter {
 		
 		xmitBuf.order(ByteOrder.BIG_ENDIAN);
 		xmitBuf.clear().limit(0);
-		
 
 	}
-
+	
 	void activate(int priorityCount, ArrayList<ChabuChannelImpl> channels, Setup setup, BiFunction< Integer, Integer, Priorizer> priorizerFactory ) {
 		this.channels = channels;
 		this.setup = setup;
@@ -66,18 +63,10 @@ public class ChabuXmitter {
 		}
 	}
 
-	void callXmitRequestListener() {
-		xmitRequestPending = true;
-		if( xmitRequestListener != null ){
-			xmitRequestListener.run();
-		}
-	}
-
 	void channelXmitRequestData(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
 			xmitChannelRequestData.reqest( priority, channelId );
-			
 		}
 		callXmitRequestListener();
 	}
@@ -90,9 +79,16 @@ public class ChabuXmitter {
 		callXmitRequestListener();
 	}
 
+	void callXmitRequestListener() {
+//		xmitRequestPending = true;
+		if( xmitRequestListener != null ){
+			xmitRequestListener.run();
+		}
+	}
+
 	public void xmit(ByteBuffer buf) {
 		// now we are here, so reset the request
-		xmitRequestPending = false;
+//		xmitRequestPending = false;
 		
 		// prepare trace
 		PrintWriter trc = traceWriter;
@@ -106,6 +102,7 @@ public class ChabuXmitter {
 			Utils.printTraceHexData(trc, buf, trcStartPos, buf.position());
 		}
 	}
+	
 	private void xmitProcessing(ByteBuffer buf) {
 		// start real work
 		while( buf.hasRemaining() ){
@@ -140,73 +137,82 @@ public class ChabuXmitter {
 	}
 
 	private boolean tryFillXmitBuf() {
-		
-		if( xmitStartupCompleted != XmitState.IDLE ){
-			if( xmitStartupCompleted == XmitState.PREPARED ){
-				xmitStartupCompleted = XmitState.XMITTED;
-				setup.checkConnectingValidator(this);
-				if( xmitBuf.hasRemaining() ){
-					return true;
-				}
-			}
+
+		if( tryToCompleteStartup() ){
+			return true;
 		}
 		
 		if( !setup.isRemoteSetupReceived() ){
 			return false;
 		}
 		
-		if( xmitAbortPending == XmitState.PENDING ){
-			
-			int code = xmitAbortCode;
-			String msg = xmitAbortMessage;
-			xmitAbortCode = 0;
-			xmitAbortMessage = "";
-			xmitAbortPending = XmitState.XMITTED;
-			throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, 
-					String.format("Remote Abort: Code:%d %s", code, msg));
-		}
+		checkPendingAbort();
 
-		if( xmitAbortPending != XmitState.IDLE ){				
-			if( xmitAbortPending == XmitState.PENDING ){
-				processXmitAbort();
-				return true;
-			}
-		}
-
-		while( true ){
-			ChabuChannelImpl ch = calcNextXmitChannel(xmitChannelRequestArm);
-			if( ch == null ){
-				break;
-			}
-			ch.handleXmitArm();
+		if( tryHandleNextPrioChannel( xmitChannelRequestArm, ChabuChannelImpl::handleXmitArm ) ){
 			return true;
 		}
 		
-		while( true ){
-			ChabuChannelImpl ch = calcNextXmitChannel(xmitChannelRequestData);
-			if( ch == null ){
-				break;
-			}
-			ch.handleXmitData();
+		if( tryHandleNextPrioChannel( xmitChannelRequestData, ChabuChannelImpl::handleXmitData ) ){
 			return true;
 		}
 
 		return false;
 	}
 
+	private boolean tryToCompleteStartup() {
+		if( xmitStartupCompleted == XmitState.PREPARED ){
+			xmitStartupCompleted = XmitState.XMITTED;
+			setup.checkConnectingValidator(this);
+			if( xmitBuf.hasRemaining() ){
+				return true;
+			}
+		}
+		return false;
+	}
 
-	private void xmitFillAbortPacket(byte[] msgBytes) {
-		xmitFillStart( PacketType.ABORT );
-		xmitBuf.putInt(xmitAbortCode );
-		xmitFillAddString(msgBytes);
-		xmitFillComplete();
+	private void checkPendingAbort() {
+		if( abortMessage.isPending() ){
+			
+			int code = abortMessage.getCode();
+			String msg = abortMessage.getMessage();
+			
+			abortMessage.setXmitted();
+			
+			throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, 
+					String.format("Remote Abort: Code:%d %s", code, msg));
+		}
+	}
+
+
+	private boolean tryHandleNextPrioChannel(Priorizer priorizer, Consumer<ChabuChannelImpl> c ) {
+		ChabuChannelImpl ch = popNextPriorizedChannelRequest(priorizer);
+		if( ch != null ){
+			c.accept(ch);
+			return true;
+		}
+		return false;
 	}
 	
-	private void setAbortSendingPrepared() {
-		xmitAbortMessage = "";
-		xmitAbortCode    = 0;
-		xmitAbortPending = XmitState.PREPARED;
+	private ChabuChannelImpl popNextPriorizedChannelRequest(Priorizer priorizer) {
+		synchronized(this){
+			int reqChannel = priorizer.popNextRequest();
+			if( reqChannel < 0 ) return null;
+			return channels.get( reqChannel );
+		}
 	}
+
+//	private void xmitFillAbortPacket(byte[] msgBytes) {
+//		xmitFillStart( PacketType.ABORT );
+//		xmitBuf.putInt(xmitAbortCode );
+//		xmitFillAddString(msgBytes);
+//		xmitFillComplete();
+//	}
+//	
+//	private void setAbortSendingPrepared() {
+//		xmitAbortMessage = "";
+//		xmitAbortCode    = 0;
+//		xmitAbortPending = XmitState.PREPARED;
+//	}
 
 	/** 
 	 * Called by channel
@@ -272,15 +278,6 @@ public class ChabuXmitter {
 	}
 
 
-	private ChabuChannelImpl calcNextXmitChannel(Priorizer priorizer) {
-		synchronized(this){
-			int reqChannel = priorizer.popNextRequest();
-			if( reqChannel < 0 ) return null;
-			return channels.get( reqChannel );
-		}
-	}
-
-	
 	public void addXmitRequestListener( Runnable r) {
 		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, 
 				"Listener passed in is null" );
@@ -325,44 +322,45 @@ public class ChabuXmitter {
 		xmitAccepted = XmitState.PREPARED;
 	}
 
-	private void processXmitAbort(){
-		byte[] msgBytes = getAbortMessageBytesAndCheckLength();
-		xmitFillAbortPacket(msgBytes);
-		setAbortSendingPrepared();
-	}
-
-	private byte[] getAbortMessageBytesAndCheckLength() {
-		byte[] msgBytes = xmitAbortMessage.getBytes( StandardCharsets.UTF_8 );
-
-		Utils.ensure( msgBytes.length <= ABORT_MSGLEN_MAX, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH,
-				"Xmit Abort message, text must be less than %s UTF8 bytes, but is %s",
-				ABORT_MSGLEN_MAX, msgBytes.length );
-		return msgBytes;
-	}
+//	private void processXmitAbort(){
+//		byte[] msgBytes = getAbortMessageBytesAndCheckLength();
+//		xmitFillAbortPacket(msgBytes);
+//		setAbortSendingPrepared();
+//	}
+//
+//	private byte[] getAbortMessageBytesAndCheckLength() {
+//		byte[] msgBytes = xmitAbortMessage.getBytes( StandardCharsets.UTF_8 );
+//
+//		Utils.ensure( msgBytes.length <= ABORT_MSGLEN_MAX, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH,
+//				"Xmit Abort message, text must be less than %s UTF8 bytes, but is %s",
+//				ABORT_MSGLEN_MAX, msgBytes.length );
+//		return msgBytes;
+//	}
+	
 	private void xmitFillAddInt(int value) {
 		xmitBuf.putInt( value );
 	}
+	
 	private void xmitFillAddString(String str) {
 		xmitFillAddString(str.getBytes(StandardCharsets.UTF_8));
 	}
+	
 	private void xmitFillAddString(byte[] bytes) {
 		xmitBuf.putInt  ( bytes.length );
 		xmitBuf.put     ( bytes );
 		xmitFillAligned();
 	}
 
-	public boolean isXmitRequestPending() {
-		return xmitRequestPending;
-	}
+//	public boolean isXmitRequestPending() {
+//		return xmitRequestPending;
+//	}
 	
 	void delayedAbort(int code, String message) {
-		Utils.ensure( xmitAbortPending == XmitState.IDLE, 
+		Utils.ensure( abortMessage.isIdle(), 
 				ChabuErrorCode.ASSERT, 
 				"Abort is already pending while generating Abort from Validator");
 		
-		xmitAbortCode    = code;
-		xmitAbortMessage = message;
-		xmitAbortPending = XmitState.PENDING;
+		abortMessage.setPending( code, message );
 		
 		callXmitRequestListener();
 
@@ -371,6 +369,7 @@ public class ChabuXmitter {
 	void delayedAbort(ChabuErrorCode ec, String message) {
 		delayedAbort(ec.getCode(), message);
 	}
+	
 	private void checkLocalAppNameLength() {
 		byte[] anlBytes = setup.getInfoLocal().applicationName.getBytes( StandardCharsets.UTF_8 );
 		Utils.ensure( anlBytes.length <= 200, 

@@ -79,8 +79,8 @@ public interface Chabu {
 	 */
 	void addXmitRequestListener( Runnable r );
 	
-	/**
-	 * Returns true if chabu want to receive another call to {@link #xmit(ByteBuffer)}.
-	 */
-	boolean isXmitRequestPending();
+//	/**
+//	 * Returns true if chabu want to receive another call to {@link #xmit(ByteBuffer)}.
+//	 */
+//	boolean isXmitRequestPending();
 }

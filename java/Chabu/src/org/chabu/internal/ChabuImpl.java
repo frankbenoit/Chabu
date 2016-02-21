@@ -174,10 +174,10 @@ public final class ChabuImpl implements Chabu {
 		return channels.get(channelId);
 	}
 
-	@Override
-	public boolean isXmitRequestPending() {
-		return xmitter.isXmitRequestPending();
-	}
+//	@Override
+//	public boolean isXmitRequestPending() {
+//		return xmitter.isXmitRequestPending();
+//	}
 	@Override
 	public String toString() {
 		return String.format("Chabu[ recv:%s xmit:%s ]", receiver, xmitter );

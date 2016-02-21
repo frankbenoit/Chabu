@@ -5,7 +5,9 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.BitSet;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.chabu.ChabuErrorCode;
 import org.chabu.ChabuException;
@@ -21,15 +23,13 @@ public class ChabuXmitter {
 	 */
 	private XmitState xmitStartupCompleted = XmitState.IDLE;
 	
-	private BitSet[] xmitChannelRequestData;
-	private BitSet[] xmitChannelRequestArm;
-	private int      xmitLastChannelIdx = 0;
+	private Priorizer xmitChannelRequestData;
+	private Priorizer xmitChannelRequestArm;
 	
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 
 	private Runnable xmitRequestListener;
 	private boolean  xmitRequestPending = false;
-	private int priorityCount;
 	private ArrayList<ChabuChannelImpl> channels;
 	
 	/**
@@ -53,21 +53,13 @@ public class ChabuXmitter {
 
 	}
 
-	void activate(int priorityCount, ArrayList<ChabuChannelImpl> channels, Setup setup) {
-		this.priorityCount = priorityCount;
+	void activate(int priorityCount, ArrayList<ChabuChannelImpl> channels, Setup setup, BiFunction< Integer, Integer, Priorizer> priorizerFactory ) {
 		this.channels = channels;
 		this.setup = setup;
-		xmitChannelRequestData = createAndInitPrioBitSet();
-		xmitChannelRequestArm  = createAndInitPrioBitSet();
+		xmitChannelRequestData = priorizerFactory.apply(priorityCount, channels.size());
+		xmitChannelRequestArm  = priorizerFactory.apply(priorityCount, channels.size());
 	}
 	
-	private BitSet[] createAndInitPrioBitSet() {
-		BitSet[] bs = new BitSet[ priorityCount ];
-		for (int i = 0; i < priorityCount; i++) {
-			bs[i] = new BitSet(channels.size());
-		}
-		return bs;
-	}
 	void ensureXmitBufMatchesReceiveSize( int remoteMaxReceiveSize ) {
 		if( this.xmitBuf.capacity() != remoteMaxReceiveSize ){
 			this.xmitBuf = ByteBuffer.allocate( remoteMaxReceiveSize );
@@ -86,9 +78,8 @@ public class ChabuXmitter {
 	void channelXmitRequestData(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			Utils.ensure(priority < xmitChannelRequestData.length, ChabuErrorCode.ASSERT, 
-					"priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestData.length );
-			xmitChannelRequestData[priority].set( channelId );
+			xmitChannelRequestData.reqest( priority, channelId );
+			
 		}
 		callXmitRequestListener();
 	}
@@ -96,9 +87,7 @@ public class ChabuXmitter {
 	void channelXmitRequestArm(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			Utils.ensure(priority < xmitChannelRequestArm.length, ChabuErrorCode.ASSERT, 
-					"priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestArm.length );
-			xmitChannelRequestArm[priority].set( channelId );
+			xmitChannelRequestArm.reqest( priority, channelId );
 		}
 		callXmitRequestListener();
 	}
@@ -285,43 +274,14 @@ public class ChabuXmitter {
 	}
 
 
-	private ChabuChannelImpl calcNextXmitChannel(BitSet[] prioBitSets) {
+	private ChabuChannelImpl calcNextXmitChannel(Priorizer priorizer) {
 		synchronized(this){
-			for( int prio = priorityCount-1; prio >= 0; prio-- ){
-				ChabuChannelImpl res = calcNextXmitChannelForPrio(prioBitSets, prio);
-				if( res != null ){
-					return res;
-				}
-			}
-			return null;
+			int reqChannel = priorizer.popNextRequest();
+			if( reqChannel < 0 ) return null;
+			return channels.get( reqChannel );
 		}
 	}
 
-	private ChabuChannelImpl calcNextXmitChannelForPrio(BitSet[] prioBitSets, int prio) {
-		int idxCandidate = -1;
-		BitSet prioBitSet = prioBitSets[prio];
-
-		// search from last channel pos on
-		if( xmitLastChannelIdx+1 < prioBitSet.size() ){
-			idxCandidate = prioBitSet.nextSetBit(xmitLastChannelIdx+1);
-		}
-
-		// try from idx zero
-		if( idxCandidate < 0 ){
-			idxCandidate = prioBitSet.nextSetBit(0);
-		}
-
-		// if found, clear and use it
-		if( idxCandidate >= 0 ){
-			prioBitSet.clear(idxCandidate);
-			xmitLastChannelIdx = idxCandidate;
-			ChabuChannelImpl channel = channels.get(idxCandidate);
-			Utils.ensure( channel.getPriority() == prio, ChabuErrorCode.ASSERT, 
-					"Channels prio does not match the store prio." );
-			return channel;
-		}
-		return null;
-	}
 	
 	public void addXmitRequestListener( Runnable r) {
 		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, 

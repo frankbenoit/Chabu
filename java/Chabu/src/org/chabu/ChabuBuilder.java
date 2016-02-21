@@ -11,6 +11,9 @@
 package org.chabu;
 
 import org.chabu.internal.ChabuImpl;
+import org.chabu.internal.ChabuReceiver;
+import org.chabu.internal.ChabuXmitter;
+import org.chabu.internal.Setup;
 import org.chabu.internal.ChabuChannelImpl;
 import org.chabu.internal.Utils;
 
@@ -35,7 +38,10 @@ public final class ChabuBuilder {
 	private int nextChannelId;
 
 	private ChabuBuilder( ChabuSetupInfo ci, int priorityCount ){
-		chabu = new ChabuImpl( ci );
+		ChabuXmitter xmitter = new ChabuXmitter();
+		ChabuReceiver receiver = new ChabuReceiver();
+		Setup setup = new Setup();
+		chabu = new ChabuImpl( xmitter, receiver, setup, ci );
 		chabu.setPriorityCount(priorityCount);
 	}
 

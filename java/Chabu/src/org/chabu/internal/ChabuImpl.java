@@ -40,8 +40,8 @@ public final class ChabuImpl implements Chabu {
 	
 	private int      priorityCount = 1;
 	
-	private ChabuXmitter xmitter = new ChabuXmitter();	
-	private ChabuReceiver receiver = new ChabuReceiver();	
+	private final ChabuXmitter xmitter;	
+	private final ChabuReceiver receiver;	
 
 	
 	private boolean activated = false;
@@ -49,12 +49,16 @@ public final class ChabuImpl implements Chabu {
 	int maxChannelId;
 //	String instanceName = "Chabu";
 	
-	private Setup setup = new Setup();
+	private final Setup setup;
 	
 	private PrintWriter traceWriter;
 
 	
-	public ChabuImpl( ChabuSetupInfo info ){
+	public ChabuImpl( ChabuXmitter xmitter, ChabuReceiver receiver, Setup setup, ChabuSetupInfo info ){
+		
+		this.xmitter = xmitter;
+		this.receiver = receiver;
+		this.setup = setup;
 		
 		Utils.ensure( info.maxReceiveSize >= 0x100, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
 				"maxReceiveSize must be at least 0x100, but is %s", info.maxReceiveSize );
@@ -83,6 +87,7 @@ public final class ChabuImpl implements Chabu {
 	public void addChannel( ChabuChannelImpl channel ){
 		channels.add(channel);
 	}
+	
 	public void setPriorityCount( int priorityCount ){
 		Utils.ensure( !activated, ChabuErrorCode.IS_ACTIVATED, "Priority count cannot be set when alread activated." );
 		Utils.ensure( priorityCount >= 1 && priorityCount <= 20, ChabuErrorCode.CONFIGURATION_PRIOCOUNT, "Priority count must be in range 1..20, but is %s", priorityCount );
@@ -102,7 +107,7 @@ public final class ChabuImpl implements Chabu {
 	 */
 	public void activate(){
 		consistencyChecks();
-		xmitter.activate(priorityCount, channels, setup );
+		xmitter.activate(priorityCount, channels, setup, Priorizer::new );
 		activateAllChannels();
 		activated = true;
 		xmitter.processXmitSetup();
@@ -128,19 +133,15 @@ public final class ChabuImpl implements Chabu {
 		receiver.recv(buf);
 	}
 
-
-
-
 	@Override
 	public void xmit(ByteBuffer buf) {
 		xmitter.xmit( buf );
 	}
 
-
-
 	void channelXmitRequestArm(int channelId){
 		xmitter.channelXmitRequestArm(channelId);
 	}
+
 	void channelXmitRequestData(int channelId){
 		xmitter.channelXmitRequestData(channelId);
 	}
@@ -188,11 +189,11 @@ public final class ChabuImpl implements Chabu {
 		xmitter.addXmitRequestListener(r);
 	}
 
-	public void processXmitArm(int channelId, int recvArm) {
+	void processXmitArm(int channelId, int recvArm) {
 		xmitter.processXmitArm(channelId, recvArm);
 	}
 
-	public void processXmitSeq(int channelId, int xmitSeq, int armSize, ConsumerByteBuffer userBuffer) {
+	void processXmitSeq(int channelId, int xmitSeq, int armSize, ConsumerByteBuffer userBuffer) {
 		xmitter.processXmitSeq(channelId, xmitSeq, armSize, userBuffer);		
 	}
 }

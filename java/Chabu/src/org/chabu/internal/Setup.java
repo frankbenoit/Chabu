@@ -10,6 +10,7 @@ public class Setup {
 	private ChabuSetupInfo infoLocal;
 	private ChabuSetupInfo infoRemote;
 	private ChabuConnectingValidator val;
+	
 	/**
 	 * Have recv the ACCEPT packet
 	 */
@@ -92,26 +93,28 @@ public class Setup {
 
 	private void checkConnectingValidatorMaxReceiveSize(ChabuXmitter xmitter) {
 		int maxReceiveSize = getRemoteMaxReceiveSize();
-		if( maxReceiveSize < 0x100 || maxReceiveSize >= 0x10000 ){
-			xmitter.delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE.getCode(), 
-				String.format("MaxReceiveSize must be on range 0x100 .. 0xFFFF bytes, "
-						+ "but SETUP from remote contained 0x%02X", 
-						maxReceiveSize));
+		if( maxReceiveSize < Constants.MAX_RECV_LIMIT_LOW || maxReceiveSize >= Constants.MAX_RECV_LIMIT_HIGH ){
+			
+			String msg = String.format( "MaxReceiveSize must be in range 0x%X .. 0x%X bytes, "
+					+ "but SETUP from remote was 0x%02X", 
+					Constants.MAX_RECV_LIMIT_LOW, Constants.MAX_RECV_LIMIT_HIGH, maxReceiveSize);
+			
+			xmitter.delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE.getCode(), msg);
+			
 		}
-		Utils.ensure( ( maxReceiveSize & 3 ) == 0, ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, 
-				"maxReceiveSize must 4-byte aligned: %s", maxReceiveSize );
+		Utils.ensure( Utils.isAligned4( maxReceiveSize ), ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, 
+				"maxReceiveSize must 4-byte aligned: 0x%X", maxReceiveSize );
 	}
 
 	private boolean isCheckConnectingValidatorNeeded(ChabuXmitter xmitter) {
-		return !xmitter.isAcceptedXmitted() 
-				&& isRemoteSetupReceived()
-				&& xmitter.isStartupXmitted();
+		return !xmitter.isAcceptedXmitted() && isRemoteSetupReceived() && xmitter.isStartupXmitted();
 	}
+	
 	public void setRemoteAcceptReceived() {
-		Utils.ensure( !isRemoteAcceptReceived(), ChabuErrorCode.PROTOCOL_ACCEPT_TWICE, 
-				"Recveived ACCEPT twice" );
+		Utils.ensure( !isRemoteAcceptReceived(), ChabuErrorCode.PROTOCOL_ACCEPT_TWICE, "Recveived ACCEPT twice" );
 		recvAccepted = RecvState.RECVED;
 	}
+	
 	public boolean isRemoteAcceptReceived() {
 		return recvAccepted == RecvState.RECVED;
 	}

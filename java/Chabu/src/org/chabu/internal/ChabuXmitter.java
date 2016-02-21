@@ -28,6 +28,7 @@ public class ChabuXmitter {
 	private ByteBuffer xmitBuf = ByteBuffer.allocate( 0x100 );
 
 	private final LinkedList<Runnable> xmitRequestListeners = new LinkedList<>();
+	
 	private ArrayList<ChabuChannelImpl> channels;
 	
 	/**

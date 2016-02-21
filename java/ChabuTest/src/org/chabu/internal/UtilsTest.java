@@ -1,6 +1,6 @@
 package org.chabu.internal;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Test;
 
@@ -24,5 +24,6 @@ public class UtilsTest {
 		assertEquals( false, Utils.isAligned4( 7 ));
 		assertEquals( true , Utils.isAligned4( 8 ));
 	}
+
 
 }

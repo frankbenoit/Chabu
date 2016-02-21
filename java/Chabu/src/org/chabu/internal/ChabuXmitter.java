@@ -110,7 +110,7 @@ public class ChabuXmitter {
 		// start real work
 		while( buf.hasRemaining() ){
 			
-			Utils.transferRemaining( xmitBuf, buf );
+			ByteBufferUtils.transferRemaining( xmitBuf, buf );
 
 			if( !canPrepareMoreXmitData(buf)){
 				break;

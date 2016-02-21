@@ -27,78 +27,83 @@ public class ChabuReceiver {
 		int trcStartPos = buf.position();
 		
 		// start real work
-		
-		int oldRemaining = -1;
-		while( oldRemaining != buf.remaining() ){
-			oldRemaining = buf.remaining();
-
-			// ensure we have len+type
-			Utils.transferUpTo( buf, recvBuf, 8 );
-			if( recvBuf.position() < 8 ){
-				break;
-			}
-			
-			int ps = recvBuf.getInt(0);
-			if( ps > recvBuf.capacity() ){
-				xmitter.delayedAbort(ChabuErrorCode.PROTOCOL_LENGTH, 
-						String.format("Packet with too much data: len %s", ps ));
-				// set all recv to be consumed.
-				buf.position( buf.limit() );
-			}
-
-			recvBuf.limit(ps);
-			Utils.transferRemaining(buf, recvBuf);
-
-
-			if( !recvBuf.hasRemaining() ){
-				
-				// completed, now start processing
-				recvBuf.flip();
-				recvBuf.position(4);
-
-				try{
-					
-					int packetTypeId = recvBuf.getInt() & 0xFF;
-					PacketType packetType = PacketType.findPacketType(packetTypeId);
-					if( packetType == null ){
-						xmitter.delayedAbort( ChabuErrorCode.PROTOCOL_PCK_TYPE, 
-								String.format("Packet type cannot be found 0x%02X", packetTypeId ));
-						return;
-					}
-
-					if( !setup.isRemoteSetupReceived() && packetType != PacketType.SETUP ){
-						xmitter.delayedAbort( ChabuErrorCode.PROTOCOL_EXPECTED_SETUP, 
-								String.format("Recveived %s, but SETUP was expected", packetType ));
-						return;
-					}
-					
-					switch( packetType ){
-					case SETUP : processRecvSetup();  break;
-					case ACCEPT: processRecvAccept(); break; 
-					case ABORT : processRecvAbort();  break; 
-					case ARM   : processRecvArm();    break; 
-					case SEQ   : processRecvSeq();    break; 
-					default    : throw new ChabuException(String.format(
-							"Packet type 0x%02X unexpected: ps %s", packetTypeId, ps ));
-					}
-		
-					if( recvBuf.hasRemaining() ){
-						throw new ChabuException(String.format(
-								"Packet type 0x%02X left some bytes unconsumed: %s bytes", 
-								packetTypeId, recvBuf.remaining() ));
-					}
-				}
-				finally {
-					recvBuf.clear();
-				}
-			}
-		}
+		recvProcess(buf);
 		
 		// write out trace info
 		if( trc != null ){
 			trc.printf( "WIRE_RX: {}%n");
 			Utils.printTraceHexData(trc, buf, trcStartPos, buf.position());
 		}
+	}
+	public void recvProcess(ByteBuffer buf) {
+		int pos;
+		do{
+			pos = buf.position();
+			recvProcessOne(buf);
+		} while( pos != buf.position() );
+	}
+	private void recvProcessOne(ByteBuffer buf) {
+		// ensure we have len+type
+		ByteBufferUtils.transferUntilTargetPos( buf, recvBuf, 8 );
+		if( recvBuf.position() < 8 ){
+			return;
+		}
+		
+		final int ps = recvBuf.getInt(0);
+		if( ps > recvBuf.capacity() ){
+			xmitter.delayedAbort(ChabuErrorCode.PROTOCOL_LENGTH, 
+					String.format("Packet with too much data: len %s", ps ));
+			// set all recv to be consumed.
+			buf.position( buf.limit() );
+		}
+
+		recvBuf.limit(ps);
+		ByteBufferUtils.transferRemaining(buf, recvBuf);
+
+
+		if( !recvBuf.hasRemaining() ){
+			
+			// completed, now start processing
+			recvBuf.flip();
+			recvBuf.position(4);
+
+			try{
+				
+				final int packetTypeId = recvBuf.getInt() & 0xFF;
+				final PacketType packetType = PacketType.findPacketType(packetTypeId);
+				if( packetType == null ){
+					xmitter.delayedAbort( ChabuErrorCode.PROTOCOL_PCK_TYPE, 
+							String.format("Packet type cannot be found 0x%02X", packetTypeId ));
+					return;
+				}
+
+				if( !setup.isRemoteSetupReceived() && packetType != PacketType.SETUP ){
+					xmitter.delayedAbort( ChabuErrorCode.PROTOCOL_EXPECTED_SETUP, 
+							String.format("Recveived %s, but SETUP was expected", packetType ));
+					return;
+				}
+				
+				switch( packetType ){
+				case SETUP : processRecvSetup();  break;
+				case ACCEPT: processRecvAccept(); break; 
+				case ABORT : processRecvAbort();  break; 
+				case ARM   : processRecvArm();    break; 
+				case SEQ   : processRecvSeq();    break; 
+				default    : throw new ChabuException(String.format(
+						"Packet type 0x%02X unexpected: ps %s", packetTypeId, ps ));
+				}
+	
+				if( recvBuf.hasRemaining() ){
+					throw new ChabuException(String.format(
+							"Packet type 0x%02X left some bytes unconsumed: %s bytes", 
+							packetTypeId, recvBuf.remaining() ));
+				}
+			}
+			finally {
+				recvBuf.clear();
+			}
+		}
+
 	}
 	private String protocolVersionToString( int version ){
 		return String.format("%d.%d", version >>> 16, version & 0xFFFF );

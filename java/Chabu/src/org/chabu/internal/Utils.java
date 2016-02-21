@@ -113,25 +113,6 @@ public final class Utils {
 		trc.printf("    <<%n%n");
 	}
 
-	public static int transferRemaining( ByteBuffer src, ByteBuffer trg ){
-		int xfer = Math.min( src.remaining(), trg.remaining() );
-		int oldLimit = src.limit();
-		src.limit( src.position() + xfer );
-		trg.put( src );
-		src.limit( oldLimit );
-		return xfer;
-	}
-
-	public static int transferUpTo( ByteBuffer src, ByteBuffer trg, int maxCount ){
-		int xfer = Math.min( Math.min( src.remaining(), trg.remaining() ), maxCount );
-		int oldLimit = src.limit();
-		src.limit( src.position() + xfer );
-		trg.put( src );
-		src.limit( oldLimit );
-		return xfer;
-	}
-
-	
 	/**
 	 * Aligns the value to the next 4-byte value if needed.
 	 * <p/>
@@ -173,4 +154,5 @@ public final class Utils {
 	public static boolean isAligned4(int value) {
 		return ( value & 3 ) == 0;
 	}
+
 }

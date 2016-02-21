@@ -1,5 +1,6 @@
 package org.chabu;
 
+import org.chabu.internal.ByteBufferUtilsTest;
 import org.chabu.internal.PriorizerTest;
 import org.chabu.internal.UtilsTest;
 import org.junit.runner.RunWith;
@@ -11,7 +12,8 @@ import org.junit.runners.Suite.SuiteClasses;
 	TestSetupConnection.class, 
 	TestTransfer.class, 
 	PriorizerTest.class, 
-	UtilsTest.class })
+	UtilsTest.class,
+	ByteBufferUtilsTest.class })
 public class AllTests {
 
 }

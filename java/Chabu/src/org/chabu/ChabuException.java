@@ -15,27 +15,27 @@ public class ChabuException extends RuntimeException {
 	private final int code;
 	private final int remoteCode;
 	
-	public ChabuException( String message ){
-		super( message );
-		System.out.println("ChabuException: "+message);
+	public ChabuException( String message, Object ... args ){
+		super( String.format( message, args) );
+		System.out.println("ChabuException: "+getMessage());
 		this.code = ChabuErrorCode.UNKNOWN.getCode();
 		this.remoteCode = 0;
 	}
 
-	public ChabuException( ChabuErrorCode error, String message ){
-		super( message );
+	public ChabuException( ChabuErrorCode error, String message, Object ... args ){
+		super( String.format( message, args) );
 		this.code = error.getCode();
 		this.remoteCode = 0;
 	}
 	
-	public ChabuException( ChabuErrorCode error, int remoteCode, String message ){
-		super( message );
+	public ChabuException( ChabuErrorCode error, int remoteCode, String message, Object ... args ){
+		super( String.format( message, args) );
 		this.code = error.getCode();
 		this.remoteCode = remoteCode;
 	}
 	
-	public ChabuException( int code, String message ){
-		super( message );
+	public ChabuException( int code, String message, Object ... args ){
+		super( String.format( message, args) );
 		this.code = code;
 		this.remoteCode = 0;
 	}

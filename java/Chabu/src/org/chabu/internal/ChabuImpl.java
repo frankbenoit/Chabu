@@ -13,18 +13,17 @@ package org.chabu.internal;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.channels.ByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.BitSet;
 
+import org.chabu.Chabu;
+import org.chabu.ChabuChannel;
+import org.chabu.ChabuConnectingValidator;
 import org.chabu.ChabuConnectionAcceptInfo;
 import org.chabu.ChabuErrorCode;
 import org.chabu.ChabuException;
 import org.chabu.ChabuSetupInfo;
-import org.chabu.Chabu;
-import org.chabu.ChabuChannel;
-import org.chabu.ChabuConnectingValidator;
 
 
 /**
@@ -40,7 +39,7 @@ public final class ChabuImpl implements Chabu {
 	public static final String PROTOCOL_NAME    = "CHABU";
 	
 	/**
-	 * Number constant for the current procotcol version.<br/>
+	 * Number constant for the current protocol version.<br/>
 	 * Actually this is version 0.1.
 	 */
 	public static final int    PROTOCOL_VERSION = 0x0000_0001;
@@ -147,34 +146,40 @@ public final class ChabuImpl implements Chabu {
 	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannelImpl)} or {@link #setPriorityCount(int)} are allowed.
 	 */
 	public void activate(){
+		consistencyChecks();
+		initPrioBitSets();
+		activateAllChannels();
+		activated = true;
+		processXmitSetup();
+	}
+
+	private void consistencyChecks() {
 		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
 		Utils.ensure( channels.size() > 0, ChabuErrorCode.CONFIGURATION_NO_CHANNELS, "No channels are set." );
-		
-		xmitChannelRequestData = new BitSet[ priorityCount ];
-		xmitChannelRequestArm  = new BitSet[ priorityCount ];
-		for (int i = 0; i < xmitChannelRequestData.length; i++) {
-			xmitChannelRequestData[i] = new BitSet(channels.size());
-			xmitChannelRequestArm [i] = new BitSet(channels.size());
-		}
-		
+	}
+
+	private void activateAllChannels() {
 		for( int i = 0; i < channels.size(); i++ ){
 			ChabuChannelImpl ch = channels.get(i);
 			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, "Channel %s has higher priority (%s) as the max %s", i, ch.getPriority(), priorityCount );
 			ch.activate(this, i );
 		}
-		
 		maxChannelId = channels.size() -1;
-		activated = true;
-		
-		processXmitSetup();
-	}
-	
-//	@Override
-	public int recv(ByteChannel channel) {
-		// TODO Add impl
-		return 0;
 	}
 
+	private void initPrioBitSets() {
+		xmitChannelRequestData = createAndInitPrioBitSet();
+		xmitChannelRequestArm  = createAndInitPrioBitSet();
+	}
+	
+	private BitSet[] createAndInitPrioBitSet() {
+		BitSet[] bs = new BitSet[ priorityCount ];
+		for (int i = 0; i < priorityCount; i++) {
+			bs[i] = new BitSet(channels.size());
+		}
+		return bs;
+	}
+	
 	@Override
 	public void recv(ByteBuffer buf) {
 		// prepare trace
@@ -186,7 +191,6 @@ public final class ChabuImpl implements Chabu {
 		int oldRemaining = -1;
 		while( oldRemaining != buf.remaining() ){
 			oldRemaining = buf.remaining();
-			
 
 			// ensure we have len+type
 			Utils.transferUpTo( buf, recvBuf, 8 );
@@ -196,7 +200,8 @@ public final class ChabuImpl implements Chabu {
 			
 			int ps = recvBuf.getInt(0);
 			if( ps > recvBuf.capacity() ){
-				delayedAbort(ChabuErrorCode.PROTOCOL_LENGTH, String.format("Packet with too much data: len %s", ps ));
+				delayedAbort(ChabuErrorCode.PROTOCOL_LENGTH, 
+						String.format("Packet with too much data: len %s", ps ));
 				// set all recv to be consumed.
 				buf.position( buf.limit() );
 			}
@@ -216,12 +221,14 @@ public final class ChabuImpl implements Chabu {
 					int packetTypeId = recvBuf.getInt() & 0xFF;
 					PacketType packetType = PacketType.findPacketType(packetTypeId);
 					if( packetType == null ){
-						delayedAbort( ChabuErrorCode.PROTOCOL_PCK_TYPE, String.format("Packet type cannot be found 0x%02X", packetTypeId ));
+						delayedAbort( ChabuErrorCode.PROTOCOL_PCK_TYPE, 
+								String.format("Packet type cannot be found 0x%02X", packetTypeId ));
 						return;
 					}
 
 					if( recvSetupCompleted != RecvState.RECVED && packetType != PacketType.SETUP ){
-						delayedAbort( ChabuErrorCode.PROTOCOL_EXPECTED_SETUP, String.format("Recveived %s, but SETUP was expected", packetType ));
+						delayedAbort( ChabuErrorCode.PROTOCOL_EXPECTED_SETUP, 
+								String.format("Recveived %s, but SETUP was expected", packetType ));
 						return;
 					}
 					
@@ -231,11 +238,14 @@ public final class ChabuImpl implements Chabu {
 					case ABORT : processRecvAbort();  break; 
 					case ARM   : processRecvArm();    break; 
 					case SEQ   : processRecvSeq();    break; 
-					default    : throw new ChabuException(String.format("Packet type 0x%02X unexpected: ps %s", packetTypeId, ps ));
+					default    : throw new ChabuException(String.format(
+							"Packet type 0x%02X unexpected: ps %s", packetTypeId, ps ));
 					}
 		
 					if( recvBuf.hasRemaining() ){
-						throw new ChabuException(String.format("Packet type 0x%02X left some bytes unconsumed: %s bytes", packetTypeId, recvBuf.remaining() ));
+						throw new ChabuException(String.format(
+								"Packet type 0x%02X left some bytes unconsumed: %s bytes", 
+								packetTypeId, recvBuf.remaining() ));
 					}
 				}
 				finally {
@@ -262,7 +272,8 @@ public final class ChabuImpl implements Chabu {
 
 		String pn = getRecvString();
 		if( !PROTOCOL_NAME.equals(pn) ) {
-			delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_NAME.getCode(), String.format("Chabu protocol name mismatch. Expected %s, received %d", PROTOCOL_NAME, pn ));
+			delayedAbort( ChabuErrorCode.SETUP_REMOTE_CHABU_NAME.getCode(), 
+					String.format("Chabu protocol name mismatch. Expected %s, received %d", PROTOCOL_NAME, pn ));
 			return;
 		}
 		
@@ -315,66 +326,111 @@ public final class ChabuImpl implements Chabu {
 		channel.handleRecvArm(arm);
 	}
 
+	final int SEQ_MIN_SZ = 24;
 	private void processRecvSeq() {
-		final int MIN_SZ = 20;
-		if( recvBuf.limit() < MIN_SZ ){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field (too small): %s", recvBuf.limit() ));
-		}
+		checkRecvSeqMinLength();
 
 		int channelId = recvBuf.getInt();
 		int seq       = recvBuf.getInt();
+		@SuppressWarnings("unused")
+		int dav       = recvBuf.getInt();
 		int pls       = recvBuf.getInt();
 
-		if( channelId >= channels.size() ){
-			throw new ChabuException(String.format("Packet type SEQ with invalid channel ID %s, available channels %s", channelId, channels.size() ));
-		}
+		checkRecvSeqChannelValid(channelId);
+		checkRecvSeqPlsValid(pls);
+		processRecvSeqToChannel(channelId, seq, pls);
+	}
 
-		if( recvBuf.limit() != Utils.alignUpTo4( MIN_SZ+pls )){
-			throw new ChabuException(String.format("Packet type SEQ with unexpected len field: %s, PLS %s", recvBuf.limit(), pls ));
-		}
-
+	private void processRecvSeqToChannel(int channelId, int seq, int pls) {
 		ChabuChannelImpl channel = channels.get(channelId);
 		channel.handleRecvSeq( seq, recvBuf, pls );
 	}
+
+	private void checkRecvSeqPlsValid(int pls) {
+		if( recvBuf.limit() != Utils.alignUpTo4( SEQ_MIN_SZ+pls )){
+			throw new ChabuException("Packet type SEQ with unexpected len field: %s, PLS %s", 
+					recvBuf.limit(), pls );
+		}
+	}
+
+	private void checkRecvSeqChannelValid(int channelId) {
+		if( channelId >= channels.size() ){
+			throw new ChabuException("Packet type SEQ with invalid channel ID %s, available channels %s", 
+					channelId, channels.size() );
+		}
+	}
+
+	private void checkRecvSeqMinLength() {
+		if( recvBuf.limit() < SEQ_MIN_SZ ){
+			throw new ChabuException("Packet type SEQ with unexpected len field (too small): %s", 
+					recvBuf.limit() );
+		}
+	}
+
 	private void checkConnectingValidator() {
-		if( xmitAccepted != XmitState.XMITTED && recvSetupCompleted == RecvState.RECVED && xmitStartupCompleted == XmitState.XMITTED ){
+		if( isCheckConnectingValidatorNeeded() ){
 			
-			if( infoRemote.maxReceiveSize < 0x100 || infoRemote.maxReceiveSize >= 0x10000 ){
-			delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE.getCode(), 
-					String.format("MaxReceiveSize must be on range 0x100 .. 0xFFFF bytes, but SETUP from remote contained 0x%02X", 
-					infoRemote.maxReceiveSize));
+			checkConnectingValidatorMaxReceiveSize();
+
+			boolean isOk = callApplicationAcceptListener();
+			if( !isOk ) {
+				return;
 			}
-			Utils.ensure( ( infoRemote.maxReceiveSize & 3 ) == 0, ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, 
-					"maxReceiveSize must 4-byte aligned: %s", infoRemote.maxReceiveSize );
-
-			boolean isOk = true;
-			if( val != null ){
-				ChabuConnectionAcceptInfo acceptInfo = val.isAccepted(infoLocal, infoRemote);
-				if( acceptInfo != null && acceptInfo.code != 0 ){
-					isOk = false;
-
-					delayedAbort(acceptInfo.code, acceptInfo.message );
-					
-				}
-			}
-			val = null;
-
-			if( isOk && this.xmitBuf.capacity() != infoRemote.maxReceiveSize ){
-				this.xmitBuf = ByteBuffer.allocate( infoRemote.maxReceiveSize );
-				this.xmitBuf.order( ByteOrder.BIG_ENDIAN );
-				this.xmitBuf.limit( 0 );
-			}
-
+	
+			ensureXmitBufMatchesReceiveSize();
 			prepareXmitAccept();
 			xmitAccepted = XmitState.PREPARED;
 		}
 	}
 
+	private void ensureXmitBufMatchesReceiveSize() {
+		if( this.xmitBuf.capacity() != infoRemote.maxReceiveSize ){
+			this.xmitBuf = ByteBuffer.allocate( infoRemote.maxReceiveSize );
+			this.xmitBuf.order( ByteOrder.BIG_ENDIAN );
+			this.xmitBuf.limit( 0 );
+		}
+	}
+
+	private boolean callApplicationAcceptListener() {
+		boolean isOk = true;
+		if( val != null ){
+			ChabuConnectionAcceptInfo acceptInfo = val.isAccepted(infoLocal, infoRemote);
+			if( acceptInfo != null && acceptInfo.code != 0 ){
+				isOk = false;
+
+				delayedAbort(acceptInfo.code, acceptInfo.message );
+				
+			}
+		}
+		val = null;
+		return isOk;
+	}
+
+	private void checkConnectingValidatorMaxReceiveSize() {
+		if( infoRemote.maxReceiveSize < 0x100 || infoRemote.maxReceiveSize >= 0x10000 ){
+		delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE.getCode(), 
+				String.format("MaxReceiveSize must be on range 0x100 .. 0xFFFF bytes, "
+						+ "but SETUP from remote contained 0x%02X", 
+				infoRemote.maxReceiveSize));
+		}
+		Utils.ensure( ( infoRemote.maxReceiveSize & 3 ) == 0, ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, 
+				"maxReceiveSize must 4-byte aligned: %s", infoRemote.maxReceiveSize );
+	}
+
+	private boolean isCheckConnectingValidatorNeeded() {
+		return xmitAccepted != XmitState.XMITTED 
+				&& recvSetupCompleted == RecvState.RECVED
+				&& xmitStartupCompleted == XmitState.XMITTED;
+	}
+
 	private void delayedAbort(ChabuErrorCode ec, String message) {
 		delayedAbort(ec.getCode(), message);
 	}
+	
 	private void delayedAbort(int code, String message) {
-		Utils.ensure( xmitAbortPending == XmitState.IDLE, ChabuErrorCode.ASSERT, "Abort is already pending while generating Abort from Validator");
+		Utils.ensure( xmitAbortPending == XmitState.IDLE, 
+				ChabuErrorCode.ASSERT, 
+				"Abort is already pending while generating Abort from Validator");
 		
 		xmitAbortCode    = code;
 		xmitAbortMessage = message;
@@ -394,7 +450,8 @@ public final class ChabuImpl implements Chabu {
 	void channelXmitRequestData(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			Utils.ensure(priority < xmitChannelRequestData.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestData.length );
+			Utils.ensure(priority < xmitChannelRequestData.length, ChabuErrorCode.ASSERT, 
+					"priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestData.length );
 			xmitChannelRequestData[priority].set( channelId );
 		}
 		callXmitRequestListener();
@@ -403,16 +460,11 @@ public final class ChabuImpl implements Chabu {
 	void channelXmitRequestArm(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			Utils.ensure(priority < xmitChannelRequestArm.length, ChabuErrorCode.ASSERT, "priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestArm.length );
+			Utils.ensure(priority < xmitChannelRequestArm.length, ChabuErrorCode.ASSERT, 
+					"priority:%s < xmitChannelRequestData.length:%s", priority, xmitChannelRequestArm.length );
 			xmitChannelRequestArm[priority].set( channelId );
 		}
 		callXmitRequestListener();
-	}
-
-//	@Override
-	public int xmit(ByteChannel channel) {
-		// TODO Add impl
-		return 0;
 	}
 
 	@Override
@@ -425,64 +477,8 @@ public final class ChabuImpl implements Chabu {
 		PrintWriter trc = traceWriter;
 		int trcStartPos = buf.position();
 
-		// start real work
-		while( buf.hasRemaining() ){
-			
-			Utils.transferRemaining( xmitBuf, buf );
-
-			if( !buf.hasRemaining() ){
-				// given xmit buffer is full
-				// -> not able to send more
-				break;
-			}
-			
-			if( xmitBuf.hasRemaining() ){
-				// xmitBuf not yet completely copied
-				// -> 
-				break;
-			}
-
-			if( xmitStartupCompleted != XmitState.IDLE ){
-				if( xmitStartupCompleted == XmitState.PREPARED ){
-					xmitStartupCompleted = XmitState.XMITTED;
-					checkConnectingValidator();
-					continue;
-				}
-			}
-			if( recvSetupCompleted != RecvState.RECVED ){
-				break;
-			}
-			if( xmitAbortPending == XmitState.PENDING ){
-				
-				int code = xmitAbortCode;
-				String msg = xmitAbortMessage;
-				xmitAbortCode = 0;
-				xmitAbortMessage = "";
-				xmitAbortPending = XmitState.XMITTED;
-				throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, String.format("Remote Abort: Code:%d %s", code, msg));
-			}
-			if( xmitAbortPending != XmitState.IDLE ){				
-				if( xmitAbortPending == XmitState.PENDING ){
-					processXmitAbort();
-					continue;
-				}
-			}
-
-			ChabuChannelImpl ch = calcNextXmitChannel(xmitChannelRequestArm);
-			if( ch != null ){
-				ch.handleXmitArm();
-				continue;
-			}
-			
-			ch = calcNextXmitChannel(xmitChannelRequestData);
-			if( ch != null ){
-				ch.handleXmitData();
-				continue;
-			}
-
-			// nothing more to do, go out
-			break;
-		}
+		xmitProcessing(buf);
+		
 		// write out trace info
 		if( trc != null ){
 			trc.printf( "WIRE_TX: {}%n");
@@ -490,127 +486,223 @@ public final class ChabuImpl implements Chabu {
 		}
 	}
 
+	private void xmitProcessing(ByteBuffer buf) {
+		// start real work
+		while( buf.hasRemaining() ){
+			
+			Utils.transferRemaining( xmitBuf, buf );
+
+			if( !canPrepareMoreXmitData(buf)){
+				break;
+			}
+
+			boolean dataAvail = tryFillXmitBuf();
+			if( !dataAvail ){
+				break;
+			}
+
+		}
+	}
+
+	private boolean canPrepareMoreXmitData(ByteBuffer buf) {
+		if( !buf.hasRemaining() ){
+			// given xmit buffer is full
+			// -> not able to send more
+			return false;
+		}
+		
+		if( xmitBuf.hasRemaining() ){
+			// xmitBuf not yet completely copied
+			// -> 
+			return false;
+		}
+		return true;
+	}
+
+	private boolean tryFillXmitBuf() {
+		
+		if( xmitStartupCompleted != XmitState.IDLE ){
+			if( xmitStartupCompleted == XmitState.PREPARED ){
+				xmitStartupCompleted = XmitState.XMITTED;
+				checkConnectingValidator();
+				if( xmitBuf.hasRemaining() ){
+					return true;
+				}
+			}
+		}
+		
+		if( recvSetupCompleted != RecvState.RECVED ){
+			return false;
+		}
+		
+		if( xmitAbortPending == XmitState.PENDING ){
+			
+			int code = xmitAbortCode;
+			String msg = xmitAbortMessage;
+			xmitAbortCode = 0;
+			xmitAbortMessage = "";
+			xmitAbortPending = XmitState.XMITTED;
+			throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, 
+					String.format("Remote Abort: Code:%d %s", code, msg));
+		}
+
+		if( xmitAbortPending != XmitState.IDLE ){				
+			if( xmitAbortPending == XmitState.PENDING ){
+				processXmitAbort();
+				return true;
+			}
+		}
+
+		while( true ){
+			ChabuChannelImpl ch = calcNextXmitChannel(xmitChannelRequestArm);
+			if( ch == null ){
+				break;
+			}
+			ch.handleXmitArm();
+			return true;
+		}
+		
+		while( true ){
+			ChabuChannelImpl ch = calcNextXmitChannel(xmitChannelRequestData);
+			if( ch == null ){
+				break;
+			}
+			ch.handleXmitData();
+			return true;
+		}
+
+		return false;
+	}
+
 	/**
-	 * Put on the buffer the needed org.chabu protocol informations: org.chabu version, byte order, payloadsize, channel count
+	 * Put on the buffer the needed org.chabu protocol informations: org.chabu version, 
+	 * byte order, payloadsize, channel count
 	 * 
 	 * These values must be set previous to infoLocal
 	 * 
 	 */
 	private void processXmitSetup(){
-
-		if( xmitBuf.hasRemaining() ){
-			throw new ChabuException("Cannot xmit SETUP, buffer is not empty");
-		}
-		
-		byte[] anlBytes = infoLocal.applicationName.getBytes( StandardCharsets.UTF_8 );
-		Utils.ensure( anlBytes.length <= 200, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, "SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.", anlBytes.length );
-		
-		xmitBuf.clear();
-		xmitBuf.putInt  ( 0 );
-		xmitBuf.putInt  ( PT_MAGIC | PacketType.SETUP.id );
-	
-		putXmitString( PROTOCOL_NAME );
-		xmitBuf.putInt  ( PROTOCOL_VERSION );
-		
-		xmitBuf.putInt  ( infoLocal.maxReceiveSize       );
-		
-		xmitBuf.putInt  ( infoLocal.applicationVersion );
-		putXmitString( infoLocal.applicationName );
-		
-		// set packet size
-		xmitBuf.putInt  ( 0, xmitBuf.position() );
-		xmitBuf.flip();
-		
+		checkXmitBufEmptyOrThrow("Cannot xmit SETUP, buffer is not empty");
+		checkLocalAppNameLength();
+		xmitFillSetupPacket();
 		xmitStartupCompleted = XmitState.PREPARED;
-		
+	}
+
+	private void xmitFillSetupPacket() {
+		xmitFillStart( PacketType.SETUP );
+		xmitFillAddString( PROTOCOL_NAME );
+		xmitFillAddInt( PROTOCOL_VERSION );
+		xmitFillAddInt( infoLocal.maxReceiveSize       );
+		xmitFillAddInt( infoLocal.applicationVersion );
+		xmitFillAddString( infoLocal.applicationName );
+		xmitFillComplete();
+	}
+
+	private void checkLocalAppNameLength() {
+		byte[] anlBytes = infoLocal.applicationName.getBytes( StandardCharsets.UTF_8 );
+		Utils.ensure( anlBytes.length <= 200, 
+				ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, 
+				"SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.",
+				anlBytes.length );
+	}
+
+	private void checkXmitBufEmptyOrThrow(String message) {
+		if( xmitBuf.hasRemaining() ){
+			throw new ChabuException(message);
+		}
 	}
 
 	private void prepareXmitAccept(){
-
-		if( xmitBuf.hasRemaining() ){
-			throw new ChabuException("Cannot xmit ACCEPT, buffer is not empty");
-		}
-		
-		xmitBuf.clear();
-		xmitBuf.putInt( 8 );
-		xmitBuf.putInt( PT_MAGIC | PacketType.ACCEPT.id );
-		xmitBuf.flip();
+		checkXmitBufEmptyOrThrow("Cannot xmit ACCEPT, buffer is not empty");
+		xmitFillStart( PacketType.ACCEPT );
+		xmitFillComplete();
 	}
 
 	private void processXmitAbort(){
+		byte[] msgBytes = getAbortMessageBytesAndCheckLength();
+		xmitFillAbortPacket(msgBytes);
+		setAbortSendingPrepared();
+	}
 
-		final int MIN_SZ = 16; // PS, PT, CODE, MSG_LEN
-
+	private byte[] getAbortMessageBytesAndCheckLength() {
 		byte[] msgBytes = xmitAbortMessage.getBytes( StandardCharsets.UTF_8 );
 
 		Utils.ensure( msgBytes.length <= ABORT_MSGLEN_MAX, ChabuErrorCode.PROTOCOL_ABORT_MSG_LENGTH,
 				"Xmit Abort message, text must be less than %s UTF8 bytes, but is %s",
 				ABORT_MSGLEN_MAX, msgBytes.length );
+		return msgBytes;
+	}
 
-		xmitBuf.clear();
-		xmitBuf.position(4);
-		xmitBuf.putInt( MIN_SZ + msgBytes.length );
-		xmitBuf.putInt( PT_MAGIC | PacketType.ABORT.id );
+
+	private void xmitFillAbortPacket(byte[] msgBytes) {
+		xmitFillStart( PacketType.ABORT );
 		xmitBuf.putInt(xmitAbortCode );
-		putXmitString(msgBytes);
-		xmitBuf.putInt( 0, xmitBuf.position() );
-		xmitBuf.flip();
-		
+		xmitFillAddString(msgBytes);
+		xmitFillComplete();
+	}
+	
+	private void setAbortSendingPrepared() {
 		xmitAbortMessage = "";
 		xmitAbortCode    = 0;
 		xmitAbortPending = XmitState.PREPARED;
-		
 	}
-	
+
 	/** 
 	 * Called by channel
 	 */
 	void processXmitArm( int channelId, int arm ){
+		checkXmitBufEmptyOrThrow("Cannot xmit ACCEPT, buffer is not empty");
+		xmitFillArmPacket(channelId, arm);
+	}
 
-		if( xmitBuf.hasRemaining() ){
-			throw new ChabuException("Cannot xmit ACCEPT, buffer is not empty");
-		}
-		
-		xmitBuf.clear();
-		xmitBuf.putInt( 16 );
-		xmitBuf.putInt( PT_MAGIC | PacketType.ARM.id );
+	private void xmitFillArmPacket(int channelId, int arm) {
+		xmitFillStart( PacketType.ARM );
 		xmitBuf.putInt( channelId );
 		xmitBuf.putInt( arm );
+		xmitFillComplete();
+	}
+	
+	private void xmitFillStart( PacketType type ){
+		xmitBuf.clear();
+		xmitBuf.putInt( -1 );
+		xmitBuf.putInt( PT_MAGIC | type.id );
+	}
+
+	private void xmitFillComplete(){
+		xmitFillAligned();
+		xmitBuf.putInt( 0, xmitBuf.position() );
 		xmitBuf.flip();
 	}
 	
+	private void xmitFillAligned() {
+		while( xmitBuf.position() % 4 != 0 ){
+			xmitBuf.put( (byte)0 );
+		}
+	}
+
 	/** 
 	 * Called by channel
 	 */
 	int processXmitSeq( int channelId, int seq, int maxPayload, ConsumerByteBuffer user ){
 		
-		if( xmitBuf.hasRemaining() ){
-			throw new ChabuException("Cannot xmit SEQ, buffer is not empty");
-		}
+		checkXmitBufEmptyOrThrow("Cannot xmit SEQ, buffer is not empty");
 		
-		final int HDR_SZ = 20;
-		xmitBuf.clear();
-		xmitBuf.limit( Math.min( xmitBuf.capacity(), Utils.alignUpTo4( HDR_SZ + maxPayload )));
-		xmitBuf.position( HDR_SZ );
+		xmitFillStart( PacketType.SEQ );
+		xmitFillAddInt( channelId );
+		xmitFillAddInt( seq );
+		xmitFillAddInt( 0 ); // Data available 
+		int idxPls = xmitBuf.position();
+		xmitFillAddInt( 0 ); // PLS
+		int idxPld = xmitBuf.position();
+		xmitBuf.limit( Math.min( xmitBuf.capacity(), Utils.alignUpTo4( idxPld + maxPayload )));
 		
 		user.accept( xmitBuf );
-		
-		int pls = xmitBuf.position() - HDR_SZ;
-		
-		// add padding
-		while( (xmitBuf.position() & 3) != 0 ){
-			xmitBuf.put((byte)0);
-		}
 
-		int ps = xmitBuf.position();
+		int pls = xmitBuf.position() - idxPld;
 		
 		if( pls > 0 ){
-			xmitBuf.putInt( 0, ps );
-			xmitBuf.putInt( 4, PT_MAGIC | PacketType.SEQ.id );
-			xmitBuf.putInt( 8, channelId );
-			xmitBuf.putInt( 12, seq );
-			xmitBuf.putInt( 16, pls );
-			xmitBuf.flip();
+			xmitBuf.putInt( idxPls, pls );
+			xmitFillComplete();
 		}
 		else {
 			xmitBuf.clear().limit(0);
@@ -622,35 +714,45 @@ public final class ChabuImpl implements Chabu {
 	private ChabuChannelImpl calcNextXmitChannel(BitSet[] prioBitSets) {
 		synchronized(this){
 			for( int prio = priorityCount-1; prio >= 0; prio-- ){
-				int idxCandidate = -1;
-				BitSet prioBitSet = prioBitSets[prio];
-
-				// search from last channel pos on
-				if( xmitLastChannelIdx+1 < prioBitSet.size() ){
-					idxCandidate = prioBitSet.nextSetBit(xmitLastChannelIdx+1);
-				}
-
-				// try from idx zero
-				if( idxCandidate < 0 ){
-					idxCandidate = prioBitSet.nextSetBit(0);
-				}
-
-				// if found, clear and use it
-				if( idxCandidate >= 0 ){
-					prioBitSet.clear(idxCandidate);
-					xmitLastChannelIdx = idxCandidate;
-					ChabuChannelImpl channel = channels.get(idxCandidate);
-					Utils.ensure( channel.getPriority() == prio, ChabuErrorCode.ASSERT, "Channels prio does not match the store prio." );
-					return channel;
+				ChabuChannelImpl res = calcNextXmitChannelForPrio(prioBitSets, prio);
+				if( res != null ){
+					return res;
 				}
 			}
 			return null;
 		}
 	}
+
+	private ChabuChannelImpl calcNextXmitChannelForPrio(BitSet[] prioBitSets, int prio) {
+		int idxCandidate = -1;
+		BitSet prioBitSet = prioBitSets[prio];
+
+		// search from last channel pos on
+		if( xmitLastChannelIdx+1 < prioBitSet.size() ){
+			idxCandidate = prioBitSet.nextSetBit(xmitLastChannelIdx+1);
+		}
+
+		// try from idx zero
+		if( idxCandidate < 0 ){
+			idxCandidate = prioBitSet.nextSetBit(0);
+		}
+
+		// if found, clear and use it
+		if( idxCandidate >= 0 ){
+			prioBitSet.clear(idxCandidate);
+			xmitLastChannelIdx = idxCandidate;
+			ChabuChannelImpl channel = channels.get(idxCandidate);
+			Utils.ensure( channel.getPriority() == prio, ChabuErrorCode.ASSERT, 
+					"Channels prio does not match the store prio." );
+			return channel;
+		}
+		return null;
+	}
 	
 	@Override
 	public void addXmitRequestListener( Runnable r) {
-		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, "Listener passed in is null" );
+		Utils.ensure( this.xmitRequestListener == null && r != null, ChabuErrorCode.ASSERT, 
+				"Listener passed in is null" );
 		this.xmitRequestListener = r;
 	}
 	
@@ -658,7 +760,8 @@ public final class ChabuImpl implements Chabu {
 		
 		int len = recvBuf.getInt();
 		if( recvBuf.remaining() < len ){
-			throw new ChabuException(String.format("Chabu string length exceeds packet length len:%d data-remaining:%d", len, recvBuf.remaining() ));
+			throw new ChabuException(String.format("Chabu string length exceeds packet length len:%d data-remaining:%d",
+					len, recvBuf.remaining() ));
 		}
 			
 		byte[] bytes = new byte[len];
@@ -680,8 +783,10 @@ public final class ChabuImpl implements Chabu {
 	}
 
 	public void setConnectingValidator(ChabuConnectingValidator val) {
-		Utils.ensure( val      != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "ConnectingValidator passed in is null" );
-		Utils.ensure( this.val == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "ConnectingValidator is already set" );
+		Utils.ensure( val      != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, 
+				"ConnectingValidator passed in is null" );
+		Utils.ensure( this.val == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, 
+				"ConnectingValidator is already set" );
 		this.val = val;
 	}
 
@@ -699,21 +804,24 @@ public final class ChabuImpl implements Chabu {
 	public boolean isXmitRequestPending() {
 		return xmitRequestPending;
 	}
-	private void putXmitString(String str) {
-		putXmitString(str.getBytes(StandardCharsets.UTF_8));
+	private void xmitFillAddInt(int value) {
+		xmitBuf.putInt( value );
 	}
-	private void putXmitString(byte[] bytes) {
+	private void xmitFillAddString(String str) {
+		xmitFillAddString(str.getBytes(StandardCharsets.UTF_8));
+	}
+	private void xmitFillAddString(byte[] bytes) {
 		xmitBuf.putInt  ( bytes.length );
 		xmitBuf.put     ( bytes );
-		int len = bytes.length;
-		while( (len&3) != 0 ){
-			len++;
-			xmitBuf.put((byte)0);
-		}
+		xmitFillAligned();
 	}
 
 	@Override
 	public String toString() {
 		return String.format("Chabu[ recv:%s xmit:%s ]", recvBuf, xmitBuf );
 	}
+	
+//	public static class ChabuXmitter {
+//		
+//	}
 }

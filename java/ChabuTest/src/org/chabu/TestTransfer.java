@@ -32,7 +32,8 @@ public class TestTransfer {
 				+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
 				+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
-				+ "00 00 00 64 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 50 "
+				// packetlen.< type......< chan......< seq.......< dav ......< pls.......<
+				+ "00 00 00 68 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 50 "
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 " 
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55 "  
@@ -40,7 +41,7 @@ public class TestTransfer {
 				+ "AA AA AA AA 55 55 55 55 AA AA AA AA 55 55 55 55");
 		
 		// recv some data
-		r.wireRx("00 00 00 1C 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08");
+		r.wireRx("00 00 00 20 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 08 01 02 03 04 05 06 07 08");
 
 		r.channelToAppl(0, "01 02 03 04 05 06 07 08");
 
@@ -125,9 +126,9 @@ public class TestTransfer {
 				+ "00 00 00 10 77 77 00 C3 00 00 00 03 00 00 00 64 "
 				+ "00 00 00 10 77 77 00 C3 00 00 00 04 00 00 00 64 "
 				// SEQ[0]=0, DATA[50]
-				// len   SE chan. seq........ pls..
-				+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg.getExpBytesString(236) + " "
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg.getExpBytesString( 21) + " 00 00 00"
+				// len         SE          chan.       seq........ dav........ pls..
+				+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg.getExpBytesString(232) + " "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 00 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg.getExpBytesString( 25) + " 00 00 00"
 				);
 		
 		r.wireTx( 20, "");
@@ -135,15 +136,16 @@ public class TestTransfer {
 		dg.ensureSamePosition();
 		
 		r.wireRx(""
-		+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg.getExpBytesString(236) + " "
-		+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg.getExpBytesString( 21) + " 00 00 00");
+		// len         SE          chan.       seq........ dav........ pls..
+		+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg.getExpBytesString(232) + " "
+		+ "00 00 00 34 77 77 00 B4 00 00 00 00 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg.getExpBytesString( 25) + " 00 00 00");
 		
 		r.channelToAppl( 0, dg.getGenBytesString(257));
 		dg.ensureSamePosition();
 		
 		// SEQ[0]=F5+0c=0x101 +0x200 -> ARM = 0x301
 		r.wireTx( 20, "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 03 01" );
-		r.wireRx( "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF " );
+		r.wireRx(     "00 00 00 10 77 77 00 C3 00 00 00 00 00 00 08 FF " );
 	}
 	
 	@Test
@@ -183,23 +185,24 @@ public class TestTransfer {
 				// SEQ[0]=0, DATA[50]
 				
 				// 2 blocks 236+21
-				// len   SE chan. seq........ pls..
-				+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg0.getExpBytesString(236) + " "
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg0.getExpBytesString(21) + " 00 00 00 "
+				// packetlen.< type......< chan......< seq.......< dav ......< pls.......<
+				+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg0.getExpBytesString(232) + " "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 00 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg0.getExpBytesString(25) + " 00 00 00 "
 				);
 		
 		// see the data of same priority in round robin
 		// 1, 2, 3, 1, 2, 3
 		r.wireTx( ""
-				+ "00 00 01 00 77 77 00 B4 00 00 00 01 00 00 00 00 00 00 00 EC " + dg1.getExpBytesString(236) + " "
-				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 00 00 00 00 00 EC " + dg2.getExpBytesString(236) + " "
-				+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 00 00 00 00 00 EC " + dg3.getExpBytesString(236) + " "
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 01 00 00 00 EC 00 00 00 15 " + dg1.getExpBytesString(21) + " 00 00 00 "
+				// packetlen.< type......< chan......< seq.......< dav ......< pls.......<
+				+ "00 00 01 00 77 77 00 B4 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg1.getExpBytesString(232) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg2.getExpBytesString(232) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg3.getExpBytesString(232) + " "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 01 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg1.getExpBytesString(25) + " 00 00 00 "
 				);
 
 		r.wireTx( ""
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 02 00 00 00 EC 00 00 00 15 " + dg2.getExpBytesString( 21) + " 00 00 00 "
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 00 EC 00 00 00 15 " + dg3.getExpBytesString( 21) + " 00 00 00 "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 02 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg2.getExpBytesString( 25) + " 00 00 00 "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 03 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg3.getExpBytesString( 25) + " 00 00 00 "
 				);
 		
 //		r.wireTx( 20, "");
@@ -207,28 +210,28 @@ public class TestTransfer {
 		dg0.ensureSamePosition();
 		
 		r.wireRx(""
-		+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 EC " + dg0.getExpBytesString(236) + " "
-		+ "00 00 00 2C 77 77 00 B4 00 00 00 00 00 00 00 EC 00 00 00 15 " + dg0.getExpBytesString( 21) + " 00 00 00");
+		+ "00 00 01 00 77 77 00 B4 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg0.getExpBytesString(232) + " "
+		+ "00 00 00 34 77 77 00 B4 00 00 00 00 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg0.getExpBytesString( 25) + " 00 00 00");
 		
 		r.applToChannel( 2, dg2.getGenBytesString( 257 ) );
 		r.applToChannel( 3, dg3.getGenBytesString( 257 ) );
 
 		r.wireTx( ""
-				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 01 00 00 00 EC " + dg2.getExpBytesString(236) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 01 00 00 00 00 00 00 00 E8 " + dg2.getExpBytesString(232) + " "
 				);
 
 		r.applToChannel( 2, dg2.getGenBytesString( 257 ) );
 
 		r.wireTx( ""
-				+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 01 01 00 00 00 EC " + dg3.getExpBytesString(236) + " "
-				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 ED 00 00 00 EC " + dg2.getExpBytesString(236) + " "
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 03 00 00 01 ED 00 00 00 15 " + dg3.getExpBytesString( 21) + " 00 00 00 "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 03 00 00 01 01 00 00 00 00 00 00 00 E8 " + dg3.getExpBytesString(232) + " "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 02 00 00 01 E9 00 00 00 00 00 00 00 E8 " + dg2.getExpBytesString(232) + " "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 03 00 00 01 E9 00 00 00 00 00 00 00 19 " + dg3.getExpBytesString( 25) + " 00 00 00 "
 				);
 
 		r.wireTx( ""
-				+ "00 00 00 40 77 77 00 B4 00 00 00 02 00 00 02 D9 00 00 00 2A " + dg2.getExpBytesString(0x2A) + " 00 00 "
-				+ "00 00 01 00 77 77 00 B4 00 00 00 04 00 00 00 00 00 00 00 EC " + dg4.getExpBytesString(236) + " "
-				+ "00 00 00 2C 77 77 00 B4 00 00 00 04 00 00 00 EC 00 00 00 15 " + dg4.getExpBytesString( 21) + " 00 00 00"
+				+ "00 00 00 4C 77 77 00 B4 00 00 00 02 00 00 02 D1 00 00 00 00 00 00 00 32 " + dg2.getExpBytesString(0x32) + " 00 00 "
+				+ "00 00 01 00 77 77 00 B4 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 E8 " + dg4.getExpBytesString(232) + " "
+				+ "00 00 00 34 77 77 00 B4 00 00 00 04 00 00 00 E8 00 00 00 00 00 00 00 19 " + dg4.getExpBytesString( 25) + " 00 00 00"
 				);
 
 		r.channelToAppl( 0, dg0.getGenBytesString(257));

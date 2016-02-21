@@ -3,6 +3,11 @@ package org.chabu;
 import java.nio.ByteBuffer;
 import java.util.Random;
 
+/**
+ * Test the bandwidth of a java.nio.ByteBuffer
+ * 
+ * @author Frank Benoit
+ */
 public class ByteBufferTest {
 
 	

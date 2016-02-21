@@ -24,14 +24,8 @@ import org.chabu.container.ByteQueueSpaceAvailableListener;
  */
 final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	
-	/**
-	 * 
-	 */
 	private final ByteQueueImpl queue;
 
-	/**
-	 * @param byteQueueImpl
-	 */
 	ByteQueueInputPortImpl(ByteQueueImpl byteQueueImpl) {
 		queue = byteQueueImpl;
 	}
@@ -75,7 +69,7 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	public int offer( ByteBuffer bb ){
 		int cpySz = Math.min( bb.remaining(), freeCommitted() );
 		write( bb.array(), bb.arrayOffset()+bb.position(), cpySz );
-		bb.position( bb.position() + cpySz );
+		increasePosition(bb, cpySz);
 		return cpySz; 
 	}
 	
@@ -85,13 +79,16 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 		queue.Assert( freeCommitted() >= len );
 	
 		int wr = this.writeMarkIdx;
-		if( ByteQueueImpl.useAsserts ) queue.AssertPrintf( wr < queue.buf.length, "%d<%d in %s", wr, queue.buf.length, queue.name );
+		if( ByteQueueImpl.useAsserts ) {
+			queue.AssertPrintf( wr < queue.buf.length, "%d<%d in %s", wr, queue.buf.length, queue.name );
+		}
 	
 		int remaining = len;
 		int offset = 0;
 		int end = wr + remaining;
 		if( end > queue.buf.length ){
 			int cpy_len = queue.buf.length - wr;
+			remaining -= cpy_len;
 	
 			if( ByteQueueImpl.useAsserts ) queue.Assert( cpy_len >= 0 );
 			if( ByteQueueImpl.useAsserts ) queue.Assert( cpy_len <= len );
@@ -99,7 +96,6 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	
 			System.arraycopy( buf, srcOffset, queue.buf, wr, cpy_len);
 	
-			remaining -= cpy_len;
 			if( ByteQueueImpl.useAsserts ) queue.Assert( remaining >= 0 );
 			offset = cpy_len;
 			wr = 0;
@@ -137,10 +133,20 @@ final class ByteQueueInputPortImpl implements ByteQueueInputPort {
 	@Override
 	public int write( ByteBuffer bb, int length ){
 		int cpySz = length;
-		if( cpySz > freeCommitted() ) throw new RuntimeException(String.format("ByteQueue (%s) could not take all data", queue.name ));
+		ensureFreeSpaceOrThrow(cpySz);
 		write(bb.array(), bb.arrayOffset()+bb.position(), cpySz );
-		bb.position( bb.position() + cpySz );
+		increasePosition(bb, cpySz);
 		return cpySz; 		
+	}
+
+	private void increasePosition(ByteBuffer bb, int cpySz) {
+		bb.position( bb.position() + cpySz );
+	}
+
+	private void ensureFreeSpaceOrThrow(int cpySz) {
+		if( cpySz > freeCommitted() ) {
+			throw new RuntimeException(String.format("ByteQueue (%s) could not take all data", queue.name ));
+		}
 	}
 	
 	@Override

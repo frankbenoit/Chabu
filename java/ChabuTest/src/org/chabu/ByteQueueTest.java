@@ -7,6 +7,11 @@ import org.chabu.container.ByteQueueBuilder;
 import org.chabu.container.ByteQueueInputPort;
 import org.chabu.container.ByteQueueOutputPort;
 
+/**
+ * Test the bandwidth of a org.chabu.container.ByteQueue
+ * 
+ * @author Frank Benoit
+ */
 public class ByteQueueTest {
 
 	
@@ -14,7 +19,7 @@ public class ByteQueueTest {
 	static PseudoRandom rndRecv = new PseudoRandom(44);
 
 	static ByteQueue q = ByteQueueBuilder.create( "testqueue", 1000 );
-	final static int LEN = 100_000_000;
+	final static int LEN = 300_000_000;
 	
 	static Runnable sender = new Runnable(){
 		public void run() {

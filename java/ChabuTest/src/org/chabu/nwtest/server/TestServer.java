@@ -224,7 +224,6 @@ public class TestServer {
 			try {
 				selector.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}

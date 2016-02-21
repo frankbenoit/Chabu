@@ -95,10 +95,6 @@ public final class Utils {
 		}
 	}
 
-	public static void dump(ByteBuffer bb) {
-		
-	}
-
 	static void printTraceHexData(PrintWriter trc, ByteBuffer buf, int startPos, int endPos ) {
 		int len = endPos - startPos;
 		for( int i = 0; i < len; i += 16 ){
@@ -158,5 +154,23 @@ public final class Utils {
 		else {
 			return tv + 4;
 		}
+	}
+
+	/**
+	 * Tests if the value dividable by 4 with no reminder.
+	 * <p/>
+	 * <pre>
+	 * 4 &rarr; true
+	 * 5 &rarr; false
+	 * 6 &rarr; false
+	 * 7 &rarr; false
+	 * 8 &rarr; true
+	 * 9 &rarr; false
+	 * ...
+	 * </pre>
+	 * 
+	 */
+	public static boolean isAligned4(int value) {
+		return ( value & 3 ) == 0;
 	}
 }

@@ -47,7 +47,6 @@ public final class ChabuImpl implements Chabu {
 	private boolean activated = false;
 
 	int maxChannelId;
-//	String instanceName = "Chabu";
 	
 	private final Setup setup;
 	
@@ -63,7 +62,7 @@ public final class ChabuImpl implements Chabu {
 		Utils.ensure( info.maxReceiveSize >= 0x100, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
 				"maxReceiveSize must be at least 0x100, but is %s", info.maxReceiveSize );
 		
-		Utils.ensure( ( info.maxReceiveSize & 3 ) == 0, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
+		Utils.ensure( Utils.isAligned4( info.maxReceiveSize ), ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, 
 				"maxReceiveSize must 4-byte aligned: %s", info.maxReceiveSize );
 		
 		Utils.ensure( info.applicationName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, 

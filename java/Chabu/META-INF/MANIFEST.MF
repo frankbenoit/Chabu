@@ -1,7 +1,7 @@
 Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: Chabu
-Bundle-SymbolicName: Chabu
+Bundle-SymbolicName: org.chabu
 Bundle-Version: 1.0.0.qualifier
 Export-Package: org.chabu,
  org.chabu.container

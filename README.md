@@ -1,7 +1,7 @@
 # Chabu
 
 The channel bundle.
-Multiple channels over TCP/IP
+Multiple channels over TCP/IP or USB
 
 
 ## License

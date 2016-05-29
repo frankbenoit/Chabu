@@ -1,6 +1,6 @@
 package org.chabu.prot.v1;
 
-public interface ChabuChannelXmitter {
+public interface ChabuChannelXmitter extends ChabuChannelBase {
 
 	/**
 	 * Set the index until which position chabu shall transmit data. 

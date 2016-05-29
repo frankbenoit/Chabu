@@ -3,7 +3,6 @@ package org.chabu.nwtest.server;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
@@ -14,10 +13,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
 
-import org.chabu.ChabuBuilder;
-import org.chabu.Chabu;
-import org.chabu.TestUtils;
-import org.chabu.nwtest.Const;
+import org.chabu.prot.v1.Chabu;
+import org.chabu.prot.v1.ChabuBuilder;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -45,8 +42,8 @@ public class TestServer {
 		ChabuBuilder builder;
 		String firstError = null;
 		
-		public ControlConnection(AConnection parent, SocketChannel channel, SelectionKey key ) {
-			super( parent, channel, key );
+		public ControlConnection(SocketChannel channel, SelectionKey key ) {
+			super( channel, key );
 		}
 		
 		public void accept(SelectionKey t) {
@@ -235,13 +232,9 @@ public class TestServer {
 		}
 	}
 	class ChabuConnection extends AConnection {
-		ByteBuffer recvBuffer = ByteBuffer.allocate(3000);
-		ByteBuffer xmitBuffer = ByteBuffer.allocate(3000);
 		
-		public ChabuConnection(AConnection parent, SocketChannel channel, SelectionKey key ) {
-			super( parent, channel, key );
-			recvBuffer.clear().limit(0);
-			xmitBuffer.clear();
+		public ChabuConnection(SocketChannel channel, SelectionKey key ) {
+			super( channel, key );
 		}
 
 		private void xmitRequest(){
@@ -250,37 +243,9 @@ public class TestServer {
 
 		public void accept(SelectionKey t) {
 			try{
-
-				if( t.isReadable() ){
-					recvBuffer.compact();
-					int sz = channel.read(recvBuffer);
-					recvBuffer.flip();
-
-					if( Const.LOG_TIMING ) 
-						NwtUtil.log("channel.read  %7s", sz );
-					
-					if( chabu != null && recvBuffer.hasRemaining() ){
-						chabu.recv( recvBuffer );
-					}
-				}
-
-				
-				if( t.isWritable() ){
-					
-					if( chabu != null ){
-						resetWriteReq();
-						chabu.xmit( xmitBuffer );
-					}
-					
-					if( xmitBuffer.position() > 0 ){
-
-						xmitBuffer.flip();
-						int sz = channel.write(xmitBuffer);
-						xmitBuffer.compact();
-						
-						if( Const.LOG_TIMING ) 
-							NwtUtil.log("channel.write %7s", sz );
-					}
+				if( t.isReadable() || t.isWritable() ){
+					resetWriteReq();
+					chabu.handleChannel(channel);
 				}
 			}
 			catch( IOException e ){
@@ -289,62 +254,6 @@ public class TestServer {
 		}
 	}
 
-	class BasicConnection extends AConnection {
-		private ByteBuffer recvBuffer = ByteBuffer.allocate(1);
-		private AConnection client;
-
-		public BasicConnection(SocketChannel channel, SelectionKey key ) {
-			super( null, channel, key );
-			
-
-			recvBuffer.order(ByteOrder.BIG_ENDIAN);
-			recvBuffer.clear().limit(1);
-		}
-
-		
-		@Override
-		public void accept(SelectionKey key) {
-			try{
-				
-				if( client != null ){
-					client.accept(key);
-					return;
-				}
-				
-				if( key == null ){
-					return;
-				}
-
-				if( key.isReadable() ){
-					channel.read(recvBuffer);
-					if( recvBuffer.hasRemaining() ){
-						channel.register( selector, SelectionKey.OP_READ, this );
-					}
-					else {
-						recvBuffer.flip();
-						if( recvBuffer.get() == 0 ){
-							TestUtils.ensure( ctrlConnection == null );
-							client = ctrlConnection = new ControlConnection( this, channel, channel.keyFor(selector) );
-						}
-						else {
-							TestUtils.ensure( testConnection == null );
-							client = testConnection = new ChabuConnection( this, channel, channel.keyFor(selector) );
-						}
-						client.accept(key);
-					}
-				}
-			}
-			catch( IOException e ){
-				throw new RuntimeException(e);
-			}
-		}
-
-		@Override
-		public String toString() {
-			if( client != null ) return client.toString();
-			return super.toString();
-		}
-	}
 	
 	public static void main(String[] args) throws Exception {
 		TestServer server = new TestServer();
@@ -381,14 +290,18 @@ public class TestServer {
 		}
 		
 		
-		ServerSocketChannel ssc = ServerSocketChannel.open();
-		ssc.configureBlocking(false);
-		ssc.bind(new InetSocketAddress(port));
-		InetSocketAddress laddr = (InetSocketAddress)ssc.getLocalAddress();
+		ServerSocketChannel sscCtrl = ServerSocketChannel.open();
+		ServerSocketChannel sscTest = ServerSocketChannel.open();
+		sscCtrl.configureBlocking(false);
+		sscTest.configureBlocking(false);
+		sscCtrl.bind(new InetSocketAddress(port));
+		sscTest.bind(new InetSocketAddress(port+1));
+		InetSocketAddress laddr = (InetSocketAddress)sscCtrl.getLocalAddress();
 		System.out.println("LocalPort = " + laddr.getPort() );
 		
 		selector = Selector.open();
-		ssc.register( selector, SelectionKey.OP_ACCEPT );
+		sscCtrl.register( selector, SelectionKey.OP_ACCEPT );
+		sscTest.register( selector, SelectionKey.OP_ACCEPT );
 		
 		
 		while( selector.isOpen() ){
@@ -402,6 +315,7 @@ public class TestServer {
 			}
 			
 			selector.select(2000);
+			System.out.println("nw server select");
 
 			Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
             while(keyIterator.hasNext()) {
@@ -428,18 +342,26 @@ public class TestServer {
 //                				);
 				
                 
-                if( key.channel() == ssc ){
+                if( key.channel() == sscCtrl ){
 					if( key.isAcceptable() ){
-						SocketChannel channel = ssc.accept();
+						SocketChannel channel = sscCtrl.accept();
 						channel.configureBlocking(false);
 						
 						SelectionKey channelKey = channel.register( selector, SelectionKey.OP_READ );
-						BasicConnection connection = new BasicConnection( channel, channelKey );
+						ControlConnection connection = new ControlConnection( channel, channelKey );
 						channelKey.attach(connection);
-						
-						connection.accept(null);
 					}
 				}
+                else if( key.channel() == sscTest ){
+                	if( key.isAcceptable() ){
+                		SocketChannel channel = sscTest.accept();
+                		channel.configureBlocking(false);
+                		
+                		SelectionKey channelKey = channel.register( selector, SelectionKey.OP_READ );
+                		ChabuConnection connection = new ChabuConnection( channel, channelKey );
+                		channelKey.attach(connection);
+                	}
+                }
 				else {
 					AConnection cons = (AConnection) key.attachment();
 					if( key.isWritable() && !cons.hasWriteReq() ){

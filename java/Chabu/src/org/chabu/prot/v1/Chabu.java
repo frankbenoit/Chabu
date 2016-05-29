@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.chabu.prot.v1;
 
-import java.io.IOException;
 import java.nio.channels.ByteChannel;
 
 /**
@@ -19,9 +18,8 @@ import java.nio.channels.ByteChannel;
  *
  * @author Frank Benoit
  */
-public interface Chabu {
+public interface Chabu extends ChabuNetworkHandler {
 
-	void handleChannel( ByteChannel channel ) throws IOException;
 	
 	/**
 	 * Get the count of configured channels.

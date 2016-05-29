@@ -3,8 +3,9 @@ package org.chabu.nwtest.client;
 import java.io.FileWriter;
 import java.util.ArrayList;
 
-import org.chabu.Chabu;
-import org.chabu.ChabuBuilder;
+import org.chabu.nwtest.server.TestServer;
+import org.chabu.prot.v1.Chabu;
+import org.chabu.prot.v1.ChabuBuilder;
 import org.json.JSONObject;
 
 public class TestClient {
@@ -12,9 +13,19 @@ public class TestClient {
 	NetworkThread runner;
 	int bandwidth = 1_000_000;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
+		int port = 15000;
+		Thread t = new Thread(()->{
+			try {
+				TestServer.main(new String[]{"-listen", ""+port});
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		});
+		t.start();
+		Thread.sleep(200);
 		TestClient client = new TestClient();
-		client.run(args);
+		client.run(port);
 	}
 
 	public TestClient() {
@@ -87,9 +98,9 @@ public class TestClient {
 	
 	
 	
-	private void run(String[] args) {
+	private void run(int port) {
 		try{
-			runner = new NetworkThread(15000);
+			runner = new NetworkThread(port);
 			connect();
 			System.out.println("connect completed");
 
@@ -245,6 +256,7 @@ public class TestClient {
 		synchronized(runner){
 			while( !runner.isConnectionCompleted() ){
 				runner.doWait();
+				System.out.println("client wait connect");
 			}
 		}
 	}

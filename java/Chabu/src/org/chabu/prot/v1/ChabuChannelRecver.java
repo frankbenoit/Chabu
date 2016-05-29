@@ -1,6 +1,6 @@
 package org.chabu.prot.v1;
 
-public interface ChabuChannelRecver {
+public interface ChabuChannelRecver extends ChabuChannelBase {
 
 	/**
 	 * Set the limit value as absolute byte position, until were the application can receive data. This value is relative to the recv position.

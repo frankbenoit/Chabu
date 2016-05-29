@@ -169,10 +169,12 @@ public class ChabuChannelImpl implements ChabuChannel {
 		return String.format("Channel[%s recvS:%s recvA:%s xmitS:%s xmitA:%s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
 	}
 
+	@Override
 	public int getChannelId() {
 		return channelId;
 	}
 
+	@Override
 	public int getPriority() {
 		return priority;
 	}

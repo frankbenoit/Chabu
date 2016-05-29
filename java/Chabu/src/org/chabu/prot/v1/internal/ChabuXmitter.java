@@ -56,6 +56,7 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 	private Setup setup;
 	private int maxXmitSize = Constants.MAX_RECV_LIMIT_LOW; 
 	
+	@SuppressWarnings("unused")
 	private boolean activated;
 	private ByteBuffer       seqPadding = ByteBuffer.allocate(3);
 	private ByteBuffer       seqPacketPayload;
@@ -381,8 +382,8 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 	}
 
 	public void addXmitRequestListener( Runnable r) {
-		Utils.ensure( r != null && !this.activated, ChabuErrorCode.ASSERT, 
-				"Listener passed in is null or Chabu already activated" );
+		Utils.ensure( r != null, ChabuErrorCode.ASSERT, "Listener passed in is null" );
+		//Utils.ensure( !this.activated, ChabuErrorCode.ASSERT, "Chabu already activated" );
 		this.xmitRequestListeners.add(r);
 	}
 	

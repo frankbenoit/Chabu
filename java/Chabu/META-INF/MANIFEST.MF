@@ -3,7 +3,9 @@ Bundle-ManifestVersion: 2
 Bundle-Name: Chabu
 Bundle-SymbolicName: org.chabu
 Bundle-Version: 1.0.0.qualifier
-Export-Package: org.chabu,
- org.chabu.container
+Export-Package: org.chabu.prot.v1;uses:="org.chabu.container",
+ org.chabu.container,
+ org.chabu.container.internal;x-internal:=true,
+ org.chabu.prot.v1.internal;x-internal:=true
 Bundle-RequiredExecutionEnvironment: JavaSE-1.8
 Bundle-ActivationPolicy: lazy

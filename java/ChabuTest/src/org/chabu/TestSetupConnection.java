@@ -3,43 +3,77 @@ package org.chabu;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
+import org.chabu.prot.v1.Chabu;
+import org.chabu.prot.v1.ChabuBuilder;
+import org.chabu.prot.v1.ChabuConnectionAcceptInfo;
+import org.chabu.prot.v1.ChabuErrorCode;
+import org.chabu.prot.v1.ChabuException;
+import org.chabu.prot.v1.internal.Constants;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
+import org.junit.runners.MethodSorters;
 
 @SuppressWarnings("unused")
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestSetupConnection {
 
-	private final String APPLNAME_200 = "" 
+	private final String APPLNAME_56 = "" 
 			+ "12345678901234567890123456789012345678901234567890"
-			+ "12345678901234567890123456789012345678901234567890"
-			+ "12345678901234567890123456789012345678901234567890"
-			+ "12345678901234567890123456789012345678901234567890"
+			+ "123456"
 			;
+	
+	static final int MAX_RECV_SIZE_LOW = 0x100;
+	static final int MAX_RECV_SIZE_HIGH = 0x1000_0000;
 	@Test
-	public void LocalConnectionInfo_MaxReceiveSize() throws Exception {
+	public void LocalConnectionInfo_MaxReceiveSize_too_low() throws Exception {
+		
+		assertEquals( MAX_RECV_SIZE_LOW, Constants.MAX_RECV_LIMIT_LOW);
 		
 		// too low
-		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW, ()->{
 			ChabuBuilder .start( 0x123, "ABC", 0 , 3);
 		});
-		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE, ()->{
-			ChabuBuilder .start( 0x123, "ABC", 0x100-1, 3);
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW, ()->{
+			ChabuBuilder .start( 0x123, "ABC", MAX_RECV_SIZE_LOW-1, 3);
 		});
-
 	}		
 
+	@Test
+	public void LocalConnectionInfo_MaxReceiveSize_not_aligned() throws Exception {
+		
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_NOT_ALIGNED, ()->{
+			ChabuBuilder .start( 0x123, "ABC", MAX_RECV_SIZE_LOW+2 , 3);
+		});
+	}		
+	
+	@Test
+	public void LocalConnectionInfo_MaxReceiveSize_too_high() throws Exception {
+		
+		assertEquals( MAX_RECV_SIZE_HIGH, Constants.MAX_RECV_LIMIT_HIGH);
+
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH, ()->{
+			ChabuBuilder .start( 0x123, "ABC", MAX_RECV_SIZE_HIGH+4, 3);
+		});
+		assertException( ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH, ()->{
+			ChabuBuilder .start( 0x123, "ABC", 7*MAX_RECV_SIZE_HIGH, 3);
+		});
+		ChabuBuilder .start( 0x123, "ABC", MAX_RECV_SIZE_HIGH, 3);
+	}		
+	
 	@Test
 	public void LocalConnectionInfo_ApplicationName() throws Exception {
 
 
-		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, ()->{
+		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_NULL, ()->{
 			ChabuBuilder .start( 0x123, null, 0x100, 3);
 		});
 		
-		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME, ()->{
-			ChabuBuilder .start( 0x123, APPLNAME_200 + "-", 0x100, 3);
+		assertException( ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG, ()->{
+			ChabuBuilder .start( 0x123, APPLNAME_56 + "-", 0x100, 3);
 		});
 
-		ChabuBuilder .start(0x123, APPLNAME_200, 0x100, 3);
+		ChabuBuilder .start(0x123, APPLNAME_56, 0x100, 3);
 		ChabuBuilder .start(0x123, "", 0x100, 3);
 		
 		Chabu chabu = ChabuBuilder
@@ -150,7 +184,7 @@ public class TestSetupConnection {
 					.start(0x123, "ABC", 0x100, 3)
 					.addChannel( 0, 20, 0, new TestChannelUser())
 					.setConnectionValidator( (local, remote) -> {
-						return new ChabuConnectionAcceptInfo( 0x177, "To Test");
+						return new ChabuConnectionAcceptInfo( ChabuErrorCode.APPLICATION_VALIDATOR.getCode() + 0x77, "To Test");
 					})
 					.build();
 			
@@ -159,15 +193,15 @@ public class TestSetupConnection {
 			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
 			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
-			assertException( 0x177, ()->{
-				r.wireTx(20, "00 00 00 08 77 77 00 E1");
+			assertException( 0x1000077, ()->{
+				r.wireTx("00 00 00 18 77 77 00 D2 01 00 00 77 00 00 00 07 54 6F 20 54 65 73 74 00");
 			});
 		}
 	}		
 
-	private void assertException( ChabuErrorCode ec, Runnable r ){
+	private void assertException( ChabuErrorCode ec, ThrowingCallable r ){
 		try{
-			r.run();
+			r.call();
 			fail("An Exception shall be thrown");
 		}
 		catch( ChabuException e ){
@@ -180,10 +214,13 @@ public class TestSetupConnection {
 				assertEquals( ec.getCode(), e.getRemoteCode());
 			}
 		}
+		catch( Throwable e ){
+			throw new RuntimeException(e);
+		}
 	}
-	private void assertException( int code, Runnable r ){
+	private void assertException( int code, ThrowingCallable r ){
 		try{
-			r.run();
+			r.call();
 			fail();
 		}
 		catch( ChabuException e ){
@@ -193,6 +230,9 @@ public class TestSetupConnection {
 			else {
 				assertEquals( code, e.getRemoteCode());
 			}
+		}
+		catch( Throwable e ){
+			throw new RuntimeException(e);
 		}
 	}
 	@Test
@@ -206,18 +246,23 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			//                                                                    <--------PV
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 01 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 FF FF 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
 			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
-				r.wireTx( 20, "00 00 00 08 77 77 00 E1");
+				r.wireTx(
+						"00 00 00 48 77 77 00 D2 00 1F 00 02 00 00 00 37 " +
+						"43 68 61 62 75 20 50 72 6F 74 6F 63 6F 6C 20 56 " +
+						"65 72 73 69 6F 6E 3A 20 65 78 70 74 20 30 78 30 " +
+						"30 30 30 30 30 30 31 20 72 65 63 76 20 30 78 46 " +
+						"46 46 46 30 30 30 31 00");
 			});
 		}
 
 	}		
 	
 	@Test
-	public void RemoteConnectionInfo_MaxReceiveSize() throws Exception {
+	public void RemoteConnectionInfo_MaxReceiveSize_too_low() throws Exception {
 
 		{
 			Chabu chabu = ChabuBuilder
@@ -227,11 +272,49 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 00 FF 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 00 FC 00 00 01 23 00 00 00 03 41 41 41 00");
 			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
-			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE, ()->{
-				r.wireTx(20, "00 00 00 08 77 77 00 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_LOW, ()->{
+				r.wireTx("00 00 00 2C 77 77 00 D2 00 20 00 03 00 00 00 1C 4D 61 78 52 65 63 65 69 76 65 53 69 7A 65 20 74 6F 6F 20 6C 6F 77 3A 20 30 78 46 43");
+			});
+		}
+	}		
+	@Test
+	public void RemoteConnectionInfo_MaxReceiveSize_not_aligned() throws Exception {
+		
+		{
+			Chabu chabu = ChabuBuilder
+					.start(0x123, "ABC", 0x100, 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 01 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 08 77 77 00 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_NOT_ALIGNED, ()->{
+				r.wireTx("00 00 00 34 77 77 00 D2 00 20 00 05 00 00 00 23 4D 61 78 52 65 63 65 69 76 65 53 69 7A 65 20 69 73 20 6E 6F 74 20 61 6C 69 67 6E 65 64 20 30 78 31 30 31 00");
+			});
+		}
+	}		
+	@Test
+	public void RemoteConnectionInfo_MaxReceiveSize_too_high() throws Exception {
+		
+		{
+			Chabu chabu = ChabuBuilder
+					.start(0x123, "ABC", 0x100, 3)
+					.addChannel( 0, 20, 0, new TestChannelUser())
+					.build();
+			
+			TraceRunner r = TraceRunner.test( chabu );
+			
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 10 00 00 04 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 08 77 77 00 E1");
+			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_HIGH, ()->{
+				r.wireTx("00 00 00 34 77 77 00 D2 00 20 00 04 00 00 00 22 4D 61 78 52 65 63 65 69 76 65 53 69 7A 65 20 74 6F 6F 20 68 69 67 68 20 30 78 31 30 30 30 30 30 30 34 00 00");
 			});
 		}
 	}		
@@ -254,7 +337,7 @@ public class TestSetupConnection {
 				
 				// Send an Abort
 				// 7 + len
-				r.wireRx("00 00 00 14 77 77 00 D2 00 00 01 23 "+TestUtils.test2LengthAndHex("bla"));
+				r.wireRx("00 00 00 14 77 77 00 D2 00 00 01 23 "+TestUtils.text2LengthAndHex("bla"));
 			});
 		}
 	}		

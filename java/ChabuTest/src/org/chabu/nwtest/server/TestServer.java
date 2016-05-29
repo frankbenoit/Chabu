@@ -58,7 +58,6 @@ public class TestServer {
 					recvBuffer.compact();
 					channel.read(recvBuffer);
 					recvBuffer.flip();
-
 				}
 				
 				try{
@@ -274,7 +273,7 @@ public class TestServer {
 					}
 					
 					if( xmitBuffer.position() > 0 ){
-						
+
 						xmitBuffer.flip();
 						int sz = channel.write(xmitBuffer);
 						xmitBuffer.compact();

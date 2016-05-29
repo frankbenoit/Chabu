@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
+import org.chabu.ByteExchange;
 import org.chabu.ChabuChannel;
 import org.chabu.ChabuChannelUser;
 import org.chabu.PseudoRandom;
@@ -11,7 +12,7 @@ import org.chabu.container.ByteQueueOutputPort;
 import org.chabu.nwtest.Const;
 import org.json.JSONObject;
 
-class TestChannelUser implements ChabuChannelUser {
+class TestChannelUser implements ByteExchange {
 	
 	private ChabuChannel    channel;
 	private final PseudoRandom     xmitRandom;
@@ -105,6 +106,26 @@ class TestChannelUser implements ChabuChannelUser {
 		if( xmitPending.get() > 0 ){
 			errorReporter.accept(String.format("Channel[%d] xmit data still pending. %d bytes @0x%04X", channel.getChannelId(), xmitPending.get(), xmitStreamPosition ));
 		}
+	}
+	@Override
+	public ByteBuffer getXmitBuffer(int size) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public void xmitCompleted() {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public ByteBuffer getRecvBuffer(int size) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public void recvCompleted() {
+		// TODO Auto-generated method stub
+		
 	}
 	
 }

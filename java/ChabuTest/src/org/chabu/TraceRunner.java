@@ -7,10 +7,14 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.chabu.prot.v1.Chabu;
+import org.chabu.prot.v1.ChabuBuilder;
+import org.chabu.prot.v1.ChabuException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -26,16 +30,18 @@ public class TraceRunner {
 	private static final Pattern commentPattern = Pattern.compile("^[ \\t0-9A-Fa-f]*//.*");
 	
 	private final ByteBuffer bb    = ByteBuffer.allocate(10000);
-	private final ByteBuffer txBuf = ByteBuffer.allocate(10000);
+//	private final ByteBuffer txBuf = ByteBuffer.allocate(10000);
 //	private final ByteBuffer rxBuf = ByteBuffer.allocate(10000);
+	private final ArrayList<TestChannelUser> channelUser = new ArrayList<>();
 	
 	String line;
 	int ln = 0;
 	private BufferedReader br;
-	private Chabu chabu;
+	Chabu chabu;
 	
 	private int blockLineNum;
-
+	private TestByteChannel byteChannel = new TestByteChannel( 1000, 1000 );
+	
 	public TraceRunner(){
 	}
 
@@ -99,7 +105,6 @@ public class TraceRunner {
 		
 
 		PrintWriter trcPrinter = new PrintWriter(System.out);
-		chabu.setTracePrinter( trcPrinter );
 		try{
 			while( line != null ){
 				blockLineNum = ln;
@@ -139,32 +144,32 @@ public class TraceRunner {
 		}
 	}
 
-	public void wireRxAutoLength(String hexData) {
+	public void wireRxAutoLength(String hexData) throws IOException {
 		int len = (hexData.length() + 1) / 3;
 		len += 4;
 		hexStringToBB(String.format( "%02X %02X %02X %02X %s", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
 		JSONObject params = new JSONObject();
 		wireRx( params, bb );
 	}
-	public void wireRx(String hexData) {
+	public void wireRx(String hexData) throws IOException {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
 		wireRx( params, bb );
 	}
 	
-	public void wireTxAutoLength(String hexData) {
+	public void wireTxAutoLength(String hexData) throws IOException {
 		int len = (hexData.length() + 1) / 3;
 		len += 4;
 		hexStringToBB(String.format( "%02X %02X %02X %02X %s", len >> 24, len >> 16, len >> 8, 0xff & len, hexData));
 		JSONObject params = new JSONObject();
 		wireTx( params, bb );
 	}
-	public void wireTx(String hexData) {
+	public void wireTx(String hexData) throws IOException {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
 		wireTx( params, bb );
 	}
-	public void wireTx( int more, String hexData) {
+	public void wireTx( int more, String hexData) throws IOException {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
 		params.put( "More", more );
@@ -183,24 +188,35 @@ public class TraceRunner {
 	}
 	/**
 	 * Push the data into Chabu.
+	 * @throws IOException 
 	 */
-	private void wireRx(JSONObject params, ByteBuffer bb) {
+	private void wireRx(JSONObject params, ByteBuffer bb) throws IOException {
 //		System.out.printf("TraceRunner.wireRx( %s, %s )\n", params, bb.remaining());
 		int more = params.optInt("More");
 		bb.limit( bb.limit() + more );
-		chabu.recv(bb);
-		ensure( bb.remaining() == more, "Chabu did not receive all data" );
+		byteChannel.putRecvData(bb);
+		chabu.handleChannel( byteChannel );
+		ensure( bb.remaining() == more, "Chabu did not receive all data: %d %d %s", bb.remaining(), more, bb );
 	}
 
 	/**
 	 * Test that Chabu is transmitting the expected data.
+	 * @throws IOException 
 	 */
-	private void wireTx(JSONObject params, ByteBuffer bb) {
+	private void wireTx(JSONObject params, ByteBuffer bb) throws IOException {
 		int more = params.optInt("More");
 //		System.out.printf("TraceRunner.wireTx( %s, %s )\n", params, bb.remaining());
-		txBuf.clear();
-		txBuf.limit(bb.limit()+more);
-		chabu.xmit(txBuf);
+		byteChannel.resetXmitRecording(bb.limit()+more);
+		
+		ChabuException e = null;
+		try{
+			chabu.handleChannel( byteChannel );
+		}
+		catch(ChabuException e2){
+			e = e2;
+		}
+		
+		ByteBuffer txBuf = byteChannel.getWriteData();
 		txBuf.flip();
 		
 		boolean isOk = true;
@@ -221,17 +237,38 @@ public class TraceRunner {
 		}
 
 		if( !isOk ){
-			System.out.println("TX by org.chabu:"+TestUtils.dumpHexString( txBuf ));
+			System.out.println("TX by org.chabu:" + TestUtils.toHexString( txBuf, true ) + TestUtils.dumpHexString( txBuf ));
 			System.out.println("Expected   :"+TestUtils.dumpHexString( bb ));
-			ensure( txBuf.limit() == bb.limit(), "WIRE_TX @%s: TX length (%s) does not match the expected length (%s). First mismatch at pos %s", blockLineNum, txBuf.limit(), bb.limit(), mismatchPos );
-			for( int i = 0; i < bb.limit(); i++ ){
+			if( txBuf.limit() != bb.limit()){
+				System.out.printf("WIRE_TX @%s: TX length (%s) does not match the expected length (%s). First mismatch at pos %s%n", 
+						blockLineNum, txBuf.limit(), bb.limit(), mismatchPos);
+			}
+			int searchLen = Math.min(bb.limit(), txBuf.limit());
+			for( int i = 0; i < searchLen; i++ ){
 				int exp = 0xFF & bb.get(i);
 				int cur = 0xFF & txBuf.get(i);
-				ensure( cur == exp, "TX data (0x%02X) != expected (0x%02X) at index 0x%X", cur, exp, i );
+				if( cur != exp ){ 
+					System.out.printf("TX data (0x%02X) != expected (0x%02X) at index 0x%X%n", cur, exp, i );
+					break;
+				}
 			}
+			if( e != null ){
+				e.printStackTrace();
+			}
+			ensure( isOk, "TX data mismatch" );
+		}
+		if( e != null ){
+			throw e;
 		}
 	}
 	
+	public TestChannelUser createUser( int channel ){
+		TestChannelUser user = new TestChannelUser();
+		channelUser.add(channel, user);
+		return user;
+	}
+
+
 	public void channelToAppl(int channelId, String hexData) {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
@@ -241,8 +278,8 @@ public class TraceRunner {
 	private void channelToAppl(JSONObject params, ByteBuffer bb) {
 //		System.out.printf("TraceRunner.channelToAppl( %s, %s )\n", params, bb.remaining());
 		int channelId = params.getInt("ID");
-		TestChannelUser cu = (TestChannelUser)chabu.getChannel(channelId).getUser();
-		cu.consumeRxData(bb);
+		TestChannelUser cu = channelUser.get(channelId);
+		cu.verifyReceivedData(bb);
 	}
 
 	public void applToChannel(int channelId, String hexData) {
@@ -254,7 +291,7 @@ public class TraceRunner {
 	private void applToChannel(JSONObject params, ByteBuffer bb) {
 //		System.out.printf("TraceRunner.applToChannel( %s, %s )\n", params, bb.remaining());
 		int channelId = params.getInt("ID");
-		TestChannelUser cu = (TestChannelUser)chabu.getChannel(channelId).getUser();
+		TestChannelUser cu = channelUser.get(channelId);
 		cu.addTxData(bb);
 	}
 	

@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry excluding="chabu/tester/|chabu/tester/data/|chabu/tester/dlg/|chabu/tester/dut/|org/eclipse/wb/swt/|org/eclipse/wb/" kind="src" path="src"/>
+	<classpathentry excluding="chabu/tester/|chabu/tester/data/|chabu/tester/dlg/|chabu/tester/dut/|org/eclipse/wb/swt/|org/eclipse/wb/|org/chabu/nwtest/" kind="src" path="src"/>
 	<classpathentry kind="src" path="res"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
+	<classpathentry kind="con" path="org.apache.ivyde.eclipse.cpcontainer.IVYDE_CONTAINER/?project=org.chabu.test&amp;ivyXmlPath=ivy.xml&amp;confs=*"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

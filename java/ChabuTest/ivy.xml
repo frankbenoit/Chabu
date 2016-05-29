@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<ivy-module version="2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://ant.apache.org/ivy/schemas/ivy.xsd">
+    <info
+        organisation="org.chabu"
+        module="org.chabu.test"
+        status="integration">
+	</info>
+
+	<dependency org="org.junit" name="junit5-api" rev="5.0.0-ALPHA"/>
+	<dependency org="org.assertj" name="assertj-core" rev="3.4.1" />
+	
+	<dependency org="org.powermock" name="powermock-module-junit4" rev="1.6.5"/>
+	<dependency org="org.powermock" name="powermock-api-mockito" rev="1.6.5"/>
+	
+</ivy-module>

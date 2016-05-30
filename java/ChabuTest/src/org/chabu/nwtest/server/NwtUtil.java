@@ -19,7 +19,9 @@ public class NwtUtil {
 	}
 	public static void closeLog() {
 		try {
-			fw.close();
+			if( fw != null ) {
+				fw.close();
+			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

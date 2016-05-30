@@ -36,6 +36,7 @@ final class NetworkThread implements Runnable {
 //	private SelectionKey keyCtrl;
 	private SocketContext ctxCtrl;
 	private SocketContext ctxTest;
+	private volatile boolean isFinished = false;
 
 	static class SocketContext {
 		String        name;
@@ -96,10 +97,13 @@ final class NetworkThread implements Runnable {
 			ctxCtrl.key = socketCtrl.register( selector, SelectionKey.OP_CONNECT, ctxCtrl );
 			ctxTest.key = socketTest.register( selector, SelectionKey.OP_CONNECT, ctxTest );
 			
-			while( selector.isOpen() && !Thread.interrupted() ){
+			while( selector.isOpen() ){
 
+				if( Thread.interrupted()){
+					throw new RuntimeException("client network thread interrupted.");
+				}
 				selector.select(2000);
-				System.out.println("nw client select");
+				//System.out.println("nw client select");
 
 				boolean notify = false;
 				synchronized (this) {
@@ -199,7 +203,13 @@ final class NetworkThread implements Runnable {
 			e.printStackTrace();
 			System.exit(1);
 		}
-		System.out.println("NetworkThread.run() finished");
+		finally {
+			isFinished  = true;
+			synchronized(this){
+				this.notifyAll();
+			}
+			System.out.println("NetworkThread.run() finished");
+		}
 	}
 
 	public void interrupt() {
@@ -257,9 +267,10 @@ final class NetworkThread implements Runnable {
 		return res;
 	}
 	public void doWait(){
+		if( isFinished ) throw new RuntimeException("finished");
 		try{
 			this.wait();
-			System.out.println("nw client wait");
+			//System.out.println("nw client wait");
 		}
 		catch( InterruptedException e ){
 			throw new RuntimeException(e);

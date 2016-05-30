@@ -50,11 +50,11 @@ public class ChabuChannelImpl implements ChabuChannel {
 	private long recvPosition;
 
 	
-	public ChabuChannelImpl(int recvBufferSize, int priority, RecvByteTarget recvTarget, XmitByteSource xmitSource ) {
-		
+	public ChabuChannelImpl(int dummy, int priority, RecvByteTarget recvTarget, XmitByteSource xmitSource ) {
+		int recvBufferSize = 0;
 		this.recvTarget = recvTarget;
 		this.xmitSource = xmitSource;
-		Utils.ensure( recvBufferSize > 0, ChabuErrorCode.CONFIGURATION_CH_RECVSZ, "recvBufferSize must be > 0, but is %s", recvBufferSize );
+		Utils.ensure( recvBufferSize >= 0, ChabuErrorCode.CONFIGURATION_CH_RECVSZ, "recvBufferSize must be > 0, but is %s", recvBufferSize );
 		Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is %s", priority );
 		Utils.ensure( recvTarget != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 		Utils.ensure( xmitSource != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
@@ -75,7 +75,7 @@ public class ChabuChannelImpl implements ChabuChannel {
 	}
 	
 	void verifySeq(int packetSeq ) {
-		Utils.ensure( this.recvSeq == packetSeq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, packetSeq );
+		Utils.ensure( this.recvSeq == packetSeq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq but expected (%s :: %s). Violation of the SEQ value.", channelId, packetSeq, this );
 	}
 	
 	int handleRecvSeq(ByteChannel byteChannel, int recvByteCount ) throws IOException {
@@ -132,7 +132,9 @@ public class ChabuChannelImpl implements ChabuChannel {
 			// was blocked by receiver
 			// now the arm is updated
 			// --> try to send new data
-			chabu.channelXmitRequestData(channelId);
+			if( getXmitRemaining() > 0 ){
+				chabu.channelXmitRequestData(channelId);
+			}
 		}
 		this.xmitArm = arm;
 	}
@@ -153,20 +155,20 @@ public class ChabuChannelImpl implements ChabuChannel {
 		int pls = Math.min( davail, maxSize );
 	
 		ByteBuffer seqBuffer = xmitSource.getXmitBuffer(pls);
-		if( seqBuffer.hasRemaining() ){
-			int realPls = seqBuffer.remaining();
-			
-			Utils.ensure( realPls > 0 && realPls <= pls, ChabuErrorCode.ASSERT, "" );
-			
-			xmitter.processXmitSeq(channelId, xmitSeq, realPls );
-			xmitSeq += realPls;
-			xmitPosition += realPls;
-		}
+		
+		int realPls = seqBuffer.remaining();
+		Utils.ensure( realPls > 0, ChabuErrorCode.ASSERT, "XmitSource gave buffer with no space" );
+		Utils.ensure( realPls <= pls, ChabuErrorCode.ASSERT, "XmitSource gave buffer with more data than was requested" );
+		
+		xmitter.processXmitSeq(channelId, xmitSeq, realPls );
+		xmitSeq += realPls;
+		xmitPosition += realPls;
+		
 		return seqBuffer;
 	}
 
 	public String toString(){
-		return String.format("Channel[%s recvS:%s recvA:%s xmitS:%s xmitA:%s]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
+		return String.format("Channel[%s recvS:%s recvA:%s recvPostion:%s recvLimit:%s xmitS:%s xmitA:%s xmitPostion:%s xmitLimit:%s]", channelId, this.recvSeq, this.recvArm, this.recvPosition, this.recvLimit, this.xmitSeq, this.xmitArm, this.xmitPosition, this.xmitLimit );
 	}
 
 	@Override
@@ -192,8 +194,10 @@ public class ChabuChannelImpl implements ChabuChannel {
 
 	@Override
 	public long addXmitLimit(int added) {
-		this.xmitLimit += added;
-		chabu.channelXmitRequestData(channelId);
+		if( added > 0 ){
+			this.xmitLimit += added;
+			chabu.channelXmitRequestData(channelId);
+		}
 		return xmitLimit;
 	}
 
@@ -202,7 +206,7 @@ public class ChabuChannelImpl implements ChabuChannel {
 		return Utils.safePosInt( xmitLimit - xmitPosition );
 	}
 	
-	private int getXmitRemainingByRemote() {
+	int getXmitRemainingByRemote() {
 		return xmitArm - xmitSeq;
 	}
 

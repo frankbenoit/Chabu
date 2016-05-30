@@ -63,7 +63,7 @@ public class TestServer implements TestServerPort {
 			}
 			
 			selector.select(2000);
-			System.out.println("nw server select");
+			//System.out.println("nw server select");
 
 			Iterator<SelectionKey> keyIterator = selector.selectedKeys().iterator();
             while(keyIterator.hasNext()) {

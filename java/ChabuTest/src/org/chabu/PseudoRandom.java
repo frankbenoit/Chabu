@@ -36,7 +36,7 @@ public class PseudoRandom {
     	}
     }
 
-	public void nextBytesVerify(byte[] bytes, int offset, int length ) {
+	public void nextBytesVerify(byte[] bytes, int offset, int length, String fmt, Object ... args ) {
 		for( int i = 0; i < length; i++ ){
 			byte exp = buffer[ idx % buffer.length ];
 			byte cur = bytes[i+offset];
@@ -45,7 +45,7 @@ public class PseudoRandom {
     			idx = 0;
     		}
 			if( exp != cur ){
-				throw new RuntimeException(String.format("mismatch at %d: exp:0x%02X != cur:0x%02X", i, exp, cur ));
+				throw new RuntimeException(String.format("%s: mismatch at %d: exp:0x%02X != cur:0x%02X", String.format(fmt,  args), i, exp, cur ));
 			}
 		}
 	}

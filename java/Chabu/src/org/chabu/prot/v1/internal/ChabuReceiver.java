@@ -45,6 +45,7 @@ public class ChabuReceiver {
 	public void recv(ByteChannel channel) throws IOException {
 		while( true ){
 			if( packetType == PacketType.NONE ){
+				Utils.ensure(recvBuf.limit() >= HEADER_RECV_SZ, ChabuErrorCode.UNKNOWN, "unknown header size: %s", recvBuf);
 				channel.read(recvBuf);
 				if( recvBuf.position() < 8 ){
 					break;
@@ -58,7 +59,7 @@ public class ChabuReceiver {
 				}
 			}
 			
-			if( packetType == PacketType.SETUP || packetType == PacketType.ABORT ){
+			if( packetType != PacketType.SEQ ){
 				Utils.ensure( packetSize <= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.UNKNOWN, "unknown header size");
 				if( packetSize > recvBuf.position() ){
 					recvBuf.limit(packetSize);
@@ -68,6 +69,17 @@ public class ChabuReceiver {
 						break;
 					}
 				}
+			}
+			else {
+				if( HEADER_RECV_SZ > recvBuf.position() ){
+					recvBuf.limit(HEADER_RECV_SZ);
+					channel.read(recvBuf);
+					if( recvBuf.hasRemaining() ){
+						// not fully read, try next time
+						break;
+					}
+				}
+				
 			}
 			
 			recvBuf.flip();
@@ -95,23 +107,31 @@ public class ChabuReceiver {
 			}
 			else {
 				// is SEQ packet
+				recvBuf.position(HEADER_RECV_SZ);
 				int channelId = recvBuf.getInt(8);
 				int seq = recvBuf.getInt(12);
 				int pls = recvBuf.getInt(16);
+				int padding = packetSize - HEADER_RECV_SZ - pls;
 				ChabuChannelImpl chabuChannel = channels.get(channelId);
 				if( seqPacketIndex == 0 ){
 					// first processing
+					Utils.ensure( padding >= 0 && padding < 4, ChabuErrorCode.ASSERT, "padding inplausible packetSize:%s pls:%d", packetSize, pls );
 					chabuChannel.verifySeq( seq );
 				}
 				
-				int handledBytes = chabuChannel.handleRecvSeq( channel, pls-seqPacketIndex);
-				seqPacketIndex += handledBytes;
+				if( seqPacketIndex < pls ){
+					int handledBytes = chabuChannel.handleRecvSeq( channel, pls-seqPacketIndex);
+					seqPacketIndex += handledBytes;
+				}
+				
 				if( seqPacketIndex >= pls && seqPacketIndex + ChabuImpl.SEQ_MIN_SZ < packetSize ){
+					int paddingRemaining = packetSize - seqPacketIndex - ChabuImpl.SEQ_MIN_SZ;
 					recvBufPadding.clear();
-					int padding = packetSize - seqPacketIndex - ChabuImpl.SEQ_MIN_SZ;
-					recvBufPadding.limit(padding);
+					Utils.ensure( paddingRemaining <= 3 && paddingRemaining > 0, ChabuErrorCode.ASSERT, "paddingRemaining inplausible %d (%s, %s)", paddingRemaining, seqPacketIndex, packetSize );
+					recvBufPadding.limit(paddingRemaining);
 					seqPacketIndex += channel.read(recvBufPadding);
 				}
+				
 				if( seqPacketIndex + ChabuImpl.SEQ_MIN_SZ >= packetSize ){
 					seqPacketIndex = 0;
 					recvBuf.clear();
@@ -120,6 +140,8 @@ public class ChabuReceiver {
 					continue;
 				}
 				else {
+					Utils.ensure( recvBuf.position() == 20, ChabuErrorCode.ASSERT, "" );
+					Utils.ensure( recvBuf.limit() == 20, ChabuErrorCode.ASSERT, "" );
 					break;
 				}
 			}

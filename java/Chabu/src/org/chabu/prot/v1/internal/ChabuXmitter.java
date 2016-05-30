@@ -196,7 +196,7 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 
 	private void handleSeqCompletion() {
 		seqChannel.seqPacketCompleted();
-		if( seqChannel.getXmitRemaining() > 0 ){
+		if( seqChannel.getXmitRemaining() > 0 && seqChannel.getXmitRemainingByRemote() > 0 ){
 			xmitChannelRequestData.reqest( seqChannel.getPriority(), seqChannel.getChannelId());
 		}
 

@@ -15,7 +15,6 @@ class ChannelUser implements ByteExchange {
 	ByteBuffer recvBuffer = ByteBuffer.allocate(1000);
 	private org.chabu.PseudoRandom xmitRandom;
 	private org.chabu.PseudoRandom recvRandom;
-	private byte[] recvTestBytes = new byte[0x2000];
 
 	private long recvStreamPosition = 0;
 	private long xmitStreamPosition = 0;
@@ -106,6 +105,7 @@ class ChannelUser implements ByteExchange {
 			recvBuffer = ByteBuffer.allocate(putSz);
 		}
 		recvBuffer.clear();
+		recvBuffer.limit(putSz);
 		return recvBuffer;
 	}
 
@@ -114,21 +114,7 @@ class ChannelUser implements ByteExchange {
 		recvBuffer.flip();
 		int putSz = recvBuffer.remaining();
 		if( Const.DATA_RANDOM ){
-			if( recvTestBytes.length < putSz ){
-				recvTestBytes = new byte[ putSz ];
-			}
-			recvRandom.nextBytes(recvTestBytes, 0, putSz);
-			boolean ok = true;
-			for( int i = 0; i < putSz; i++ ){
-				byte exp = recvBuffer.get();
-				if( ok && recvTestBytes[i] != exp ){
-					throw new RuntimeException( 
-							String.format("Channel[%d] evRecv data corruption recv:0x%02X expt:0x%02X @0x%04X", 
-									channel.getChannelId(), exp, recvTestBytes[i], recvStreamPosition ));
-				}
-			}
-		}
-		else {
+			recvRandom.nextBytesVerify(recvBuffer.array(), recvBuffer.arrayOffset()+recvBuffer.position(), recvBuffer.remaining(), "Channel[%d] evRecv data corruption", channel.getChannelId() );
 		}
 		recvStreamPosition+=putSz;
 		recvPending.addAndGet(-putSz);

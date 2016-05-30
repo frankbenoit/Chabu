@@ -15,6 +15,7 @@ public class TestByteChannel implements ByteChannel {
 	public TestByteChannel(int recvCapacity, int xmitCapacity) {
 		readData = ByteBuffer.allocate(recvCapacity);
 		writeData = ByteBuffer.allocate(xmitCapacity);
+		writeData.limit(0);
 	}
 	
 //	public void setReadData(ByteBuffer readData) {

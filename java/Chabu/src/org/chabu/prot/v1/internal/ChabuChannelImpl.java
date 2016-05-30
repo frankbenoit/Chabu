@@ -85,25 +85,25 @@ public class ChabuChannelImpl implements ChabuChannel {
 		Utils.ensure( remainingBytes <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, 
 				"Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, remainingBytes, allowedRecv );
 			
-		if( recvTargetBuffer == null ){
-			
-			recvTargetBuffer = recvTarget.getRecvBuffer(remainingBytes);
-			
-			Utils.ensure( recvTargetBuffer != null, ChabuErrorCode.ASSERT, 
-					"Channel[%s] recvTargetBuffer is null.", channelId );
-			
-			Utils.ensure( recvTargetBuffer.remaining() <= remainingBytes, ChabuErrorCode.ASSERT, 
-					"Channel[%s] recvTargetBuffer has more remaining (%d) as requested (%d).", 
-					channelId, recvTargetBuffer.remaining(), remainingBytes );
-			
-			Utils.ensure( recvTargetBuffer.remaining() > 0, ChabuErrorCode.ASSERT, 
-					"Channel[%s] recvTargetBuffer cannot take data.", 
-					channelId );
-		}
-		
 		int summedReadBytes = 0;
 		while( remainingBytes > 0 ){
 	
+			if( recvTargetBuffer == null ){
+				
+				recvTargetBuffer = recvTarget.getRecvBuffer(remainingBytes);
+				
+				Utils.ensure( recvTargetBuffer != null, ChabuErrorCode.ASSERT, 
+						"Channel[%s] recvTargetBuffer is null.", channelId );
+				
+				Utils.ensure( recvTargetBuffer.remaining() <= remainingBytes, ChabuErrorCode.ASSERT, 
+						"Channel[%s] recvTargetBuffer has more remaining (%d) as requested (%d).", 
+						channelId, recvTargetBuffer.remaining(), remainingBytes );
+				
+				Utils.ensure( recvTargetBuffer.remaining() > 0, ChabuErrorCode.ASSERT, 
+						"Channel[%s] recvTargetBuffer cannot take data.", 
+						channelId );
+			}
+			
 			int readBytes = byteChannel.read(recvTargetBuffer);
 			summedReadBytes += readBytes;
 			remainingBytes -= readBytes;
@@ -145,7 +145,7 @@ public class ChabuChannelImpl implements ChabuChannel {
 	}
 
 	public ByteBuffer handleXmitData(ChabuXmitter xmitter, ByteBuffer xmitBuf, int maxSize) {
-		int davail = getXmitRemaining();
+		int davail = Math.min( getXmitRemainingByRemote(), getXmitRemaining() );
 		if( davail == 0 ){
 			System.out.println("ChabuChannelImpl.handleXmitData() : called by no data available");
 			return null;
@@ -201,6 +201,11 @@ public class ChabuChannelImpl implements ChabuChannel {
 	public int getXmitRemaining() {
 		return Utils.safePosInt( xmitLimit - xmitPosition );
 	}
+	
+	private int getXmitRemainingByRemote() {
+		return xmitArm - xmitSeq;
+	}
+
 
 	@Override
 	public long getXmitPosition() {

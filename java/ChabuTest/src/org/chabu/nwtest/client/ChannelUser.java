@@ -81,7 +81,7 @@ class ChannelUser implements ByteExchange {
 		}
 		xmitBuffer.limit(putSz);
 		xmitStreamPosition+=putSz;
-		return recvBuffer;
+		return xmitBuffer;
 	}
 
 

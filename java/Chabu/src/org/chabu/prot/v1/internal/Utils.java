@@ -33,7 +33,7 @@ public final class Utils {
 	
 	public static void ensure( boolean cond, ChabuErrorCode error, String fmt, Object ... args ){
 		if( cond ) return;
-		throw new ChabuException( error, String.format( fmt, args ));
+		ensure( cond, error.getCode(), fmt, args );
 	}
 	
 	public static void ensure( boolean cond, int code, String fmt, Object ... args ){

@@ -4,9 +4,22 @@ import java.io.IOException;
 
 import org.chabu.prot.v1.Chabu;
 import org.chabu.prot.v1.ChabuBuilder;
+import org.chabu.prot.v1.internal.Constants;
+import org.junit.Before;
 import org.junit.Test;
 
 public class TestTransfer {
+	
+	String CHABU_VERSION_HEX;
+	
+	@Before
+	public void setup() {
+		CHABU_VERSION_HEX = ""; 
+		for( int i = 0; i < 4; i++ ){
+			CHABU_VERSION_HEX = String.format("%02X %s", (Constants.PROTOCOL_VERSION >>> (8*i)) & 0xFF, CHABU_VERSION_HEX); 
+		}
+	}
+
 
 	@Test
 	public void First() throws Exception {
@@ -71,7 +84,7 @@ public class TestTransfer {
 		r.wireRxAutoLength(""
 				+ "77 77 00 F0 "
 				+ "00 00 00 05 43 48 41 42 55 00 00 00 "
-				+ "00 00 00 01 "
+				+ CHABU_VERSION_HEX
 				+ "00 00 01 00 "
 				+ "00 00 00 06 "
 				+ TestUtils.text2LengthAndHex("ABC"));
@@ -79,7 +92,7 @@ public class TestTransfer {
 		r.wireTxAutoLength(""
 				+ "77 77 00 F0 "
 				+ "00 00 00 05 43 48 41 42 55 00 00 00 "
-				+ "00 00 00 01 "
+				+ CHABU_VERSION_HEX
 				+ "00 00 01 00 "
 				+ "00 bc 61 4e "
 				+ TestUtils.text2LengthAndHex("ABC"));

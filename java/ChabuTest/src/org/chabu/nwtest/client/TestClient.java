@@ -3,7 +3,6 @@ package org.chabu.nwtest.client;
 import java.io.FileWriter;
 import java.util.ArrayList;
 
-import org.chabu.nwtest.server.TestServer;
 import org.chabu.prot.v1.Chabu;
 import org.chabu.prot.v1.ChabuBuilder;
 import org.json.JSONObject;
@@ -15,15 +14,6 @@ public class TestClient {
 
 	public static void main(String[] args) throws Exception {
 		int port = 15000;
-		Thread t = new Thread(()->{
-			try {
-				TestServer.main(new String[]{"-listen", ""+port});
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		});
-		t.start();
-		Thread.sleep(200);
 		TestClient client = new TestClient();
 		client.run(port);
 	}
@@ -98,7 +88,7 @@ public class TestClient {
 	
 	
 	
-	private void run(int port) {
+	private void run(int port) throws InterruptedException {
 		try{
 			runner = new NetworkThread(port);
 			connect();
@@ -149,6 +139,7 @@ public class TestClient {
 
 		} finally {
 			runner.interrupt();
+			runner.thread.join();
 			NwtUtil.closeLog();
 		}
 	}

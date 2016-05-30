@@ -219,46 +219,51 @@ public class TraceRunner {
 		ByteBuffer txBuf = byteChannel.getWriteData();
 		txBuf.flip();
 		
-		boolean isOk = true;
-		int mismatchPos = -1;
-		if( txBuf.limit() != bb.limit() ){
-			isOk = false;
-		}
-		else {
-			for( int i = 0; i < bb.limit(); i++ ){
-				int exp = 0xFF & bb.get(i);
-				int cur = 0xFF & txBuf.get(i);
-				if( exp != cur ){
-					isOk = false;
-					mismatchPos = i;
-					break;
+		try{
+			boolean isOk = true;
+			int mismatchPos = -1;
+			if( txBuf.limit() != bb.limit() ){
+				isOk = false;
+			}
+			else {
+				for( int i = 0; i < bb.limit(); i++ ){
+					int exp = 0xFF & bb.get(i);
+					int cur = 0xFF & txBuf.get(i);
+					if( exp != cur ){
+						isOk = false;
+						mismatchPos = i;
+						break;
+					}
 				}
 			}
-		}
 
-		if( !isOk ){
-			System.out.println("TX by org.chabu:" + TestUtils.toHexString( txBuf, true ) + TestUtils.dumpHexString( txBuf ));
-			System.out.println("Expected   :"+TestUtils.dumpHexString( bb ));
-			if( txBuf.limit() != bb.limit()){
-				System.out.printf("WIRE_TX @%s: TX length (%s) does not match the expected length (%s). First mismatch at pos %s%n", 
-						blockLineNum, txBuf.limit(), bb.limit(), mismatchPos);
-			}
-			int searchLen = Math.min(bb.limit(), txBuf.limit());
-			for( int i = 0; i < searchLen; i++ ){
-				int exp = 0xFF & bb.get(i);
-				int cur = 0xFF & txBuf.get(i);
-				if( cur != exp ){ 
-					System.out.printf("TX data (0x%02X) != expected (0x%02X) at index 0x%X%n", cur, exp, i );
-					break;
+			if( !isOk ){
+				System.out.println("TX by org.chabu:" + TestUtils.toHexString( txBuf, true ) + TestUtils.dumpHexString( txBuf ));
+				System.out.println("Expected   :"+TestUtils.dumpHexString( bb ));
+				if( txBuf.limit() != bb.limit()){
+					System.out.printf("WIRE_TX @%s: TX length (%s) does not match the expected length (%s). First mismatch at pos %s%n", 
+							blockLineNum, txBuf.limit(), bb.limit(), mismatchPos);
 				}
+				int searchLen = Math.min(bb.limit(), txBuf.limit());
+				for( int i = 0; i < searchLen; i++ ){
+					int exp = 0xFF & bb.get(i);
+					int cur = 0xFF & txBuf.get(i);
+					if( cur != exp ){ 
+						System.out.printf("TX data (0x%02X) != expected (0x%02X) at index 0x%X%n", cur, exp, i );
+						break;
+					}
+				}
+				if( e != null ){
+					e.printStackTrace();
+				}
+				ensure( isOk, "TX data mismatch" );
 			}
 			if( e != null ){
-				e.printStackTrace();
+				throw e;
 			}
-			ensure( isOk, "TX data mismatch" );
 		}
-		if( e != null ){
-			throw e;
+		finally{
+			txBuf.limit(0);
 		}
 	}
 	

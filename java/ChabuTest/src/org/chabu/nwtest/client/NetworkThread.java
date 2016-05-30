@@ -29,7 +29,7 @@ final class NetworkThread implements Runnable {
 	private InetSocketAddress remoteAddrTest;
 
 	Selector selector;
-	private Thread thread;
+	public Thread thread;
 //	private SelectionKey keyTest;
 	Chabu chabu;
 	boolean goToShutdown = false;

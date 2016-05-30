@@ -10,9 +10,13 @@ import org.chabu.prot.v1.ChabuConnectionAcceptInfo;
 import org.chabu.prot.v1.ChabuErrorCode;
 import org.chabu.prot.v1.ChabuException;
 import org.chabu.prot.v1.internal.Constants;
+import org.chabu.prot.v1.internal.Setup;
+import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
+
+import com.sun.deploy.uitoolkit.impl.fx.Utils;
 
 @SuppressWarnings("unused")
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -25,6 +29,16 @@ public class TestSetupConnection {
 	
 	static final int MAX_RECV_SIZE_LOW = 0x100;
 	static final int MAX_RECV_SIZE_HIGH = 0x1000_0000;
+	String CHABU_VERSION_HEX;
+	
+	@Before
+	public void setup() {
+		CHABU_VERSION_HEX = ""; 
+		for( int i = 0; i < 4; i++ ){
+			CHABU_VERSION_HEX = String.format("%02X %s", (Constants.PROTOCOL_VERSION >>> (8*i)) & 0xFF, CHABU_VERSION_HEX); 
+		}
+	}
+
 	@Test
 	public void LocalConnectionInfo_MaxReceiveSize_too_low() throws Exception {
 		
@@ -190,8 +204,8 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
-			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( 0x1000077, ()->{
 				r.wireTx("00 00 00 18 77 77 00 D2 01 00 00 77 00 00 00 07 54 6F 20 54 65 73 74 00");
@@ -247,14 +261,14 @@ public class TestSetupConnection {
 			TraceRunner r = TraceRunner.test( chabu );
 			//                                                                    <--------PV
 			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 FF FF 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 41 41 00");
-			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, ()->{
 				r.wireTx(
 						"00 00 00 48 77 77 00 D2 00 1F 00 02 00 00 00 37 " +
 						"43 68 61 62 75 20 50 72 6F 74 6F 63 6F 6C 20 56 " +
 						"65 72 73 69 6F 6E 3A 20 65 78 70 74 20 30 78 30 " +
-						"30 30 30 30 30 30 31 20 72 65 63 76 20 30 78 46 " +
+						"30 30 31 30 30 30 30 20 72 65 63 76 20 30 78 46 " +
 						"46 46 46 30 30 30 31 00");
 			});
 		}
@@ -272,8 +286,8 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 00 FC 00 00 01 23 00 00 00 03 41 41 41 00");
-			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 00 FC 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_LOW, ()->{
 				r.wireTx("00 00 00 2C 77 77 00 D2 00 20 00 03 00 00 00 1C 4D 61 78 52 65 63 65 69 76 65 53 69 7A 65 20 74 6F 6F 20 6C 6F 77 3A 20 30 78 46 43");
@@ -291,8 +305,8 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 01 00 00 01 23 00 00 00 03 41 41 41 00");
-			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 01 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_NOT_ALIGNED, ()->{
 				r.wireTx("00 00 00 34 77 77 00 D2 00 20 00 05 00 00 00 23 4D 61 78 52 65 63 65 69 76 65 53 69 7A 65 20 69 73 20 6E 6F 74 20 61 6C 69 67 6E 65 64 20 30 78 31 30 31 00");
@@ -310,8 +324,8 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 10 00 00 04 00 00 01 23 00 00 00 03 41 41 41 00");
-			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"10 00 00 04 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 			r.wireRx("00 00 00 08 77 77 00 E1");
 			assertException( ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_HIGH, ()->{
 				r.wireTx("00 00 00 34 77 77 00 D2 00 20 00 04 00 00 00 22 4D 61 78 52 65 63 65 69 76 65 53 69 7A 65 20 74 6F 6F 20 68 69 67 68 20 30 78 31 30 30 30 30 30 30 34 00 00");
@@ -330,9 +344,9 @@ public class TestSetupConnection {
 			
 			TraceRunner r = TraceRunner.test( chabu );
 			
-			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 00 FF 00 00 01 23 00 00 00 03 41 41 41 00");
+			r.wireRx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 00 FF 00 00 01 23 00 00 00 03 41 41 41 00");
 			assertException( 0x123, () -> {
-				r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 00 00 00 01 00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
+				r.wireTx("00 00 00 28 77 77 00 F0 00 00 00 05 43 48 41 42 55 00 00 00 "+CHABU_VERSION_HEX+"00 00 01 00 00 00 01 23 00 00 00 03 41 42 43 00");
 				//r.wireTx("00 0D F0 01 01 00 00 00 01 23 00 03 41 42 43");
 				
 				// Send an Abort

@@ -90,6 +90,7 @@ class TestChannelUser implements ByteExchange {
 			recvBuffer = ByteBuffer.allocate(putSz);
 		}
 		recvBuffer.clear();
+		recvBuffer.limit(size);
 		return recvBuffer;
 	}
 	@Override

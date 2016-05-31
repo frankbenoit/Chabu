@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.chabu.PseudoRandom;
+import org.chabu.TestUtils;
 import org.chabu.nwtest.Const;
 import org.chabu.prot.v1.ByteExchange;
 import org.chabu.prot.v1.ChabuChannel;
@@ -13,8 +14,8 @@ import org.json.JSONObject;
 class TestChannelUser implements ByteExchange {
 	
 	private ChabuChannel    channel;
-	private final PseudoRandom     xmitRandom;
-	private final PseudoRandom     recvRandom;
+	private PseudoRandom     xmitRandom;
+	private PseudoRandom     recvRandom;
 	
 	ByteBuffer xmitBuffer = ByteBuffer.allocate(1000);
 	ByteBuffer recvBuffer = ByteBuffer.allocate(1000);
@@ -27,12 +28,12 @@ class TestChannelUser implements ByteExchange {
 	
 	public TestChannelUser(int channelId, int xmitBufferSz, Consumer<String> errorReporter ) {
 		this.errorReporter = errorReporter;
-		xmitRandom = new PseudoRandom(channelId*2+0);
-		recvRandom = new PseudoRandom(channelId*2+1);
 	}
 	@Override
 	public void setChannel(ChabuChannel channel) {
 		this.channel = channel;
+		xmitRandom = new PseudoRandom(channel.getChannelId()*2+0);
+		recvRandom = new PseudoRandom(channel.getChannelId()*2+1);
 	}
 
 	public void addXmitAmount( int amount ){
@@ -75,6 +76,7 @@ class TestChannelUser implements ByteExchange {
 		}
 		xmitBuffer.limit(putSz);
 		xmitStreamPosition+=putSz;
+//		System.out.printf("srv: %d TX %s%n", channel.getChannelId(), TestUtils.toHexString(xmitBuffer.array(), 0, 8, true));
 		return xmitBuffer;
 	}
 
@@ -98,6 +100,7 @@ class TestChannelUser implements ByteExchange {
 	@Override
 	public void recvCompleted() {
 		recvBuffer.flip();
+		//System.out.printf("srv: %d RX %s%n", channel.getChannelId(), TestUtils.toHexString(recvBuffer.array(), 0, 8, true));
 		int putSz = recvBuffer.remaining();
 		if( Const.DATA_RANDOM ){
 			recvRandom.nextBytesVerify(recvBuffer.array(), recvBuffer.arrayOffset()+recvBuffer.position(), recvBuffer.remaining(), "Channel[%d] evRecv data corruption", channel.getChannelId() );

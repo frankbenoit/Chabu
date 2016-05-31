@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.chabu.PseudoRandom;
+import org.chabu.TestUtils;
 import org.chabu.nwtest.Const;
 import org.chabu.prot.v1.ByteExchange;
 import org.chabu.prot.v1.ChabuChannel;
@@ -80,6 +81,7 @@ class ChannelUser implements ByteExchange {
 		}
 		xmitBuffer.limit(putSz);
 		xmitStreamPosition+=putSz;
+//		System.out.printf("cli: TX %d %s%n", channel.getChannelId(), TestUtils.toHexString(xmitBuffer.array(), 0, 8, true));
 		return xmitBuffer;
 	}
 
@@ -112,6 +114,7 @@ class ChannelUser implements ByteExchange {
 	@Override
 	public void recvCompleted() {
 		recvBuffer.flip();
+//		System.out.printf("cli: RX %d RX %s%n", channel.getChannelId(), TestUtils.toHexString(recvBuffer.array(), 0, 8, true));
 		int putSz = recvBuffer.remaining();
 		if( Const.DATA_RANDOM ){
 			recvRandom.nextBytesVerify(recvBuffer.array(), recvBuffer.arrayOffset()+recvBuffer.position(), recvBuffer.remaining(), "Channel[%d] evRecv data corruption", channel.getChannelId() );

@@ -85,7 +85,7 @@ public final class ChabuBuilder {
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 *
 	 */
-	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, RecvByteTarget recvTarget, XmitByteSource xmitSource ){
+	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ){
 		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected %s, but was %s", this.nextChannelId, channelId );
 		ChabuChannelImpl channel = new ChabuChannelImpl( recvBufferSize, priority, recvTarget, xmitSource );
 		chabu.addChannel( channel );
@@ -94,7 +94,7 @@ public final class ChabuBuilder {
 		this.nextChannelId++;
 		return this;
 	}
-	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, ByteExchange byteExchange ){
+	public ChabuBuilder addChannel( int channelId, int recvBufferSize, int priority, ChabuByteExchange byteExchange ){
 		return addChannel(channelId, recvBufferSize, priority, byteExchange, byteExchange);
 	}
 

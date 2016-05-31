@@ -7,11 +7,11 @@ import java.util.function.Consumer;
 import org.chabu.PseudoRandom;
 import org.chabu.TestUtils;
 import org.chabu.nwtest.Const;
-import org.chabu.prot.v1.ByteExchange;
+import org.chabu.prot.v1.ChabuByteExchange;
 import org.chabu.prot.v1.ChabuChannel;
 import org.json.JSONObject;
 
-class TestChannelUser implements ByteExchange {
+class TestChannelUser implements ChabuByteExchange {
 	
 	private ChabuChannel    channel;
 	private PseudoRandom     xmitRandom;
@@ -26,7 +26,7 @@ class TestChannelUser implements ByteExchange {
 	private long           recvStreamPosition = 0;
 	private Consumer<String> errorReporter;
 	
-	public TestChannelUser(int channelId, int xmitBufferSz, Consumer<String> errorReporter ) {
+	public TestChannelUser(int xmitBufferSz, Consumer<String> errorReporter ) {
 		this.errorReporter = errorReporter;
 	}
 	@Override

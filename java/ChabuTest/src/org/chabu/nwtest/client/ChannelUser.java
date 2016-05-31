@@ -6,10 +6,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.chabu.PseudoRandom;
 import org.chabu.TestUtils;
 import org.chabu.nwtest.Const;
-import org.chabu.prot.v1.ByteExchange;
+import org.chabu.prot.v1.ChabuByteExchange;
 import org.chabu.prot.v1.ChabuChannel;
 
-class ChannelUser implements ByteExchange {
+class ChannelUser implements ChabuByteExchange {
 	ChabuChannel channel;
 
 	ByteBuffer xmitBuffer = ByteBuffer.allocate(1000);

@@ -16,8 +16,8 @@ import java.nio.channels.ByteChannel;
 
 import org.chabu.prot.v1.ChabuChannel;
 import org.chabu.prot.v1.ChabuErrorCode;
-import org.chabu.prot.v1.RecvByteTarget;
-import org.chabu.prot.v1.XmitByteSource;
+import org.chabu.prot.v1.ChabuRecvByteTarget;
+import org.chabu.prot.v1.ChabuXmitByteSource;
 
 
 /**
@@ -29,8 +29,8 @@ public class ChabuChannelImpl implements ChabuChannel {
 	private int     channelId    = -1;
 	
 	private ChabuImpl                   chabu;
-	private final RecvByteTarget recvTarget;
-	private final XmitByteSource xmitSource;
+	private final ChabuRecvByteTarget recvTarget;
+	private final ChabuXmitByteSource xmitSource;
 	
 	private int        xmitSeq = 0;
 	private int        xmitArm = 0;
@@ -50,7 +50,7 @@ public class ChabuChannelImpl implements ChabuChannel {
 	private long recvPosition;
 
 	
-	public ChabuChannelImpl(int dummy, int priority, RecvByteTarget recvTarget, XmitByteSource xmitSource ) {
+	public ChabuChannelImpl(int dummy, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ) {
 		int recvBufferSize = 0;
 		this.recvTarget = recvTarget;
 		this.xmitSource = xmitSource;

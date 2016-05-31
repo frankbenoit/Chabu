@@ -2,11 +2,11 @@ package org.chabu;
 
 import java.nio.ByteBuffer;
 
-import org.chabu.prot.v1.ByteExchange;
+import org.chabu.prot.v1.ChabuByteExchange;
 import org.chabu.prot.v1.ChabuChannel;
 import org.chabu.prot.v1.internal.ByteBufferUtils;
 
-public class TestChannelUser implements ByteExchange {
+public class TestChannelUser implements ChabuByteExchange {
 
 	/**
 	 * Normally in filling mode.

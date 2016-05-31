@@ -4,7 +4,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.chabu.PseudoRandom;
-import org.chabu.TestUtils;
 import org.chabu.nwtest.Const;
 import org.chabu.prot.v1.ChabuByteExchange;
 import org.chabu.prot.v1.ChabuChannel;

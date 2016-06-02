@@ -5,8 +5,9 @@ Combine multiple channels/streams over a single TCP/IP or USB connection.
 
 ![](https://docs.google.com/drawings/d/15oxSz6B9SY3RSW1WfdeyTtsfdNgkCknp1TS090HhUGM/pub?w=803&h=277)
 
-Each channel has a pair of bidirectional stream. Each stream has an own flow control.  
-Benefit: If one or several streams are blocked, because the receiver cannot process the data now, the other streams are still full funtctional.
+Each channel has a pair of bidirectional streams.  
+
+Each stream has an own flow control mechanism. This means, the sender is paused when the receiver is not yet ready. The protocol is implemented in a way, no data is copied more then needed. So the payload is passed directly from the network API to the application, no internal buffering is needed.  
 
 The protocol is is implemented different languages.
 

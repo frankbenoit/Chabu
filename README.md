@@ -5,6 +5,9 @@ Combine multiple channels/streams over a single TCP/IP or USB connection.
 
 ![](https://docs.google.com/drawings/d/15oxSz6B9SY3RSW1WfdeyTtsfdNgkCknp1TS090HhUGM/pub?w=803&h=277)
 
+Each channel has a pair of bidirectional stream. Each stream has an own flow control.  
+Benefit: If one or several streams are blocked, because the receiver cannot process the data now, the other streams are still full funtctional.
+
 The protocol is is implemented different languages.
 
  1. Java is the first implementation. The library has no external dependencies. It can be integrated in OSGI.

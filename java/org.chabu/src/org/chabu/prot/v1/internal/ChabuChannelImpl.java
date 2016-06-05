@@ -50,16 +50,13 @@ public class ChabuChannelImpl implements ChabuChannel {
 	private long recvPosition;
 
 	
-	public ChabuChannelImpl(int dummy, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ) {
-		int recvBufferSize = 0;
+	public ChabuChannelImpl(int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ) {
 		this.recvTarget = recvTarget;
 		this.xmitSource = xmitSource;
-		Utils.ensure( recvBufferSize >= 0, ChabuErrorCode.CONFIGURATION_CH_RECVSZ, "recvBufferSize must be > 0, but is %s", recvBufferSize );
 		Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is %s", priority );
 		Utils.ensure( recvTarget != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 		Utils.ensure( xmitSource != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 
-		this.recvArm = recvBufferSize;
 		this.recvArmShouldBeXmit = true;
 
 		this.priority = priority;
@@ -72,6 +69,9 @@ public class ChabuChannelImpl implements ChabuChannel {
 
 		chabu.channelXmitRequestArm(channelId);
 		
+		recvTarget.setChannel(this);
+		xmitSource.setChannel(this);
+
 	}
 	
 	void verifySeq(int packetSeq ) {

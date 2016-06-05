@@ -24,12 +24,17 @@ class TestChannelUser implements ChabuByteExchange {
 	private AtomicInteger  recvPending        = new AtomicInteger();
 	private long           recvStreamPosition = 0;
 	private Consumer<String> errorReporter;
+	private int initialRecvBufferSz;
 	
-	public TestChannelUser(int xmitBufferSz, Consumer<String> errorReporter ) {
+	public TestChannelUser(int recvBufferSz, int xmitBufferSz, Consumer<String> errorReporter ) {
+		this.initialRecvBufferSz = recvBufferSz;
 		this.errorReporter = errorReporter;
 	}
 	@Override
 	public void setChannel(ChabuChannel channel) {
+		if( this.channel == null ){
+			channel.addRecvLimit(initialRecvBufferSz);
+		}
 		this.channel = channel;
 		xmitRandom = new PseudoRandom(channel.getChannelId()*2+0);
 		recvRandom = new PseudoRandom(channel.getChannelId()*2+1);

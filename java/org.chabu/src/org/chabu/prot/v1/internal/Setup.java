@@ -38,7 +38,7 @@ public class Setup {
 		this.recvSetupCompleted = RecvState.RECVED;
 	}
 	public int getRemoteMaxReceiveSize() {
-		return infoRemote.maxReceiveSize;
+		return infoRemote.recvPacketSize;
 	}
 	public boolean isValidatorWasChecked() {
 		return acceptInfo != null;

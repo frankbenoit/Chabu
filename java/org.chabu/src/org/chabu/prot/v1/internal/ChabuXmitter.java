@@ -414,9 +414,9 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 		xmitFillStart( PacketType.SETUP );
 		xmitFillAddString( SETUP_PROTNAME_MAXLENGTH, Constants.PROTOCOL_NAME );
 		xmitFillAddInt( Constants.PROTOCOL_VERSION );
-		xmitFillAddInt( infoLocal.maxReceiveSize       );
+		xmitFillAddInt( infoLocal.recvPacketSize       );
 		xmitFillAddInt( infoLocal.applicationVersion );
-		xmitFillAddString( SETUP_APPNAME_MAXLENGTH, infoLocal.applicationName );
+		xmitFillAddString( SETUP_APPNAME_MAXLENGTH, infoLocal.applicationProtocolName );
 		xmitFillComplete();
 	}
 	private void checkXmitBufEmptyOrThrow(String message) {
@@ -474,7 +474,7 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 	}
 	
 	private void checkLocalAppNameLength() {
-		byte[] anlBytes = setup.getInfoLocal().applicationName.getBytes( StandardCharsets.UTF_8 );
+		byte[] anlBytes = setup.getInfoLocal().applicationProtocolName.getBytes( StandardCharsets.UTF_8 );
 		Utils.ensure( anlBytes.length <= Constants.APV_MAX_LENGTH, 
 				ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG, 
 				"SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.",

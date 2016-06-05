@@ -142,8 +142,8 @@ class ControlConnection extends AConnection {
 		while( chabuChannelUsers.size() < channel+1 ){
 			chabuChannelUsers.add(null);
 		}
-		chabuChannelUsers.set( channel, new TestChannelUser( xmitBufferSz, this::errorReceiver ) );
-		builder.addChannel( channel, recvBufferSz, priority, chabuChannelUsers.get(channel));
+		chabuChannelUsers.set( channel, new TestChannelUser( recvBufferSz, xmitBufferSz, this::errorReceiver ) );
+		builder.addChannel( channel, priority, chabuChannelUsers.get(channel));
 		return new JSONObject();
 	}
 

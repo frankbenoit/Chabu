@@ -71,11 +71,11 @@ public class TestTransfer {
 		TraceRunner r = new TraceRunner();
 		Chabu chabu = ChabuBuilder
 				.start(12345678, "ABC", 0x100, 3)
-				.addChannel(0, 0x200, 2, r.createUser(0))
-				.addChannel(1, 100, 1, r.createUser(1))
-				.addChannel(2, 100, 1, r.createUser(2))
-				.addChannel(3, 100, 1, r.createUser(3))
-				.addChannel(4, 100, 0, r.createUser(4))
+				.addChannel(0, 2, r.createUser(0, 0x200))
+				.addChannel(1, 1, r.createUser(1, 100))
+				.addChannel(2, 1, r.createUser(2, 100))
+				.addChannel(3, 1, r.createUser(3, 100))
+				.addChannel(4, 0, r.createUser(4, 100))
 				.build();
 
 		r.chabu = chabu;

@@ -46,24 +46,24 @@ public final class ChabuImpl implements Chabu {
 		this.receiver = receiver;
 		this.setup = setup;
 		
-		Utils.ensure( info.maxReceiveSize >= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW, 
-				"maxReceiveSize must be at least 0x100, but is %s", info.maxReceiveSize );
+		Utils.ensure( info.recvPacketSize >= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW, 
+				"maxReceiveSize must be at least 0x100, but is %s", info.recvPacketSize );
 		
-		Utils.ensure( info.maxReceiveSize <= Constants.MAX_RECV_LIMIT_HIGH, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH, 
-				"maxReceiveSize must be max 0x%X, but is %s", Constants.MAX_RECV_LIMIT_HIGH, info.maxReceiveSize );
+		Utils.ensure( info.recvPacketSize <= Constants.MAX_RECV_LIMIT_HIGH, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH, 
+				"maxReceiveSize must be max 0x%X, but is %s", Constants.MAX_RECV_LIMIT_HIGH, info.recvPacketSize );
 		
-		Utils.ensure( Utils.isAligned4( info.maxReceiveSize ), ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_NOT_ALIGNED, 
-				"maxReceiveSize must 4-byte aligned: %s", info.maxReceiveSize );
+		Utils.ensure( Utils.isAligned4( info.recvPacketSize ), ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_NOT_ALIGNED, 
+				"maxReceiveSize must 4-byte aligned: %s", info.recvPacketSize );
 		
-		Utils.ensure( info.applicationName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_NULL, 
+		Utils.ensure( info.applicationProtocolName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_NULL, 
 				"applicationName must not be null" );
 		
-		int nameBytes = info.applicationName.getBytes( StandardCharsets.UTF_8).length;
+		int nameBytes = info.applicationProtocolName.getBytes( StandardCharsets.UTF_8).length;
 		Utils.ensure( nameBytes <= Constants.APV_MAX_LENGTH, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG, 
 				"applicationName must have length at maximum 200 UTF8 bytes, but has %s", nameBytes );
 		
 		setup.setLocal(info);
-		receiver.initRecvBuf( info.maxReceiveSize );
+		receiver.initRecvBuf( info.recvPacketSize );
 	}
 	
 	/**

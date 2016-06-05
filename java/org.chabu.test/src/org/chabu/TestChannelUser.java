@@ -21,14 +21,21 @@ public class TestChannelUser implements ChabuByteExchange {
 	private ByteBuffer xmitChabu = ByteBuffer.allocate(1000);
 	
 	private ChabuChannel channel;
+
+
+	private int recvBufferSize;
 	
-	public TestChannelUser() {
+	public TestChannelUser(int recvBufferSize) {
+		this.recvBufferSize = recvBufferSize;
 		xmitChabu.limit(0);
 	}
 	
 	
 	@Override
 	public void setChannel(ChabuChannel channel) {
+		if( this.channel == null ){
+			channel.addRecvLimit(recvBufferSize);
+		}
 		this.channel = channel;
 	}
 

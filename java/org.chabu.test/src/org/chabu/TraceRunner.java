@@ -88,10 +88,9 @@ public class TraceRunner {
 				JSONObject channelParams = (JSONObject)channels.get(channelIdx);
 				ensure( channelIdx == channelParams.getInt("ID"), "ID should be %s, but is %s", channelIdx, channelParams.getInt("ID") );
 				
-				TestChannelUser channelUser = new TestChannelUser();
+				TestChannelUser channelUser = new TestChannelUser(channelParams.getInt("RxSize"));
 				builder.addChannel( 
 						channelIdx, 
-						channelParams.getInt("RxSize"), 
 						channelParams.getInt("Priority"),
 						channelUser );
 				
@@ -267,8 +266,8 @@ public class TraceRunner {
 		}
 	}
 	
-	public TestChannelUser createUser( int channel ){
-		TestChannelUser user = new TestChannelUser();
+	public TestChannelUser createUser( int channel, int recvBufferSize ){
+		TestChannelUser user = new TestChannelUser(recvBufferSize);
 		channelUser.add(channel, user);
 		return user;
 	}

@@ -18,19 +18,19 @@ package org.chabu.prot.v1;
  */
 public final class ChabuSetupInfo {
 	
-	public final int     maxReceiveSize;
+	public final int     recvPacketSize;
 	public final int     applicationVersion;
-	public final String  applicationName;
+	public final String  applicationProtocolName;
 
-	public ChabuSetupInfo( int maxReceiveSize, int applicationVersion, String applicationName ){
-		this.maxReceiveSize = maxReceiveSize;
-		this.applicationName = applicationName;
+	public ChabuSetupInfo( int recvPacketSize, int applicationVersion, String applicationProtocolName ){
+		this.recvPacketSize = recvPacketSize;
+		this.applicationProtocolName = applicationProtocolName;
 		this.applicationVersion = applicationVersion;
 	}
 
 	public ChabuSetupInfo( ChabuSetupInfo other ){
-		this.maxReceiveSize = other.maxReceiveSize;
-		this.applicationName = other.applicationName;
+		this.recvPacketSize = other.recvPacketSize;
+		this.applicationProtocolName = other.applicationProtocolName;
 		this.applicationVersion = other.applicationVersion;
 	}
 
@@ -38,9 +38,9 @@ public final class ChabuSetupInfo {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result + ((applicationName == null) ? 0 : applicationName.hashCode());
+		result = prime * result + ((applicationProtocolName == null) ? 0 : applicationProtocolName.hashCode());
 		result = prime * result + applicationVersion;
-		result = prime * result + maxReceiveSize;
+		result = prime * result + recvPacketSize;
 		return result;
 	}
 
@@ -52,16 +52,16 @@ public final class ChabuSetupInfo {
 		
 		ChabuSetupInfo other = (ChabuSetupInfo) obj;
 		
-		if (applicationName == null) {
-			if (other.applicationName != null)
+		if (applicationProtocolName == null) {
+			if (other.applicationProtocolName != null)
 				return false;
 		} 
-		else if (!applicationName.equals(other.applicationName))
+		else if (!applicationProtocolName.equals(other.applicationProtocolName))
 			return false;
 		
 		if (applicationVersion != other.applicationVersion)
 			return false;
-		if (maxReceiveSize != other.maxReceiveSize)
+		if (recvPacketSize != other.recvPacketSize)
 			return false;
 		return true;
 	}

@@ -93,11 +93,11 @@ public class TestSetupConnection {
 		Chabu chabu = ChabuBuilder
 				.start(0x123, "", 0x100, 3)
 				.setConnectionValidator((local, remote) -> {
-					System.out.println("Local  "+local.applicationName);
-					System.out.println("Remote "+remote.applicationName);
+					System.out.println("Local  "+local.applicationProtocolName);
+					System.out.println("Remote "+remote.applicationProtocolName);
 						return null;
 				})
-				.addChannel(0, 0x100, 0, new TestChannelUser())
+				.addChannel(0, 0, new TestChannelUser(20))
 				.build();
 	}		
 
@@ -107,7 +107,7 @@ public class TestSetupConnection {
 		// Prio count <= 0
 		assertException( ChabuErrorCode.CONFIGURATION_PRIOCOUNT, ()->{
 			ChabuBuilder.start( 0x123, "", 0x100, 0)
-				.addChannel( 0, 20, 0, new TestChannelUser())
+				.addChannel( 0, 0, new TestChannelUser(20))
 				.build();
 			
 		});		
@@ -115,7 +115,7 @@ public class TestSetupConnection {
 		// Prio count > 20
 		assertException( ChabuErrorCode.CONFIGURATION_PRIOCOUNT, ()->{
 			ChabuBuilder.start( 0x123, "", 0x100, 21)
-				.addChannel( 0, 20, 0, new TestChannelUser())
+				.addChannel( 0, 0, new TestChannelUser(20))
 				.build();
 		});
 	}		
@@ -125,36 +125,36 @@ public class TestSetupConnection {
 		
 		ChabuBuilder
 			.start( 0x123, "", 0x100, 3)
-			.addChannel( 0, 20, 0, new TestChannelUser());
+			.addChannel( 0, 0, new TestChannelUser(20));
 		
 		assertException( ChabuErrorCode.CONFIGURATION_CH_ID, ()->{
 			ChabuBuilder
 				.start(0x123, "", 0x100, 3)
-				.addChannel( 1, 20, 0, new TestChannelUser());
+				.addChannel( 1, 0, new TestChannelUser(20));
 		});
 		
-		assertException( ChabuErrorCode.CONFIGURATION_CH_RECVSZ, ()->{
-			ChabuBuilder
-			.start(0x123, "", 0x100, 3)
-			.addChannel( 0, 0, 0, new TestChannelUser());
-		});
+//		assertException( ChabuErrorCode.CONFIGURATION_CH_RECVSZ, ()->{
+//			ChabuBuilder
+//			.start(0x123, "", 0x100, 3)
+//			.addChannel( 0, 0, new TestChannelUser());
+//		});
 
 		assertException( ChabuErrorCode.CONFIGURATION_CH_PRIO, ()->{
 			ChabuBuilder
 			.start(0x123, "", 0x100, 3)
-			.addChannel( 0, 20, -1 /* >= 0 */, new TestChannelUser());
+			.addChannel( 0, -1 /* >= 0 */, new TestChannelUser(20));
 		});
 		assertException( ChabuErrorCode.CONFIGURATION_CH_PRIO, ()->{
 			ChabuBuilder
 			.start(0x123, "", 0x100, 3 /* limit */)
-			.addChannel( 0, 20, 3 /* not < 3 */, new TestChannelUser())
+			.addChannel( 0, 3 /* not < 3 */, new TestChannelUser(20))
 			.build(); // << will be tested in here
 		});
 		
 		assertException( ChabuErrorCode.CONFIGURATION_CH_USER, ()->{
 			ChabuBuilder
 			.start(0x123, "", 0x100, 3)
-			.addChannel( 0, 20, 0, null /*!!*/);
+			.addChannel( 0, 0, null /*!!*/);
 		});
 		
 		assertException( ChabuErrorCode.CONFIGURATION_NO_CHANNELS, ()->{
@@ -170,14 +170,14 @@ public class TestSetupConnection {
 
 		ChabuBuilder
 			.start(0x123, "ABC", 0x100, 3)
-			.addChannel( 0, 20, 0, new TestChannelUser())
+			.addChannel( 0, 0, new TestChannelUser(20))
 			.setConnectionValidator( (local, remote) -> null )
 			.build();
 		
 		assertException( ChabuErrorCode.CONFIGURATION_VALIDATOR, ()->{
 			ChabuBuilder
 			.start(0x123, "ABC", 0x100, 3)
-			.addChannel( 0, 20, 0, new TestChannelUser())
+			.addChannel( 0, 0, new TestChannelUser(20))
 			.setConnectionValidator( null )
 			.build();
 			fail();
@@ -186,7 +186,7 @@ public class TestSetupConnection {
 		assertException( ChabuErrorCode.CONFIGURATION_VALIDATOR, ()->{
 			ChabuBuilder
 			.start(0x123, "ABC", 0x100, 3)
-			.addChannel( 0, 20, 0, new TestChannelUser())
+			.addChannel( 0, 0, new TestChannelUser(20))
 			.setConnectionValidator( (local, remote) -> null )
 			.setConnectionValidator( (local, remote) -> null )
 			.build();
@@ -196,7 +196,7 @@ public class TestSetupConnection {
 			
 			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
+					.addChannel( 0, 0, new TestChannelUser(20))
 					.setConnectionValidator( (local, remote) -> {
 						return new ChabuConnectionAcceptInfo( ChabuErrorCode.APPLICATION_VALIDATOR.getCode() + 0x77, "To Test");
 					})
@@ -255,7 +255,7 @@ public class TestSetupConnection {
 		{
 			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
+					.addChannel( 0, 0, new TestChannelUser(20))
 					.build();
 			
 			TraceRunner r = TraceRunner.test( chabu );
@@ -281,7 +281,7 @@ public class TestSetupConnection {
 		{
 			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
+					.addChannel( 0, 0, new TestChannelUser(20))
 					.build();
 			
 			TraceRunner r = TraceRunner.test( chabu );
@@ -300,7 +300,7 @@ public class TestSetupConnection {
 		{
 			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
+					.addChannel( 0, 0, new TestChannelUser(20))
 					.build();
 			
 			TraceRunner r = TraceRunner.test( chabu );
@@ -319,7 +319,7 @@ public class TestSetupConnection {
 		{
 			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
+					.addChannel( 0, 0, new TestChannelUser(20))
 					.build();
 			
 			TraceRunner r = TraceRunner.test( chabu );
@@ -339,7 +339,7 @@ public class TestSetupConnection {
 		{
 			Chabu chabu = ChabuBuilder
 					.start(0x123, "ABC", 0x100, 3)
-					.addChannel( 0, 20, 0, new TestChannelUser())
+					.addChannel( 0, 0, new TestChannelUser(20))
 					.build();
 			
 			TraceRunner r = TraceRunner.test( chabu );

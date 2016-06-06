@@ -1,11 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Express 2012 for Windows Desktop
+# Visual Studio 14
+VisualStudioVersion = 14.0.25123.0
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChabuCS", "Chabu\ChabuCS.csproj", "{8A6C0DA8-91BA-4D15-BDCE-9FD301795827}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChabuTestServer", "ChabuTestServer\ChabuTestServer.csproj", "{6932127C-DD06-4BBB-951D-F426259AB8AD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChabuCSTest", "ChabuCSTest\ChabuCSTest.csproj", "{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "org.chabu.test.director", "org.chabu.test.director\org.chabu.test.director.csproj", "{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +51,18 @@ Global
 		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
 		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Mixed Platforms.Build.0 = Release|Any CPU
 		{1E5DE4AB-E808-4B80-AC78-948E9550E7CE}.Release|Win32.ActiveCfg = Release|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Debug|Win32.ActiveCfg = Debug|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Debug|Win32.Build.0 = Debug|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Release|Mixed Platforms.Build.0 = Release|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Release|Win32.ActiveCfg = Release|Any CPU
+		{0C6A9561-37C2-4F98-A4B5-E202A0DF4B32}.Release|Win32.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="org.chabu.test.director.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="HostA" Type="System.String" Scope="User">
+      <Value Profile="(Default)">localhost:15000</Value>
+    </Setting>
+    <Setting Name="HostB" Type="System.String" Scope="User">
+      <Value Profile="(Default)">localhost:15100</Value>
+    </Setting>
+    <Setting Name="SelectedTest" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+  </Settings>
+</SettingsFile>

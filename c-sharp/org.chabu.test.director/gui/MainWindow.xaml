@@ -1,0 +1,59 @@
+﻿<Window x:Class="org.chabu.test.director.gui.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:org.chabu.test.director.gui"
+        xmlns:prot="clr-namespace:org.chabu.test.director.prot"
+        mc:Ignorable="d"
+        
+        Title="MainWindow" Height="432.895" Width="555.82" Loaded="WindowLoaded">
+    <DockPanel Margin="0,0,0,0"
+               LastChildFill="True"
+               >
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open" Click="MenuFileOpen"/>
+                <MenuItem Header="_Close" Click="MenuFileClose"/>
+                <MenuItem Header="_Save" Click="MenuFileSave"/>
+                <MenuItem Header="Save _As" Click="MenuFileSaveAs"/>
+                <local:RecentFileList x:Name="MenuMru" />
+                <MenuItem Header="_Exit" Click="MenuExit"/>
+            </MenuItem>
+            <MenuItem Header="_Log">
+                <MenuItem Header="_Clear" Click="MenuLogClear_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Configure">
+                <MenuItem Header="_Channels" Click="ConfigureChannel_Click"/>
+                <MenuItem Header="_Hosts" Click="ConfigureHosts_Click"/>
+            </MenuItem>
+            <MenuItem Header="_Help">
+                <MenuItem Header="_About" Click="MenuHelpAbout_Click"/>
+            </MenuItem>
+        </Menu>
+        <StatusBar DockPanel.Dock="Bottom">
+            <StatusBarItem>
+                <TextBlock Name="LblCursorPosition" Text="Bla"/>
+            </StatusBarItem>
+            <StatusBarItem Width="200" HorizontalAlignment="Right">
+                <ProgressBar Value="22" />
+            </StatusBarItem>
+        </StatusBar>
+        <Grid Margin="0,0,0,0" >
+            <ComboBox x:Name="CmbTests" Margin="79,10,90,0" Height="22" 
+                      VerticalAlignment="Top" 
+                      ItemsSource="{Binding}"
+                      DisplayMemberPath="Name"
+                      SelectedValuePath="Name"
+                      ToolTip="{Binding Path=SelectedItem.(prot:ITest.Description), RelativeSource={RelativeSource Self}}" SelectionChanged="CmbTests_SelectionChanged"
+                      >
+
+            </ComboBox>
+            <Label x:Name="LblTestName" Content="Testname:" HorizontalAlignment="Left" Margin="10,6,0,0" VerticalAlignment="Top"/>
+            <RichTextBox x:Name="TxtLogging" Margin="10,37,12,10" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"/>
+            <Button x:Name="BtnStart" Content="Start" Margin="0,10,10,0" 
+                    VerticalAlignment="Top" HorizontalAlignment="Right" Width="75"
+                    Click="ButtonStart"/>
+        </Grid>
+    </DockPanel>
+</Window>

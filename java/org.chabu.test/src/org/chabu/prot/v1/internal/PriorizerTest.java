@@ -58,7 +58,7 @@ public class PriorizerTest {
 	public void requestTestsArgPriority() throws Exception {
 		create( 3, 3);
 		Assertions.assertThrows(RuntimeException.class, ()->{
-			p.reqest(100, 0);
+			p.request(100, 0);
 		});
 	}
 
@@ -83,7 +83,7 @@ public class PriorizerTest {
 	private void rq( int prio, String req ){
 		for( char c : req.toCharArray() ){
 			int ch = c - '0';
-			p.reqest(prio, ch );
+			p.request(prio, ch );
 		}
 	}
 	private void pop( int amount ){

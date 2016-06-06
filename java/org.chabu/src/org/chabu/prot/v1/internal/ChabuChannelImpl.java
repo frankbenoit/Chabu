@@ -234,7 +234,8 @@ public class ChabuChannelImpl implements ChabuChannel {
 		recvLimit += added;
 		recvArm += added;
 		recvArmShouldBeXmit = true;
-		chabu.recvArmShallBeXmitted(this);
+//		chabu.recvArmShallBeXmitted(this);
+		chabu.channelXmitRequestArm(channelId);
 		return recvLimit;
 	}
 

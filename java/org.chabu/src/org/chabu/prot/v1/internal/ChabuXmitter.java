@@ -116,7 +116,7 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 	void channelXmitRequestData(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			xmitChannelRequestData.reqest( priority, channelId );
+			xmitChannelRequestData.request( priority, channelId );
 		}
 		callXmitRequestListener();
 	}
@@ -124,7 +124,7 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 	void channelXmitRequestArm(int channelId){
 		synchronized(this){
 			int priority = channels.get(channelId).getPriority();
-			xmitChannelRequestCtrl.reqest( priority, channelId );
+			xmitChannelRequestCtrl.request( priority, channelId );
 		}
 		callXmitRequestListener();
 	}
@@ -144,6 +144,9 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 		
 		if( !xmitBuf.hasRemaining() && packetType != PacketType.SEQ ){
 			handleNonSeqCompletion();
+		}
+		if( xmitBuf.hasRemaining() ){
+			callXmitRequestListener();
 		}
 		
 		return xmitBuf.hasRemaining() ? LoopCtrl.Break : LoopCtrl.None;
@@ -184,10 +187,15 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 				loopByteChannel.write(seqPadding);
 			}
 			
-			isCompleted = !seqPacketPayload.hasRemaining() && !seqPadding.hasRemaining();
+			boolean isDataComplete = !seqPacketPayload.hasRemaining();
+			boolean isPaddingComplete = !seqPadding.hasRemaining();
+			isCompleted = isDataComplete && isPaddingComplete;
 			
 			if( isCompleted ){
 				handleSeqCompletion();
+			}
+			else {
+				callXmitRequestListener();
 			}
 		}
 		return isCompleted ? LoopCtrl.None : LoopCtrl.Break;
@@ -197,7 +205,8 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 	private void handleSeqCompletion() {
 		seqChannel.seqPacketCompleted();
 		if( seqChannel.getXmitRemaining() > 0 && seqChannel.getXmitRemainingByRemote() > 0 ){
-			xmitChannelRequestData.reqest( seqChannel.getPriority(), seqChannel.getChannelId());
+			xmitChannelRequestData.request( seqChannel.getPriority(), seqChannel.getChannelId());
+			callXmitRequestListener();
 		}
 
 		seqPacketPayload = null;
@@ -486,7 +495,7 @@ public class ChabuXmitter implements Aborter, ConnectionAccepter {
 		return xmitBuf.toString();
 	}
 
-	public void recvArmShallBeXmitted( ChabuChannelImpl channel ) {
-		xmitChannelRequestCtrl.reqest( channel.getPriority(), channel.getChannelId() );
-	}
+//	public void recvArmShallBeXmitted( ChabuChannelImpl channel ) {
+//		xmitChannelRequestCtrl.reqest( channel.getPriority(), channel.getChannelId() );
+//	}
 }

@@ -106,24 +106,24 @@ public class TestClient {
 
 
 			channelUsers.clear();
-			channelUsers.add( new ChannelUser() );
-			channelUsers.add( new ChannelUser() );
-			channelUsers.add( new ChannelUser() );
-			channelUsers.add( new ChannelUser() );
-			channelUsers.add( new ChannelUser() );
-			channelUsers.add( new ChannelUser() );
-			channelUsers.add( new ChannelUser() );
+			channelUsers.add( new ChannelUser(100000) );
+			channelUsers.add( new ChannelUser(100000) );
+			channelUsers.add( new ChannelUser(100000) );
+			channelUsers.add( new ChannelUser(100000) );
+			channelUsers.add( new ChannelUser(100000) );
+			channelUsers.add( new ChannelUser(100000) );
+			channelUsers.add( new ChannelUser(100000) );
 
 //			ChannelUser ch0 = channelUsers.get(0);
 			chabu = ChabuBuilder
 					.start( 0x13, "AAA", 1400, 3 )
-					.addChannel(0, 100000, 0, channelUsers.get(0) )
-					.addChannel(1, 100000, 0, channelUsers.get(1) )
-					.addChannel(2, 100000, 1, channelUsers.get(2) )
-					.addChannel(3, 100000, 1, channelUsers.get(3) )
-					.addChannel(4, 100000, 1, channelUsers.get(4) )
-					.addChannel(5, 100000, 1, channelUsers.get(5) )
-					.addChannel(6, 100000, 2, channelUsers.get(6) )
+					.addChannel(0, 0, channelUsers.get(0) )
+					.addChannel(1, 0, channelUsers.get(1) )
+					.addChannel(2, 1, channelUsers.get(2) )
+					.addChannel(3, 1, channelUsers.get(3) )
+					.addChannel(4, 1, channelUsers.get(4) )
+					.addChannel(5, 1, channelUsers.get(5) )
+					.addChannel(6, 2, channelUsers.get(6) )
 					.addXmitRequestListener( runner::setTestWriteRequest )
 					.build();
 			runner.setChabu(chabu);

@@ -19,7 +19,7 @@ public class Priorizer {
 		lastChannel = channelCount -1;
 	}
 
-	public void reqest(int priority, int channelId) {
+	public void request(int priority, int channelId) {
 		Utils.ensure(priority < requests.length, ChabuErrorCode.ASSERT, 
 				"priority:%s < xmitChannelRequestData.length:%s", priority, requests.length );
 		requests[ priority ].set(channelId);

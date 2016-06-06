@@ -109,6 +109,10 @@ public final class ChabuImpl implements Chabu {
 	void channelXmitRequestArm(int channelId){
 		xmitter.channelXmitRequestArm(channelId);
 	}
+//	public void recvArmShallBeXmitted(ChabuChannelImpl channel) {
+//		xmitter.recvArmShallBeXmitted(channel);
+//	}
+
 
 	void channelXmitRequestData(int channelId){
 		xmitter.channelXmitRequestData(channelId);
@@ -144,10 +148,6 @@ public final class ChabuImpl implements Chabu {
 
 	void processXmitArm(int channelId, int recvArm) {
 		xmitter.processXmitArm(channelId, recvArm);
-	}
-
-	public void recvArmShallBeXmitted(ChabuChannelImpl channel) {
-		xmitter.recvArmShallBeXmitted(channel);
 	}
 
 }

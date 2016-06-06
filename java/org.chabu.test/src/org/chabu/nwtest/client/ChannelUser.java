@@ -21,7 +21,15 @@ class ChannelUser implements ChabuByteExchange {
 	private AtomicInteger recvPending = new AtomicInteger();
 	private AtomicInteger xmitPending = new AtomicInteger();
 
+	private int initialRecvAmount;
+
+	public ChannelUser( int initialRecvAmount ){
+		this.initialRecvAmount = initialRecvAmount;
+	}
 	public void setChannel(ChabuChannel channel) {
+		if( this.channel == null ){
+			channel.addRecvLimit(initialRecvAmount);
+		}
 		this.channel = channel;
 		xmitRandom = new PseudoRandom(channel.getChannelId()*2 + 1 );
 		recvRandom = new PseudoRandom(channel.getChannelId()*2 + 0 );

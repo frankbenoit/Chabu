@@ -5,7 +5,12 @@ public class AbortMessage {
 	private XmitState    xmitAbortPending = XmitState.IDLE;
 	private int          xmitAbortCode    = 0;
 	private String       xmitAbortMessage = "";
+	private final Runnable xmitRequestListener;
 	
+	public AbortMessage(Runnable xmitRequestListener) {
+		this.xmitRequestListener = xmitRequestListener;
+	}
+
 	public boolean isPending() {
 		return xmitAbortPending == XmitState.PENDING;
 	}
@@ -32,5 +37,8 @@ public class AbortMessage {
 		xmitAbortCode    = code;
 		xmitAbortMessage = message;
 		xmitAbortPending = XmitState.PENDING;
+		if( xmitRequestListener != null ){
+			xmitRequestListener.run();
+		}
 	}
 }

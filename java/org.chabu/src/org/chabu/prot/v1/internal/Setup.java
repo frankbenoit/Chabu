@@ -9,7 +9,8 @@ public class Setup {
 
 	private ChabuSetupInfo infoLocal;
 	private ChabuSetupInfo infoRemote;
-	private ChabuConnectingValidator val;
+	
+	private final ChabuConnectingValidator connectingValidator;
 	
 	/**
 	 * Have recv the ACCEPT packet
@@ -21,18 +22,16 @@ public class Setup {
 	 */
 	private RecvState recvSetupCompleted = RecvState.WAITING;
 
-	private ChabuConnectionAcceptInfo acceptInfo = null;
-	private ConnectionAccepter connectionAccepter;
-	private Aborter aborter;
+	private ChabuConnectionAcceptInfo acceptInfo;
+	private AbortMessage abortMessage;
 	
-	public Setup(Aborter aborter, ConnectionAccepter connectionAccepter){
-		this.aborter = aborter;
-		this.connectionAccepter = connectionAccepter;
+	public Setup(ChabuSetupInfo info, AbortMessage abortMessage, ChabuConnectingValidator connectingValidator ){
+		this.infoLocal = info;
+		this.infoRemote = new ChabuSetupInfo();
+		this.abortMessage = abortMessage;
+		this.connectingValidator = connectingValidator;
 	}
 	
-	public void setLocal(ChabuSetupInfo info) {
-		infoLocal = info;
-	}
 	public void setRemote(ChabuSetupInfo info) {
 		infoRemote = info;
 		this.recvSetupCompleted = RecvState.RECVED;
@@ -45,20 +44,19 @@ public class Setup {
 	}
 	public ChabuConnectionAcceptInfo getAcceptInfo() {
 		if( acceptInfo == null ){
-			if( val == null ){
-				acceptInfo = new ChabuConnectionAcceptInfo( 0, "" );
+			if( connectingValidator != null ){
+				acceptInfo = connectingValidator.isAccepted(infoLocal, infoRemote);
 			}
-			else {
-				acceptInfo = val.isAccepted(infoLocal, infoRemote);
+			if( acceptInfo == null ){
+				acceptInfo = new ChabuConnectionAcceptInfo( 0, "" );
 			}
 		}
 		return acceptInfo;
 	}
-	public void setValidator(ChabuConnectingValidator val) {
-		this.val = val;
-	}
+
+	//TODO private?
 	public ChabuConnectingValidator getValidator() {
-		return val;
+		return connectingValidator;
 	}
 
 	public boolean isRemoteSetupReceived() {
@@ -70,13 +68,7 @@ public class Setup {
 	
 	void checkConnectingValidator() {
 		checkConnectingValidatorMaxReceiveSize();
-
-		boolean isOk = callApplicationAcceptListener();
-		if( !isOk ) {
-			return;
-		}
-
-		connectionAccepter.acceptConnection(getRemoteMaxReceiveSize());
+		callApplicationAcceptListener();
 	}
 
 
@@ -86,7 +78,7 @@ public class Setup {
 			ChabuConnectionAcceptInfo acceptInfo = getAcceptInfo();
 			if( acceptInfo != null && acceptInfo.code != 0 ){
 				isOk = false;
-				aborter.delayedAbort(acceptInfo.code, acceptInfo.message );
+				abortMessage.setPending(acceptInfo.code, acceptInfo.message );
 			}
 		}
 		return isOk;
@@ -98,21 +90,21 @@ public class Setup {
 			
 			String msg = String.format( "MaxReceiveSize too low: 0x%X", maxReceiveSize);
 			
-			aborter.delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_LOW.getCode(), msg);
+			abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_LOW.getCode(), msg);
 			
 		}
 		else if( maxReceiveSize > Constants.MAX_RECV_LIMIT_HIGH ){
 			
 			String msg = String.format( "MaxReceiveSize too high 0x%X", maxReceiveSize);
 			
-			aborter.delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_HIGH.getCode(), msg);
+			abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_HIGH.getCode(), msg);
 			
 		}
 		else if( !Utils.isAligned4( maxReceiveSize ) ){
 			
 			String msg = String.format( "MaxReceiveSize is not aligned 0x%X", maxReceiveSize);
 			
-			aborter.delayedAbort(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_NOT_ALIGNED.getCode(), msg);
+			abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_NOT_ALIGNED.getCode(), msg);
 			
 		}
 	}

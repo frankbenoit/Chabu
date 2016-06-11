@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.chabu.prot.v1;
 
+import org.chabu.prot.v1.internal.Constants;
+
 /**
  * Value object to represent the information exchanged on connection setup. 
  * These are passed to {@link ChabuConnectingValidator}. 
@@ -22,6 +24,11 @@ public final class ChabuSetupInfo {
 	public final int     applicationVersion;
 	public final String  applicationProtocolName;
 
+	public ChabuSetupInfo(){
+		recvPacketSize = Constants.MAX_RECV_LIMIT_LOW;
+		applicationVersion = 0;
+		applicationProtocolName = "";
+	}
 	public ChabuSetupInfo( int recvPacketSize, int applicationVersion, String applicationProtocolName ){
 		this.recvPacketSize = recvPacketSize;
 		this.applicationProtocolName = applicationProtocolName;

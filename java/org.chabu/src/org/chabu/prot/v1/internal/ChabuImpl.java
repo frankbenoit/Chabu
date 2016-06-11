@@ -30,67 +30,72 @@ public final class ChabuImpl implements Chabu {
 	
 	public  static final int SEQ_MIN_SZ = 20;
 
-	private final ArrayList<ChabuChannelImpl> channels = new ArrayList<>(256);
-	
-	private final ChabuXmitter xmitter;	
-	
-	private final ChabuReceiver receiver;	
-	
-	private boolean activated = false;
-
+	private final ArrayList<ChabuChannelImpl> channels;
 	private final Setup setup;
+	private final ChabuFactory factory;
+	private final SingleEventNotifierFromTwoSources notifierWhenRecvAndXmitCompletedStartup = new SingleEventNotifierFromTwoSources( this::eventCompletedStartup );
+	private final AbortMessage xmitAbortMessage;
+	private final int priorityCount;
 	
-	public ChabuImpl( ChabuXmitter xmitter, ChabuReceiver receiver, Setup setup, ChabuSetupInfo info ){
+	private ChabuXmitter xmitter;	
+	private ChabuReceiver receiver;
+
+	public ChabuImpl( ChabuFactory factory, ChabuSetupInfo localSetupInfo, int priorityCount, 
+			ArrayList<ChabuChannelImpl> channels, Runnable xmitRequestListener, ChabuConnectingValidator connectingValidator ){
+
+		verifyLocalSetup(localSetupInfo);
+		xmitAbortMessage = new AbortMessage(xmitRequestListener);
+		this.channels = channels;
+		this.priorityCount = priorityCount;
+		this.factory = factory;
 		
-		this.xmitter = xmitter;
-		this.receiver = receiver;
-		this.setup = setup;
+		this.setup = new Setup(localSetupInfo, xmitAbortMessage, connectingValidator );
 		
-		Utils.ensure( info.recvPacketSize >= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW, 
-				"maxReceiveSize must be at least 0x100, but is %s", info.recvPacketSize );
+		this.xmitter = factory.createXmitterStartup(xmitAbortMessage, setup, this::xmitCompletedStartup);
 		
-		Utils.ensure( info.recvPacketSize <= Constants.MAX_RECV_LIMIT_HIGH, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH, 
-				"maxReceiveSize must be max 0x%X, but is %s", Constants.MAX_RECV_LIMIT_HIGH, info.recvPacketSize );
+		this.receiver = factory.createReceiverStartup(xmitAbortMessage, setup, this::recvCompletedStartup);
+		verifyPriorityCount();
+		verifyChannels();
+	}
+	
+	private void verifyPriorityCount() {
+		Utils.ensure( priorityCount >= 1 && priorityCount <= 20, 
+				ChabuErrorCode.CONFIGURATION_PRIOCOUNT, 
+				"Priority count must be in range 1..20, but is %s", priorityCount );
+	}
+
+	private static void verifyLocalSetup(ChabuSetupInfo localSetupInfo) {
 		
-		Utils.ensure( Utils.isAligned4( info.recvPacketSize ), ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_NOT_ALIGNED, 
-				"maxReceiveSize must 4-byte aligned: %s", info.recvPacketSize );
+		Utils.ensure( localSetupInfo.recvPacketSize >= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW, 
+				"maxReceiveSize must be at least 0x100, but is %s", localSetupInfo.recvPacketSize );
 		
-		Utils.ensure( info.applicationProtocolName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_NULL, 
+		Utils.ensure( localSetupInfo.recvPacketSize <= Constants.MAX_RECV_LIMIT_HIGH, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH, 
+				"maxReceiveSize must be max 0x%X, but is %s", Constants.MAX_RECV_LIMIT_HIGH, localSetupInfo.recvPacketSize );
+		
+		Utils.ensure( Utils.isAligned4( localSetupInfo.recvPacketSize ), ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_NOT_ALIGNED, 
+				"maxReceiveSize must 4-byte aligned: %s", localSetupInfo.recvPacketSize );
+		
+		Utils.ensure( localSetupInfo.applicationProtocolName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_NULL, 
 				"applicationName must not be null" );
 		
-		int nameBytes = info.applicationProtocolName.getBytes( StandardCharsets.UTF_8).length;
+		int nameBytes = localSetupInfo.applicationProtocolName.getBytes( StandardCharsets.UTF_8).length;
 		Utils.ensure( nameBytes <= Constants.APV_MAX_LENGTH, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG, 
 				"applicationName must have length at maximum 200 UTF8 bytes, but has %s", nameBytes );
-		
-		setup.setLocal(info);
-		receiver.initRecvBuf( info.recvPacketSize );
-	}
-	
-	/**
-	 * The firmware does not allow to add channels during the operational time.
-	 * The ModuleLink feature need to allow to add further channels during the runtime.
-	 * The Cte must ensure itself that the channel is available at firmware side.
-	 * @param channel
-	 */
-	public void addChannel( ChabuChannelImpl channel ){
-		channels.add(channel);
-	}
-	
-	/**
-	 * When activate is called, org.chabu enters operation. No subsequent calls to {@link #addChannel(ChabuChannelImpl)} or {@link #setPriorityCount(int)} are allowed.
-	 */
-	public void activate( int priorityCount){
-		consistencyChecks();
-		xmitter.activate(priorityCount, channels, setup, Priorizer::new );
-		activateAllChannels();
-		activated = true;
-		xmitter.processXmitSetup();
-		receiver.activate( channels, xmitter, setup );
 	}
 
-	private void consistencyChecks() {
-		Utils.ensure( !activated, ChabuErrorCode.ASSERT, "activated called twice" );
+	private void verifyChannels() {
 		Utils.ensure( channels.size() > 0, ChabuErrorCode.CONFIGURATION_NO_CHANNELS, "No channels are set." );
+
+		for( ChabuChannelImpl ch : channels ){
+			Utils.ensure( ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO, 
+					"Channel %s has higher priority (%s) as the max %s", 
+					ch.getChannelId(), ch.getPriority(), priorityCount );
+		}
+
+	}
+	
+	private void eventCompletedStartup(){
+		activateAllChannels();
 	}
 
 	private void activateAllChannels() {
@@ -99,32 +104,33 @@ public final class ChabuImpl implements Chabu {
 			ch.activate(this, i );
 		}
 	}
-
-	@Override
-	public void handleChannel(ByteChannel channel) throws IOException {
-		receiver.recv(channel);
-		xmitter.xmit(channel);
+	
+	private void xmitCompletedStartup(){
+		xmitter = factory.createXmitterNormal( xmitAbortMessage, priorityCount, channels, Priorizer::new, setup.getRemoteMaxReceiveSize());
+		notifierWhenRecvAndXmitCompletedStartup.event1();
+	}
+	
+	private void recvCompletedStartup(){
+		receiver = factory.createReceiverNormal( receiver, channels, xmitAbortMessage, setup);		
+		notifierWhenRecvAndXmitCompletedStartup.event2();
 	}
 	
 	void channelXmitRequestArm(int channelId){
 		xmitter.channelXmitRequestArm(channelId);
 	}
-//	public void recvArmShallBeXmitted(ChabuChannelImpl channel) {
-//		xmitter.recvArmShallBeXmitted(channel);
-//	}
-
 
 	void channelXmitRequestData(int channelId){
 		xmitter.channelXmitRequestData(channelId);
 	}
-
-	public void setConnectingValidator(ChabuConnectingValidator val) {
-		Utils.ensure( val      != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, 
-				"ConnectingValidator passed in is null" );
-		Utils.ensure( setup.getValidator() == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, 
-				"ConnectingValidator is already set" );
-		setup.setValidator(val);
-	}
+	
+	/////////////////////////////////////////////////////////////////////////////////
+	// public interface methods
+	
+	@Override
+	public void handleChannel(ByteChannel channel) throws IOException {
+		receiver.recv(channel);
+		xmitter.xmit(channel);
+	}	
 
 	@Override
 	public int getChannelCount() {
@@ -146,8 +152,5 @@ public final class ChabuImpl implements Chabu {
 		xmitter.addXmitRequestListener(r);
 	}
 
-	void processXmitArm(int channelId, int recvArm) {
-		xmitter.processXmitArm(channelId, recvArm);
-	}
 
 }

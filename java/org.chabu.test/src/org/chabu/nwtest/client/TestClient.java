@@ -116,7 +116,7 @@ public class TestClient {
 
 //			ChannelUser ch0 = channelUsers.get(0);
 			chabu = ChabuBuilder
-					.start( 0x13, "AAA", 1400, 3 )
+					.start( 0x13, "AAA", 1400, 3, runner::setTestWriteRequest )
 					.addChannel(0, 0, channelUsers.get(0) )
 					.addChannel(1, 0, channelUsers.get(1) )
 					.addChannel(2, 1, channelUsers.get(2) )
@@ -124,7 +124,6 @@ public class TestClient {
 					.addChannel(4, 1, channelUsers.get(4) )
 					.addChannel(5, 1, channelUsers.get(5) )
 					.addChannel(6, 2, channelUsers.get(6) )
-					.addXmitRequestListener( runner::setTestWriteRequest )
 					.build();
 			runner.setChabu(chabu);
 			

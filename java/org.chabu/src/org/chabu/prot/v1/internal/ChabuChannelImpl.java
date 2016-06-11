@@ -70,7 +70,9 @@ public class ChabuChannelImpl implements ChabuChannel {
 		chabu.channelXmitRequestArm(channelId);
 		
 		recvTarget.setChannel(this);
-		xmitSource.setChannel(this);
+		if( recvTarget != xmitSource ){
+			xmitSource.setChannel(this);
+		}
 
 	}
 	
@@ -139,14 +141,14 @@ public class ChabuChannelImpl implements ChabuChannel {
 		this.xmitArm = arm;
 	}
 
-	public void handleXmitCtrl(ChabuXmitter xmitter, ByteBuffer xmitBuf) {
+	public void handleXmitCtrl(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf) {
 		if( recvArmShouldBeXmit ) {
 			recvArmShouldBeXmit = false;
 			xmitter.processXmitArm(channelId, recvArm );
 		}
 	}
 
-	public ByteBuffer handleXmitData(ChabuXmitter xmitter, ByteBuffer xmitBuf, int maxSize) {
+	public ByteBuffer handleXmitData(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf, int maxSize) {
 		int davail = Math.min( getXmitRemainingByRemote(), getXmitRemaining() );
 		if( davail == 0 ){
 			System.out.println("ChabuChannelImpl.handleXmitData() : called by no data available");
@@ -234,7 +236,6 @@ public class ChabuChannelImpl implements ChabuChannel {
 		recvLimit += added;
 		recvArm += added;
 		recvArmShouldBeXmit = true;
-//		chabu.recvArmShallBeXmitted(this);
 		chabu.channelXmitRequestArm(channelId);
 		return recvLimit;
 	}

@@ -10,12 +10,12 @@
  *******************************************************************************/
 package org.chabu.prot.v1;
 
+import java.util.ArrayList;
+
 import org.chabu.prot.v1.internal.ChabuChannelImpl;
+import org.chabu.prot.v1.internal.ChabuFactory;
 import org.chabu.prot.v1.internal.ChabuImpl;
-import org.chabu.prot.v1.internal.ChabuReceiver;
-import org.chabu.prot.v1.internal.ChabuXmitter;
 import org.chabu.prot.v1.internal.Constants;
-import org.chabu.prot.v1.internal.Setup;
 import org.chabu.prot.v1.internal.Utils;
 
 /**
@@ -35,9 +35,12 @@ public final class ChabuBuilder {
 	public static final int DEFAULT_PRIORITY_COUNT = 1;
 	public static final int DEFAULT_PRIORITY       = 0;
 
-	private ChabuImpl chabu;
 	private int nextChannelId;
-	private int priorityCount;
+	private final Runnable xmitRequestListener;
+	private ChabuConnectingValidator connectingValidator;
+	private final ArrayList<ChabuChannelImpl> channels = new ArrayList<>(20);
+	private final ChabuSetupInfo localSetupInfo;
+	private final int priorityCount;
 
 	public static String getChabuVersion(){
 		int major = Constants.PROTOCOL_VERSION >>> 16;
@@ -45,12 +48,10 @@ public final class ChabuBuilder {
 		return String.format("%d.%02d", major, minor );
 	}
 	
-	private ChabuBuilder( ChabuSetupInfo ci, int priorityCount ){
+	private ChabuBuilder( ChabuSetupInfo localSetupInfo, int priorityCount, Runnable xmitListener ){
+		this.localSetupInfo = localSetupInfo;
 		this.priorityCount = priorityCount;
-		ChabuXmitter xmitter = new ChabuXmitter();
-		ChabuReceiver receiver = new ChabuReceiver();
-		Setup setup = new Setup( xmitter, xmitter );
-		chabu = new ChabuImpl( xmitter, receiver, setup, ci );
+		this.xmitRequestListener = xmitListener;
 	}
 
 	/**
@@ -60,18 +61,16 @@ public final class ChabuBuilder {
 	 * @param applicationVersion the application specific version number, seen by the communication
 	 *                           partner.
 	 * @param applicationProtocolName the application specific name, seen by the communication partner.
-	 *
 	 * @param recvPacketSize the size of the receive buffer held in chabu. This defines the maximum
 	 *                     size of packets received.
-	 *
 	 * @param priorityCount the number of priorities that is maintained by chabu. The allowed value
 	 *                      in #addChannel is then 0 .. (priorityCount-1)
-	 *
+	 * @param xmitListener TODO
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 */
-	public static ChabuBuilder start( int applicationVersion, String applicationProtocolName, int recvPacketSize, int priorityCount ){
+	public static ChabuBuilder start( int applicationVersion, String applicationProtocolName, int recvPacketSize, int priorityCount, Runnable xmitListener ){
 		ChabuSetupInfo ci = new ChabuSetupInfo( recvPacketSize, applicationVersion, applicationProtocolName );
-		return new ChabuBuilder(ci, priorityCount);
+		return new ChabuBuilder(ci, priorityCount, xmitListener);
 	}
 
 	/**
@@ -95,10 +94,11 @@ public final class ChabuBuilder {
 	public ChabuBuilder addChannel( int channelId, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ){
 		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected %s, but was %s", this.nextChannelId, channelId );
 		ChabuChannelImpl channel = new ChabuChannelImpl( priority, recvTarget, xmitSource );
-		chabu.addChannel( channel );
+		channels.add( channel );
 		this.nextChannelId++;
 		return this;
 	}
+	
 	public ChabuBuilder addChannel( int channelId, int priority, ChabuByteExchange byteExchange ){
 		return addChannel(channelId, priority, byteExchange, byteExchange);
 	}
@@ -108,25 +108,14 @@ public final class ChabuBuilder {
 	 * When chabu is about to accept the connection, it calls this validator, so it can verify it
 	 * can work with the application version number and name given by the communication partner.
 	 *
-	 * @param val the instance of the validator. Must not be <code>null</code>.
+	 * @param connectingValidator the instance of the validator. Must not be <code>null</code>.
 	 *
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 */
-	public ChabuBuilder setConnectionValidator( ChabuConnectingValidator val ) {
-		chabu.setConnectingValidator( val );
-		return this;
-	}
-
-	/**
-	 * Add a listener that is called, whenever chabu needs to send data. This is used in the
-	 * application to configure a selector for OP_WRITE interest.
-	 *
-	 * @param r callback
-	 *
-	 * @return this ChabuBuilder instance. Use for fluent API style.
-	 */
-	public ChabuBuilder addXmitRequestListener( Runnable r ) {
-		chabu.addXmitRequestListener(r);
+	public ChabuBuilder setConnectionValidator( ChabuConnectingValidator connectingValidator ) {
+		Utils.ensure( connectingValidator != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "passed in null");
+		Utils.ensure( this.connectingValidator == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "already set. Only one is allowed.");
+		this.connectingValidator = connectingValidator;
 		return this;
 	}
 
@@ -137,9 +126,8 @@ public final class ChabuBuilder {
 	 * @return the IChabu instance.
 	 */
 	public Chabu build() {
-		ChabuImpl res = chabu;
-		chabu = null;
-		res.activate(priorityCount);
+		ChabuFactory factory = new ChabuFactory();
+		ChabuImpl res = new ChabuImpl( factory, localSetupInfo, priorityCount, channels, xmitRequestListener, connectingValidator );
 		return res;
 	}
 }

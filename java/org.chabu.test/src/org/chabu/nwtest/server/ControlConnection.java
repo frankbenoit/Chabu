@@ -132,7 +132,7 @@ class ControlConnection extends AConnection {
 
 	private JSONObject builderStart( int applicationVersion, String applicationName, int recvBufferSz, int priorityCount) {
 		System.out.printf("builderStart( %s, %s, %s, %s)\n",  applicationVersion, applicationName, recvBufferSz, priorityCount );
-		builder = ChabuBuilder.start( applicationVersion, applicationName, recvBufferSz, priorityCount);
+		builder = ChabuBuilder.start( applicationVersion, applicationName, recvBufferSz, priorityCount, null);
 		return new JSONObject();
 	}
 

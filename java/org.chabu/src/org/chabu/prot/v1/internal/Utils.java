@@ -13,8 +13,14 @@ package org.chabu.prot.v1.internal;
 import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+
 import org.chabu.prot.v1.ChabuErrorCode;
 import org.chabu.prot.v1.ChabuException;
+
+import com.google.common.base.Optional;
+import com.google.common.base.Preconditions;
 
 /**
  * 
@@ -150,4 +156,23 @@ public final class Utils {
 		throw new UnsupportedOperationException("Impl missing");
 	}
 
+	public static <T> T nonNull( @Nullable T t ){
+		return Preconditions.checkNotNull(t);
+	}
+	
+	public static <T> Optional<T> optionalOf( @Nullable T t ){
+		@Nonnull Optional<T> res = Optional.of(t);
+		return res;
+	}
+	
+	public static <T> Optional<T> optionalOfNullable( @Nullable T t ){
+		@Nonnull Optional<T> res = Optional.fromNullable(t);
+		return res;
+	}
+	
+	public static <T> Optional<T> optionalEmpty(){
+		@Nonnull Optional<T> res = Optional.absent();
+		return res;
+	}
+	
 }

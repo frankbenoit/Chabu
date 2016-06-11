@@ -3,6 +3,8 @@ package org.chabu;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+import org.chabu.prot.v1.internal.Constants;
+
 public class TestUtils {
 
     private final static char[] HEX_DIGITS = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
@@ -198,5 +200,13 @@ public class TestUtils {
 	public static void ensure(boolean b) {
 		if( b ) return;
 		throw new RuntimeException();
+	}
+
+	public static String getChabuVersionAsHex() {
+		return String.format("%02X %02X %02X %02X ", 
+				(Constants.PROTOCOL_VERSION >>> (8*3)) & 0xFF,
+				(Constants.PROTOCOL_VERSION >>> (8*2)) & 0xFF,
+				(Constants.PROTOCOL_VERSION >>> (8*1)) & 0xFF,
+				(Constants.PROTOCOL_VERSION >>> (8*0)) & 0xFF);
 	}    
 }

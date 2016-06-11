@@ -70,7 +70,7 @@ public class TestTransfer {
 		
 		TraceRunner r = new TraceRunner();
 		Chabu chabu = ChabuBuilder
-				.start(12345678, "ABC", 0x100, 3)
+				.start(12345678, "ABC", 0x100, 3, null)
 				.addChannel(0, 2, r.createUser(0, 0x200))
 				.addChannel(1, 1, r.createUser(1, 100))
 				.addChannel(2, 1, r.createUser(2, 100))

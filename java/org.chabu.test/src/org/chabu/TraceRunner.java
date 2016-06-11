@@ -81,7 +81,7 @@ public class TraceRunner {
 					setupParams.getInt    ("ApplicationVersion"),
 					setupParams.getString ("ApplicationName"   ),
 					setupParams.getInt    ("MaxReceiveSize"    ),
-					setupParams.getInt    ("PriorityCount"     ));
+					setupParams.getInt    ("PriorityCount"     ), null);
 			
 			JSONArray channels = setupParams.getJSONArray("Channels");
 			for( int channelIdx = 0; channelIdx < channels.length(); channelIdx ++ ){
@@ -143,6 +143,11 @@ public class TraceRunner {
 		}
 	}
 
+	/**
+	 * Into Chabu
+	 * @param hexData
+	 * @throws IOException
+	 */
 	public void wireRxAutoLength(String hexData) throws IOException {
 		int len = (hexData.length() + 1) / 3;
 		len += 4;
@@ -150,12 +155,22 @@ public class TraceRunner {
 		JSONObject params = new JSONObject();
 		wireRx( params, bb );
 	}
+	/**
+	 * Into Chabu
+	 * @param hexData
+	 * @throws IOException
+	 */
 	public void wireRx(String hexData) throws IOException {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
 		wireRx( params, bb );
 	}
 	
+	/**
+	 * Send by Chabu
+	 * @param hexData
+	 * @throws IOException
+	 */
 	public void wireTxAutoLength(String hexData) throws IOException {
 		int len = (hexData.length() + 1) / 3;
 		len += 4;
@@ -163,12 +178,21 @@ public class TraceRunner {
 		JSONObject params = new JSONObject();
 		wireTx( params, bb );
 	}
+	/**
+	 * Send by Chabu
+	 * @param hexData
+	 * @throws IOException
+	 */
 	public void wireTx(String hexData) throws IOException {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
 		wireTx( params, bb );
 	}
-	public void wireTx( int more, String hexData) throws IOException {
+
+	/**
+	 * Send by Chabu
+	 */
+	 public void wireTx( int more, String hexData) throws IOException {
 		hexStringToBB(hexData);
 		JSONObject params = new JSONObject();
 		params.put( "More", more );

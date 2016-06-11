@@ -40,9 +40,10 @@ public class ChabuReceiverNormal extends ChabuReceiver {
 			Utils.ensure( padding >= 0 && padding < 4, ChabuErrorCode.ASSERT, "padding inplausible packetSize:%s pls:%d", packetSize, pls );
 			chabuChannel.verifySeq( seq );
 		}
-		
+
 		if( seqPacketIndex < pls ){
-			int handledBytes = chabuChannel.handleRecvSeq( channel, pls-seqPacketIndex);
+			int toBeHandledLimit = pls-seqPacketIndex;
+			int handledBytes = chabuChannel.handleRecvSeq( channel, toBeHandledLimit);
 			seqPacketIndex += handledBytes;
 		}
 		

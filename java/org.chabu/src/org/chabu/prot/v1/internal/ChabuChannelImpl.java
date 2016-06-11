@@ -110,11 +110,12 @@ public class ChabuChannelImpl implements ChabuChannel {
 			summedReadBytes += readBytes;
 			remainingBytes -= readBytes;
 			
+			recvSeq += readBytes;
+			recvPosition += readBytes;
+			
 			if( !recvTargetBuffer.hasRemaining() ){
 				recvTargetBuffer = null;
 				recvTarget.recvCompleted();
-				recvSeq += recvByteCount;
-				recvPosition += recvByteCount;
 			}
 			
 			if( readBytes == 0 ){

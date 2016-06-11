@@ -17,6 +17,7 @@ public abstract class ChabuReceiver {
 	
 	protected PacketType packetType = PacketType.NONE;
 	protected int        packetSize = 0;
+	protected boolean cancelCurrentReceive = false;
 
 	
 	public ChabuReceiver(ChabuReceiver receiver, AbortMessage localAbortMessage) {
@@ -33,7 +34,8 @@ public abstract class ChabuReceiver {
 		}
 	}
 	public void recv(ByteChannel channel) throws IOException {
-		while( true ){
+		cancelCurrentReceive = false;
+		while( !cancelCurrentReceive ){
 			if( packetType == PacketType.NONE ){
 				Utils.ensure(recvBuf.limit() >= HEADER_RECV_SZ, ChabuErrorCode.UNKNOWN, "unknown header size: %s", recvBuf);
 				channel.read(recvBuf);

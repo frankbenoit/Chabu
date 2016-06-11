@@ -53,6 +53,7 @@ public class ChabuReceiverStartup extends ChabuReceiver {
 	@Override
 	protected void processRecvAccept() {
 		setup.setRemoteAcceptReceived();
+		cancelCurrentReceive = true;
 		completedStartupListener.run();
 	}
 

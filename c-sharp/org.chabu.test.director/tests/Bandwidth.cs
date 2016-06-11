@@ -24,7 +24,7 @@ namespace org.chabu.test.director.tests
             var res = await tn.Setup(Constants.DirectorVersion);
             Console.WriteLine($@"Setup: {res.ChabuProtocolVersion} {res.Implemenation}");
 
-            await tn.BuilderStart(0x123, "BW", 10000, 3);
+            await tn.BuilderStart(0x123, "BW", 10020, 3);
             await tn.BuilderAddChannel(0, 2);
             await tn.BuilderBuild();
         }
@@ -45,7 +45,7 @@ namespace org.chabu.test.director.tests
 
             await ctx.ConnectFrom(Host.A);
 
-            const int amount = 3500*1000;
+            const int amount = 100 * 1024 * 1024;
             await hostB.ChannelRecv(0, amount);
             await hostA.ChannelXmit(0, amount);
 

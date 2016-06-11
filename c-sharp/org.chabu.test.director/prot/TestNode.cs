@@ -167,6 +167,46 @@ namespace org.chabu.test.director.prot
 
             await Network.SendRequestRetrieveResponse(rq);
         }
+
+        public class GetStateResult_Channel
+        {
+            public long recvLimit;
+            public long recvPostion;
+            public long xmitLimit;
+            public long xmitPosition;
+        }
+        public class GetStateResult
+        {
+            public List<GetStateResult_Channel> Channels;
+        }
+        public async Task<GetStateResult> GetState()
+        {
+            var rq = new XferItem
+            {
+                Category = Category.REQ,
+                CallIndex = 0,
+                Name = "GetState",
+                Parameters = new Parameter[0]
+            };
+
+            XferItem rs = await Network.SendRequestRetrieveResponse(rq);
+            GetStateResult result = new GetStateResult();
+            var channelCount = rs.GetInt("channelCount");
+            result.Channels = new List<GetStateResult_Channel>( channelCount);
+            for (int i = 0; i < channelCount; i++)
+            {
+                result.Channels[i] = new GetStateResult_Channel
+                {
+                    recvLimit = rs.GetInt($@"channels/{i}/recvLimit"),
+                    recvPostion = rs.GetInt($@"channels/{i}/recvPostion"),
+                    xmitLimit = rs.GetInt($@"channels/{i}/xmitLimit"),
+                    xmitPosition  = rs.GetInt($@"channels/{i}/xmitPosition")
+                };
+                
+
+            }
+            return result;
+        }
         public async Task ChannelReset(int channel)
         {
             _log.Add($@"[{_host}] ChannelReset {channel} not yet implemented!!!" );

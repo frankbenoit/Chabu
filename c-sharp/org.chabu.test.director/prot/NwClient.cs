@@ -37,12 +37,12 @@ namespace org.chabu.test.director.prot
         }
         public async Task<XferItem> SendRequestRetrieveResponse(XferItem req)
         {
-            XmlSerializer ser = new XmlSerializer(typeof(XferItem));
+            var ser = new XmlSerializer(typeof(XferItem));
             var ms = new MemoryStream(10000);
             ser.Serialize(ms, req);
-            string reqStr = Encoding.UTF8.GetString(ms.ToArray());
+            var reqStr = Encoding.UTF8.GetString(ms.ToArray());
             Console.WriteLine(@"sending: {0}", reqStr);
-            string respStr = await SendRequestRetrieveResponse(reqStr);
+            var respStr = await SendRequestRetrieveResponse(reqStr);
             Console.WriteLine(@"received: {0}", respStr);
             var resp = (XferItem)ser.Deserialize(GenerateStreamFromString(respStr));
             return resp;
@@ -58,7 +58,7 @@ namespace org.chabu.test.director.prot
         private async Task SendText(string text)
         {
             var size = Encoding.UTF8.GetByteCount(text);
-            byte[] bytes = new byte[size+4];
+            var bytes = new byte[size+4];
             bytes[0] = (byte)(size >> 24);
             bytes[1] = (byte)(size >> 16);
             bytes[2] = (byte)(size >> 8);

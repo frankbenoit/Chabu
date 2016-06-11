@@ -289,14 +289,25 @@ public class TestSetupConnection {
 				r.wireTx(
 						"00 00 00 48 77 77 00 D2 00 1F 00 02 00 00 00 37 " +
 						"43 68 61 62 75 20 50 72 6F 74 6F 63 6F 6C 20 56 " +
-						"65 72 73 69 6F 6E 3A 20 65 78 70 74 20 30 78 30 " +
-						"30 30 31 30 30 30 30 20 72 65 63 76 20 30 78 46 " +
+						"65 72 73 69 6F 6E 3A 20 65 78 70 74 20 30 78 " +chabuVersionAsTextConvertedHex()+
+						"20 72 65 63 76 20 30 78 46 " +
 						"46 46 46 30 30 30 31 00");
 			});
 		}
 
 	}		
-	
+	private String chabuVersionAsTextConvertedHex(){
+		String text = String.format("%08X", Constants.PROTOCOL_VERSION );
+		return String.format("%02X %02X %02X %02X %02X %02X %02X %02X ", 
+				(int)text.charAt(0),
+				(int)text.charAt(1),
+				(int)text.charAt(2),
+				(int)text.charAt(3),
+				(int)text.charAt(4),
+				(int)text.charAt(5),
+				(int)text.charAt(6),
+				(int)text.charAt(7));
+	}
 	@Test
 	public void RemoteConnectionInfo_MaxReceiveSize_too_low() throws Exception {
 

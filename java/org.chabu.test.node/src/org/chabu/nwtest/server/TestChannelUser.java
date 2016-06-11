@@ -107,6 +107,7 @@ class TestChannelUser implements ChabuByteExchange {
 		recvBuffer.limit(putSz);
 		return recvBuffer;
 	}
+	
 	@Override
 	public void recvCompleted() {
 		recvBuffer.flip();
@@ -118,16 +119,15 @@ class TestChannelUser implements ChabuByteExchange {
 		recvStreamPosition+=putSz;
 		recvPending.addAndGet(-putSz);
 	}
+	
 	@Override
 	public void xmitReset() {
-		// TODO Auto-generated method stub
-		
 	}
+	
 	@Override
 	public void recvReset() {
-		// TODO Auto-generated method stub
-		
 	}
+	
 	public int getChannelId() {
 		return channel.getChannelId();
 	}

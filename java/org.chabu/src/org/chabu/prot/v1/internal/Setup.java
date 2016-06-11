@@ -54,11 +54,6 @@ public class Setup {
 		return acceptInfo;
 	}
 
-	//TODO private?
-	public ChabuConnectingValidator getValidator() {
-		return connectingValidator;
-	}
-
 	public boolean isRemoteSetupReceived() {
 		return recvSetupCompleted == RecvState.RECVED;
 	}

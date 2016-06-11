@@ -65,7 +65,7 @@ public final class ChabuBuilder {
 	 *                     size of packets received.
 	 * @param priorityCount the number of priorities that is maintained by chabu. The allowed value
 	 *                      in #addChannel is then 0 .. (priorityCount-1)
-	 * @param xmitListener TODO
+	 * @param xmitListener Listener called, when chabu want to be notified on a write possiblitiy.
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 */
 	public static ChabuBuilder start( int applicationVersion, String applicationProtocolName, int recvPacketSize, int priorityCount, Runnable xmitListener ){

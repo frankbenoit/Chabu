@@ -114,13 +114,9 @@ class TestChannelUser implements ChabuByteExchange {
 	}
 	@Override
 	public void xmitReset() {
-		// TODO Auto-generated method stub
-		
 	}
 	@Override
 	public void recvReset() {
-		// TODO Auto-generated method stub
-		
 	}
 	
 }

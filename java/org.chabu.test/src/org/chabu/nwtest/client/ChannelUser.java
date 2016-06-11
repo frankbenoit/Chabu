@@ -95,14 +95,10 @@ class ChannelUser implements ChabuByteExchange {
 
 	@Override
 	public void xmitCompleted() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
 	public void xmitReset() {
-		// TODO Auto-generated method stub
-
 	}
 
 	
@@ -132,7 +128,6 @@ class ChannelUser implements ChabuByteExchange {
 
 	@Override
 	public void recvReset() {
-		// TODO Auto-generated method stub
 
 	}
 }

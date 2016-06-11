@@ -27,15 +27,17 @@ class TestChannelUser implements ChabuByteExchange {
 	private AtomicInteger  recvPending        = new AtomicInteger();
 	private long           recvStreamPosition = 0;
 	private Consumer<String> errorReporter;
+	private boolean isHostA;
 	
-	public TestChannelUser(Consumer<String> errorReporter ) {
+	public TestChannelUser( boolean isHostA, Consumer<String> errorReporter ) {
+		this.isHostA = isHostA;
 		this.errorReporter = errorReporter;
 	}
 	@Override
 	public void setChannel(ChabuChannel channel) {
 		this.channel = channel;
-		xmitRandom = new PseudoRandom(channel.getChannelId()*2+0);
-		recvRandom = new PseudoRandom(channel.getChannelId()*2+1);
+		xmitRandom = new PseudoRandom(channel.getChannelId()*2+ (isHostA ? 0 : 1 ));
+		recvRandom = new PseudoRandom(channel.getChannelId()*2+ (isHostA ? 1 : 0 ));
 	}
 
 	public void addXmitAmount( int amount ){

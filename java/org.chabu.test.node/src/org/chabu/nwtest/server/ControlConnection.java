@@ -36,6 +36,7 @@ class ControlConnection extends AConnection {
 	private Marshaller marshaller;
 	private Unmarshaller unmarshaller;
 	private Runnable xmitRequestListener;
+	private boolean isHostA;
 
 	public ControlConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key, Runnable xmitRequestListener ) throws JAXBException {
 		super( channel, key );
@@ -212,6 +213,7 @@ class ControlConnection extends AConnection {
 
 	private XferItem setup(String directoryVersion, String hostLabel) {
 		System.out.printf("setup( %s, %s)\n",  directoryVersion, hostLabel );
+		isHostA = "A".equals(hostLabel);
 		XferItem res = new XferItem();
 		res.setParameters(new Parameter[]{
 				new ParameterValue("Implementation", "Java"),
@@ -232,7 +234,7 @@ class ControlConnection extends AConnection {
 		while( chabuChannelUsers.size() < channel+1 ){
 			chabuChannelUsers.add(null);
 		}
-		chabuChannelUsers.set( channel, new TestChannelUser( this::errorReceiver ) );
+		chabuChannelUsers.set( channel, new TestChannelUser( isHostA, this::errorReceiver ) );
 		builder.addChannel( channel, priority, chabuChannelUsers.get(channel));
 		return new XferItem();
 	}

@@ -1,7 +1,5 @@
 package org.chabu.nwtest.server;
 
-import java.io.IOException;
-
 import org.chabu.prot.v1.Chabu;
 
 public interface TestServerPort {

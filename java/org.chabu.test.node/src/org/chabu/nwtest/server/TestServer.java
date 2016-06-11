@@ -139,7 +139,7 @@ public class TestServer implements TestServerPort {
 	private <T extends AConnection> T configureConnection(ConnectionFactory<T> factory, SocketChannel channel) throws IOException, ClosedChannelException, Exception {
 		channel.configureBlocking(false);
 		SelectionKey channelKey = channel.register( selector, SelectionKey.OP_READ );
-		T connection = factory.create( this, channel, channelKey );
+		T connection = factory.create( this, channel, channelKey, this::addXmitRequest );
 		channelKey.attach(connection);
 		return connection;
 	}
@@ -164,9 +164,6 @@ public class TestServer implements TestServerPort {
 	@Override
 	public void setChabu(Chabu chabu) {
 		this.chabu = chabu;
-		if( chabu != null ){
-			chabu.addXmitRequestListener( this::addXmitRequest );
-		}
 		if( testConnection != null ){
 			testConnection.setChabu(chabu);
 		}

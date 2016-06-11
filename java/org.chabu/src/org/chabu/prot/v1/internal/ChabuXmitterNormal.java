@@ -42,8 +42,8 @@ public class ChabuXmitterNormal extends ChabuXmitter {
 		return actionsNormalRun;
 	}
 	
-	public ChabuXmitterNormal(AbortMessage abortMessage, int priorityCount, ArrayList<ChabuChannelImpl> channels, BiFunction< Integer, Integer, Priorizer> priorizerFactory, int remoteRecvPacketSize ){
-		super(abortMessage);
+	public ChabuXmitterNormal(AbortMessage abortMessage, Runnable xmitRequestListener, int priorityCount, ArrayList<ChabuChannelImpl> channels, BiFunction< Integer, Integer, Priorizer> priorizerFactory, int remoteRecvPacketSize ){
+		super(abortMessage, xmitRequestListener);
 		xmitBuf.order(ByteOrder.BIG_ENDIAN);
 		xmitBuf.clear().limit(0);
 		

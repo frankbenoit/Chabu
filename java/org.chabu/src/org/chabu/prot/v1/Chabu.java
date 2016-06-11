@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.chabu.prot.v1;
 
-import java.nio.channels.ByteChannel;
-
 /**
  * The main object communicating with the network and distributing/collecting the data to/from the
  * channels.
@@ -34,14 +32,4 @@ public interface Chabu extends ChabuNetworkHandler {
 	 */
 	ChabuChannel getChannel( int channelId );
 
-	/**
-	 * Adds a callback to be called when chabu wants to send over the network. It shall lead to a
-	 * call of {@link #handleChannel(ByteChannel, boolean)}.
-	 * <p/>
-	 * At the moment only a single callback can be added.
-	 *
-	 * @param r the callback
-	 */
-	void addXmitRequestListener( Runnable r );
-	
 }

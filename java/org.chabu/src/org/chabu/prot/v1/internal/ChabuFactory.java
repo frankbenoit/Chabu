@@ -13,12 +13,12 @@ public class ChabuFactory {
 		return new ChabuReceiverNormal( receiver, channels, localAbortMessage, setup);
 	}
 	
-	public ChabuXmitter createXmitterStartup(AbortMessage abortMessage, Setup setup, Runnable completionListener){
-		return new ChabuXmitterStartup(abortMessage, setup, completionListener);
+	public ChabuXmitter createXmitterStartup(AbortMessage abortMessage, Runnable xmitRequestListener, Setup setup, Runnable completionListener){
+		return new ChabuXmitterStartup(abortMessage, xmitRequestListener, setup, completionListener);
 	}
 	
-	public ChabuXmitter createXmitterNormal(AbortMessage abortMessage, int priorityCount, ArrayList<ChabuChannelImpl> channels, BiFunction<Integer, Integer, Priorizer> priorizerFactory, int maxXmitSize){		
-		return new ChabuXmitterNormal( abortMessage, priorityCount, channels, priorizerFactory, maxXmitSize );
+	public ChabuXmitter createXmitterNormal(AbortMessage abortMessage, Runnable xmitRequestListener, int priorityCount, ArrayList<ChabuChannelImpl> channels, BiFunction<Integer, Integer, Priorizer> priorizerFactory, int maxXmitSize){		
+		return new ChabuXmitterNormal( abortMessage, xmitRequestListener, priorityCount, channels, priorizerFactory, maxXmitSize );
 	}
 }
 

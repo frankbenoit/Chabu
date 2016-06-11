@@ -5,7 +5,6 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ByteChannel;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.LinkedList;
 
 import org.chabu.prot.v1.ChabuErrorCode;
 import org.chabu.prot.v1.ChabuException;
@@ -29,7 +28,7 @@ public abstract class ChabuXmitter {
 	
 
 	protected abstract ArrayList<LoopCtrlAction> getActions();
-	private final LinkedList<Runnable> xmitRequestListeners = new LinkedList<>();
+	private final Runnable xmitRequestListener;
 	private final AbortMessage abortMessage;
 
 	protected ByteBuffer xmitBuf = ByteBuffer.allocate( Constants.MAX_RECV_LIMIT_LOW );
@@ -37,8 +36,9 @@ public abstract class ChabuXmitter {
 	protected ByteChannel loopByteChannel;
 	protected XmitState xmitAbort = XmitState.IDLE;
 
-	public ChabuXmitter(AbortMessage abortMessage){
+	public ChabuXmitter(AbortMessage abortMessage, Runnable xmitRequestListener){
 		this.abortMessage = abortMessage;
+		this.xmitRequestListener = xmitRequestListener;
 	}
 	
 	protected void runActionsUntilBreak() throws IOException {
@@ -205,15 +205,9 @@ public abstract class ChabuXmitter {
 		delayedAbort(ec.getCode(), message, args);
 	}
 
-	public void addXmitRequestListener( Runnable r) {
-		Utils.ensure( r != null, ChabuErrorCode.ASSERT, "Listener passed in is null" );
-		//Utils.ensure( !this.activated, ChabuErrorCode.ASSERT, "Chabu already activated" );
-		this.xmitRequestListeners.add(r);
-	}
 	void callXmitRequestListener() {
-		LinkedList<Runnable> listeners = xmitRequestListeners;
-		for( Runnable r : listeners ){
-			r.run();
+		if( xmitRequestListener != null ){
+			xmitRequestListener.run();
 		}
 	}
 

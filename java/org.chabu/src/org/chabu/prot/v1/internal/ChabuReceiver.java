@@ -12,24 +12,24 @@ public abstract class ChabuReceiver {
 
 	private static final int HEADER_RECV_SZ = ChabuImpl.SEQ_MIN_SZ;
 	
-	protected ByteBuffer recvBuf        = ByteBuffer.allocate( Constants.MAX_RECV_LIMIT_LOW );
-	protected Setup setup;
+	protected final AbortMessage localAbortMessage;
+	protected final ByteBuffer recvBuf;
 	
 	protected PacketType packetType = PacketType.NONE;
-	protected int        packetSize;
-
-	protected final AbortMessage localAbortMessage;
+	protected int        packetSize = 0;
 
 	
 	public ChabuReceiver(ChabuReceiver receiver, AbortMessage localAbortMessage) {
 		this.localAbortMessage = localAbortMessage;
 		if( receiver == null ){
+			recvBuf = ByteBuffer.allocate( Constants.MAX_RECV_LIMIT_LOW );
 			recvBuf.order(ByteOrder.BIG_ENDIAN );
 			recvBuf.clear();
 			recvBuf.limit(HEADER_RECV_SZ);
 		}
 		else {
 			recvBuf = receiver.recvBuf;
+			packetSize = receiver.packetSize;
 		}
 	}
 	public void recv(ByteChannel channel) throws IOException {

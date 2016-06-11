@@ -10,7 +10,7 @@ class ChabuConnection extends AConnection {
 	
 	private Chabu chabu;
 	
-	public ChabuConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key ) {
+	public ChabuConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key, Runnable xmitRequestListener ) {
 		super( channel, key );
 	}
 	public void setChabu(Chabu chabu) {

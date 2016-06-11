@@ -22,10 +22,12 @@ class ControlConnection extends AConnection {
 	ChabuBuilder builder;
 	String firstError = null;
 	private TestServerPort testServer;
+	private Runnable xmitRequestListener;
 
-	public ControlConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key ) {
+	public ControlConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key, Runnable xmitRequestListener ) {
 		super( channel, key );
 		this.testServer = testServer;
+		this.xmitRequestListener = xmitRequestListener;
 	}
 
 	public void accept(SelectionKey t) {
@@ -132,7 +134,7 @@ class ControlConnection extends AConnection {
 
 	private JSONObject builderStart( int applicationVersion, String applicationName, int recvBufferSz, int priorityCount) {
 		System.out.printf("builderStart( %s, %s, %s, %s)\n",  applicationVersion, applicationName, recvBufferSz, priorityCount );
-		builder = ChabuBuilder.start( applicationVersion, applicationName, recvBufferSz, priorityCount, null);
+		builder = ChabuBuilder.start( applicationVersion, applicationName, recvBufferSz, priorityCount, xmitRequestListener );
 		return new JSONObject();
 	}
 

@@ -35,10 +35,12 @@ class ControlConnection extends AConnection {
 	private TestServerPort testServer;
 	private Marshaller marshaller;
 	private Unmarshaller unmarshaller;
+	private Runnable xmitRequestListener;
 
-	public ControlConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key ) throws JAXBException {
+	public ControlConnection( TestServerPort testServer, SocketChannel channel, SelectionKey key, Runnable xmitRequestListener ) throws JAXBException {
 		super( channel, key );
 		this.testServer = testServer;
+		this.xmitRequestListener = xmitRequestListener;
 		JAXBContext jaxbContext = JAXBContext.newInstance(XferItem.class, Parameter.class, ParameterValue.class, ParameterWithChilds.class);
 		marshaller = jaxbContext.createMarshaller();
 		marshaller.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, true);
@@ -220,7 +222,7 @@ class ControlConnection extends AConnection {
 
 	private XferItem builderStart( int applicationVersion, String applicationProtocolName, int recvPacketSize, int priorityCount) {
 		System.out.printf("builderStart( %s, %s, %s, %s)\n",  applicationVersion, applicationProtocolName, recvPacketSize, priorityCount );
-		builder = ChabuBuilder.start( applicationVersion, applicationProtocolName, recvPacketSize, priorityCount, null);
+		builder = ChabuBuilder.start( applicationVersion, applicationProtocolName, recvPacketSize, priorityCount, xmitRequestListener );
 		return new XferItem();
 	}
 

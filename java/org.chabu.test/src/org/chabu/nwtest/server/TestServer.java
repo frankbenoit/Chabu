@@ -103,7 +103,7 @@ public class TestServer implements TestServerPort {
 		SocketChannel channel = ssc.accept();
 		channel.configureBlocking(false);
 		SelectionKey channelKey = channel.register( selector, SelectionKey.OP_READ );
-		T connection = factory.create( this, channel, channelKey );
+		T connection = factory.create( this, channel, channelKey, this::addXmitRequest );
 		channelKey.attach(connection);
 		return connection;
 	}
@@ -127,9 +127,6 @@ public class TestServer implements TestServerPort {
 
 	@Override
 	public void setChabu(Chabu chabu) {
-		if( chabu != null ){
-			chabu.addXmitRequestListener( this::addXmitRequest );
-		}
 		testConnection.setChabu(chabu);
 	}
 }

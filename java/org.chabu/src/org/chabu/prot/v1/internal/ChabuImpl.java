@@ -40,9 +40,12 @@ public final class ChabuImpl implements Chabu {
 	private ChabuXmitter xmitter;	
 	private ChabuReceiver receiver;
 
+	private Runnable xmitRequestListener;
+
 	public ChabuImpl( ChabuFactory factory, ChabuSetupInfo localSetupInfo, int priorityCount, 
 			ArrayList<ChabuChannelImpl> channels, Runnable xmitRequestListener, ChabuConnectingValidator connectingValidator ){
 
+		this.xmitRequestListener = xmitRequestListener;
 		verifyLocalSetup(localSetupInfo);
 		xmitAbortMessage = new AbortMessage(xmitRequestListener);
 		this.channels = channels;
@@ -51,7 +54,7 @@ public final class ChabuImpl implements Chabu {
 		
 		this.setup = new Setup(localSetupInfo, xmitAbortMessage, connectingValidator );
 		
-		this.xmitter = factory.createXmitterStartup(xmitAbortMessage, setup, this::xmitCompletedStartup);
+		this.xmitter = factory.createXmitterStartup(xmitAbortMessage, xmitRequestListener, setup, this::xmitCompletedStartup);
 		
 		this.receiver = factory.createReceiverStartup(xmitAbortMessage, setup, this::recvCompletedStartup);
 		verifyPriorityCount();
@@ -106,7 +109,7 @@ public final class ChabuImpl implements Chabu {
 	}
 	
 	private void xmitCompletedStartup(){
-		xmitter = factory.createXmitterNormal( xmitAbortMessage, priorityCount, channels, Priorizer::new, setup.getRemoteMaxReceiveSize());
+		xmitter = factory.createXmitterNormal( xmitAbortMessage, xmitRequestListener, priorityCount, channels, Priorizer::new, setup.getRemoteMaxReceiveSize());
 		notifierWhenRecvAndXmitCompletedStartup.event1();
 	}
 	
@@ -146,11 +149,5 @@ public final class ChabuImpl implements Chabu {
 	public String toString() {
 		return String.format("Chabu[ recv:%s xmit:%s ]", receiver, xmitter );
 	}
-
-	@Override
-	public void addXmitRequestListener(Runnable r) {
-		xmitter.addXmitRequestListener(r);
-	}
-
 
 }

@@ -8,7 +8,8 @@ import org.chabu.prot.v1.ChabuSetupInfo;
 
 public class ChabuReceiverStartup extends ChabuReceiver {
 
-	private Runnable completedStartupListener;
+	private final Runnable completedStartupListener;
+	private final Setup setup;
 
 	public ChabuReceiverStartup(AbortMessage localAbortMessage, Setup setup, Runnable completedStartup) {
 		super(null, localAbortMessage);
@@ -48,6 +49,7 @@ public class ChabuReceiverStartup extends ChabuReceiver {
 				
 		setup.checkConnectingValidator();
 	}
+
 	@Override
 	protected void processRecvAccept() {
 		setup.setRemoteAcceptReceived();

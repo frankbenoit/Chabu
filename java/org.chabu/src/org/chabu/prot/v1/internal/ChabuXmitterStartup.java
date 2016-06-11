@@ -33,8 +33,8 @@ public class ChabuXmitterStartup extends ChabuXmitter {
 		actionsSetupRun.add( this::xmitAction_End                );
 	}
 
-	public ChabuXmitterStartup(AbortMessage abortMessage, Setup setup, Runnable startupCompletedListener ){
-		super(abortMessage);
+	public ChabuXmitterStartup(AbortMessage abortMessage, Runnable xmitRequestListener, Setup setup, Runnable startupCompletedListener ){
+		super(abortMessage, xmitRequestListener);
 		this.setup = setup;
 		this.startupCompletedListener = startupCompletedListener;
 		xmitBuf.order(ByteOrder.BIG_ENDIAN);
@@ -128,10 +128,6 @@ public class ChabuXmitterStartup extends ChabuXmitter {
 		xmitStartupCompleted = XmitState.PREPARED;
 	}
 
-	public void acceptConnection(int maxXmitSize){
-		xmitAccepted = XmitState.PENDING;		
-	}
-	
 	protected void prepareXmitAccept(){
 		super.prepareXmitAccept();
 		xmitAccepted = XmitState.PREPARED;

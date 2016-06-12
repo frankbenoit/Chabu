@@ -12,24 +12,32 @@ namespace org.chabu.test.director.prot
     public delegate void StatusEventHandler(object sender, XferItem statusEvent);
     public class NwClient
     {
-        private readonly TcpClient _tcpClient;
-        private NetworkStream _stream;
+        private TcpClient tcpClient;
+        private NetworkStream stream;
 
         public NwClient()
         {
-            _tcpClient = new TcpClient();
         }
 
 
         public async Task ConnectAsync(string host)
         {
+            tcpClient = new TcpClient();
             var idx = host.LastIndexOf(':');
             Contract.Assert( idx > 0 );
             var hostPart = host.Substring(0, idx);
             var port =Convert.ToInt32(host.Substring(idx+1));
             Console.WriteLine($@"connecting to {hostPart}:{port}");
-            await _tcpClient.ConnectAsync(hostPart, port );
-            _stream = _tcpClient.GetStream();
+            await tcpClient.ConnectAsync(hostPart, port );
+            stream = tcpClient.GetStream();
+        }
+
+        public void Disconnect()
+        {
+            stream.Close();
+            tcpClient.Close();
+            stream = null;
+            tcpClient = null;
         }
         private MemoryStream GenerateStreamFromString(string value)
         {
@@ -41,9 +49,9 @@ namespace org.chabu.test.director.prot
             var ms = new MemoryStream(10000);
             ser.Serialize(ms, req);
             var reqStr = Encoding.UTF8.GetString(ms.ToArray());
-            Console.WriteLine(@"sending: {0}", reqStr);
+            //Console.WriteLine(@"sending: {0}", reqStr);
             var respStr = await SendRequestRetrieveResponse(reqStr);
-            Console.WriteLine(@"received: {0}", respStr);
+            //Console.WriteLine(@"received: {0}", respStr);
             var resp = (XferItem)ser.Deserialize(GenerateStreamFromString(respStr));
             return resp;
         }
@@ -64,17 +72,17 @@ namespace org.chabu.test.director.prot
             bytes[2] = (byte)(size >> 8);
             bytes[3] = (byte)size;
             Encoding.UTF8.GetBytes(text, 0, text.Length, bytes, 4 );
-            await _stream.WriteAsync(bytes, 0, bytes.Length);
+            await stream.WriteAsync(bytes, 0, bytes.Length);
         }
 
         private async Task<string> ReceiveText()
         {
             var sizeBuffer = new byte[4];
-            await _stream.ReadAsync(sizeBuffer, 0, sizeBuffer.Length);
+            await stream.ReadAsync(sizeBuffer, 0, sizeBuffer.Length);
             var size = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(sizeBuffer, 0));
 
             var responseBuffer = new byte[size];
-            await _stream.ReadAsync(responseBuffer, 0, responseBuffer.Length);
+            await stream.ReadAsync(responseBuffer, 0, responseBuffer.Length);
             var responseText = Encoding.UTF8.GetString(responseBuffer);
 
             return responseText;

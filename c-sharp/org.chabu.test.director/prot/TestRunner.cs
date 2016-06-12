@@ -24,9 +24,13 @@ namespace org.chabu.test.director.prot
 
         public async Task Run()
         {
-            await _ctx.HostA.ConnectCtrl();
-            await _ctx.HostB.ConnectCtrl();
+
+            await Task.WhenAll(_ctx.HostA.ConnectCtrl(), _ctx.HostB.ConnectCtrl());
+
             await _test.Run( _ctx );
+
+            _ctx.HostA.DisconnectCtrl();
+            _ctx.HostB.DisconnectCtrl();
         }
     }
 

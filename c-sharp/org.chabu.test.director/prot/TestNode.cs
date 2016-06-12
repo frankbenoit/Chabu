@@ -1,7 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using org.chabu.test.director.gui;
 
@@ -27,23 +25,23 @@ namespace org.chabu.test.director.prot
     public class TestNode
     {
         public string HostName { get; set; }
-        private readonly TestCtx _testCtx;
-        private readonly Host _host;
-        private readonly ILogContainer _log;
+        private readonly TestCtx testCtx;
+        public Host Host { get; }
+        private readonly ILogContainer log;
         public NwClient Network { get; set; }
 
         public TestNode(TestCtx testCtx, Host host, ILogContainer log, string hostName)
         {
             Network = new NwClient();
             HostName = hostName;
-            _testCtx = testCtx;
-            this._host = host;
-            _log = log;
+            this.testCtx = testCtx;
+            Host = host;
+            this.log = log;
         }
 
         public async Task<SetupResult> Setup(string directorVersion)
         {
-            _log.Add($@"[{_host}] Setup {directorVersion}");
+            log.Add($@"[{Host}] Setup {directorVersion}");
 
             var rq = new XferItem
             {
@@ -53,13 +51,13 @@ namespace org.chabu.test.director.prot
                 Parameters = new Parameter[]
                 {
                     new ParameterValue("ChabuTestDirectorVersion", Constants.DirectorVersion),
-                    new ParameterValue("NodeLabel", _host.ToString()),
+                    new ParameterValue("NodeLabel", Host.ToString()),
                 }
             };
 
-            var rs = await Network.SendRequestRetrieveResponse(rq);
+            var rs = await XferAndCheckError(rq);
 
-            ;
+            
             SetupResult res;
             res.ChabuProtocolVersion = rs.GetString("ChabuProtocolVersion");
             res.Implemenation = (Implemenation) Enum.Parse(typeof(Implemenation), rs.GetString("Implementation"));
@@ -68,7 +66,7 @@ namespace org.chabu.test.director.prot
 
         public async Task BuilderStart(uint applicationVersion, string applicationProtocolName, int recvPacketSize, int priorityCount)
         {
-            _log.Add($@"[{_host}] BuilderStart {applicationVersion} {applicationProtocolName} {priorityCount}");
+            log.Add($@"[{Host}] BuilderStart {applicationVersion} {applicationProtocolName} {priorityCount}");
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -83,12 +81,12 @@ namespace org.chabu.test.director.prot
                 }
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
+            await XferAndCheckError(rq);
         }
 
         public async Task BuilderAddChannel(int channelId, int priority)
         {
-            _log.Add($@"[{_host}] BuilderAddChannel {channelId} {priority}");
+            log.Add($@"[{Host}] BuilderAddChannel {channelId} {priority}");
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -101,12 +99,12 @@ namespace org.chabu.test.director.prot
                 }
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
+            await XferAndCheckError(rq);
         }
 
         public async Task BuilderBuild()
         {
-            _log.Add($@"[{_host}] BuilderBuild" );
+            log.Add($@"[{Host}] BuilderBuild" );
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -114,14 +112,12 @@ namespace org.chabu.test.director.prot
                 Name = "ChabuBuilder.build",
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
-
+            await XferAndCheckError(rq);
         }
 
         public async Task ChabuClose()
         {
-            _log.Add($@"[{_host}] ChabuClose");
-            _log.Add($@"[{_host}] BuilderBuild");
+            log.Add($@"[{Host}] Chabu.close");
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -129,12 +125,51 @@ namespace org.chabu.test.director.prot
                 Name = "Chabu.close",
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
+            await XferAndCheckError(rq);
+        }
+
+        public async Task Close()
+        {
+            log.Add($@"[{Host}] Close");
+            var rq = new XferItem
+            {
+                Category = Category.REQ,
+                CallIndex = 0,
+                Name = "Close",
+            };
+
+            await XferAndCheckError(rq);
+        }
+
+        public async Task ExpectClose()
+        {
+            log.Add($@"[{Host}] ExpectClose");
+            var rq = new XferItem
+            {
+                Category = Category.REQ,
+                CallIndex = 0,
+                Name = "ExpectClose",
+            };
+
+            await XferAndCheckError(rq);
+        }
+
+        public async Task EnsureClosed()
+        {
+            log.Add($@"[{Host}] EnsureClosed");
+            var rq = new XferItem
+            {
+                Category = Category.REQ,
+                CallIndex = 0,
+                Name = "EnsureClosed",
+            };
+
+            await XferAndCheckError(rq);
         }
 
         public async Task ChannelXmit(int channel, int amount)
         {
-            _log.Add($@"[{_host}] ChannelXmit {channel} {amount}");
+            log.Add($@"[{Host}] ChannelXmit {channel} {amount}");
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -147,12 +182,12 @@ namespace org.chabu.test.director.prot
                 }
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
+            await XferAndCheckError(rq);
         }
 
         public async Task ChannelRecv(int channel, int amount)
         {
-            _log.Add($@"[{_host}] ChannelRecv {channel} {amount}");
+            log.Add($@"[{Host}] ChannelRecv {channel} {amount}");
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -165,19 +200,30 @@ namespace org.chabu.test.director.prot
                 }
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
+            await XferAndCheckError(rq);
         }
 
-        public class GetStateResult_Channel
+        private async Task<XferItem> XferAndCheckError(XferItem rq)
         {
-            public long recvLimit;
-            public long recvPostion;
-            public long xmitLimit;
-            public long xmitPosition;
+            var result = await Network.SendRequestRetrieveResponse(rq);
+            if (result.IsError())
+            {
+                Console.WriteLine($@"Xfer error: {rq.Name} -> {result.GetErrorMessage()}");
+            }
+            return result;
+        }
+
+
+        public class GetStateResultChannel
+        {
+            public long RecvLimit;
+            public long RecvPostion;
+            public long XmitLimit;
+            public long XmitPosition;
         }
         public class GetStateResult
         {
-            public List<GetStateResult_Channel> Channels;
+            public List<GetStateResultChannel> Channels;
         }
         public async Task<GetStateResult> GetState()
         {
@@ -189,33 +235,31 @@ namespace org.chabu.test.director.prot
                 Parameters = new Parameter[0]
             };
 
-            XferItem rs = await Network.SendRequestRetrieveResponse(rq);
-            GetStateResult result = new GetStateResult();
+            var rs = await XferAndCheckError(rq);
+            var result = new GetStateResult();
             var channelCount = rs.GetInt("channelCount");
-            result.Channels = new List<GetStateResult_Channel>( channelCount);
-            for (int i = 0; i < channelCount; i++)
+            result.Channels = new List<GetStateResultChannel>( channelCount);
+            for (var i = 0; i < channelCount; i++)
             {
-                result.Channels[i] = new GetStateResult_Channel
+                result.Channels.Add( new GetStateResultChannel
                 {
-                    recvLimit = rs.GetInt($@"channels/{i}/recvLimit"),
-                    recvPostion = rs.GetInt($@"channels/{i}/recvPostion"),
-                    xmitLimit = rs.GetInt($@"channels/{i}/xmitLimit"),
-                    xmitPosition  = rs.GetInt($@"channels/{i}/xmitPosition")
-                };
-                
-
+                    RecvLimit = rs.GetInt($@"channel/{i}/recvLimit"),
+                    RecvPostion = rs.GetInt($@"channel/{i}/recvPosition"),
+                    XmitLimit = rs.GetInt($@"channel/{i}/xmitLimit"),
+                    XmitPosition  = rs.GetInt($@"channel/{i}/xmitPosition")
+                });
             }
             return result;
         }
         public async Task ChannelReset(int channel)
         {
-            _log.Add($@"[{_host}] ChannelReset {channel} not yet implemented!!!" );
+            log.Add($@"[{Host}] ChannelReset {channel} not yet implemented!!!" );
             await Task.Delay(20);
 
         }
         public async Task<int> Ping()
         {
-            _log.Add($@"[{_host}] Ping  not yet implemented!!!" );
+            log.Add($@"[{Host}] Ping  not yet implemented!!!" );
             await Task.Delay(20);
             return 20;
         }
@@ -223,6 +267,11 @@ namespace org.chabu.test.director.prot
         public async Task ConnectCtrl()
         {
             await Network.ConnectAsync(HostName);
+
+        }
+        public void DisconnectCtrl()
+        {
+            Network.Disconnect();
 
         }
         public async Task Connect(string hostName )
@@ -234,7 +283,7 @@ namespace org.chabu.test.director.prot
             var portForCtrl = Convert.ToInt32( hostName.Substring(idx+1));
             var portForChabu = portForCtrl + 1;
 
-            _log.Add($@"[{_host}] Connect" );
+            log.Add($@"[{Host}] Connect" );
             var rq = new XferItem
             {
                 Category = Category.REQ,
@@ -247,7 +296,7 @@ namespace org.chabu.test.director.prot
                 }
             };
 
-            await Network.SendRequestRetrieveResponse(rq);
+            await XferAndCheckError(rq);
 
         }
     }

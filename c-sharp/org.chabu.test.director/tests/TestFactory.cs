@@ -11,7 +11,7 @@ namespace org.chabu.test.director.tests
     {
         public List<ITest> GetList()
         {
-            var tests = new List<ITest> {new Bandwidth(), new Priorities()};
+            var tests = new List<ITest> {new Bandwidth(), new Priorities(), new Reconnect()};
             return tests;
         }
     }

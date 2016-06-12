@@ -32,35 +32,62 @@ namespace org.chabu.test.director.prot
 
         public string GetString(string path)
         {
-            var pv = FindParameterValue(path);
+            var pv = FindParameterValue(path, true);
             return pv.Value;
+        }
+
+        public int GetInt(string path, int defValue)
+        {
+            var pv = FindParameterValue(path, false);
+            if( pv == null ) return defValue;
+            return pv.ValueAsInt();
         }
 
         public int GetInt(string path)
         {
-            var pv = FindParameterValue(path);
+            var pv = FindParameterValue(path, true);
             return pv.ValueAsInt();
         }
 
         public double GetDouble(string path)
         {
-            var pv = FindParameterValue(path);
+            var pv = FindParameterValue(path, true);
             return pv.ValueAsDouble();
         }
 
-        private ParameterValue FindParameterValue(string path)
+        public bool IsError()
+        {
+            return GetInt("IsError", 0) != 0;
+        }
+
+        public string GetErrorMessage()
+        {
+            return GetString("Message");
+        }
+
+        private ParameterValue FindParameterValue(string path, bool throwOnNotFound)
         {
             var parts = path.Split('/');
-            var par = FindParameter(Parameters, parts, 0);
-            if (par == null) throw new KeyNotFoundException(path);
+            var par = FindParameter(Parameters, parts, 0, throwOnNotFound);
+            if (par == null)
+            {
+                if (throwOnNotFound)
+                {
+                    throw new KeyNotFoundException(path);
+                }
+                else
+                {
+                    return null;
+                }
+            }
             var pv = (ParameterValue)par;
             return pv;
         }
 
-        private static Parameter FindParameter(Parameter[] par, string[] pathParts, int pathIndex)
+        private static Parameter FindParameter(Parameter[] par, string[] pathParts, int pathIndex, bool throwOnNotFound)
         {
             var part = pathParts[pathIndex];
-            Console.WriteLine(part);
+            //Console.WriteLine(part);
             foreach (var t in par)
             {
                 if (!t.Name.Equals(part)) continue;
@@ -70,12 +97,18 @@ namespace org.chabu.test.director.prot
                 {
                     return t;
                 }
+
                 var pc = t as ParameterWithChilds;
-                if ( pc == null)
+                if (pc != null)
+                {
+                    return FindParameter(pc.Childs, pathParts, nextIndex, throwOnNotFound);
+                }
+
+                if (throwOnNotFound)
                 {
                     throw new KeyNotFoundException();
                 }
-                return FindParameter(pc.Childs, pathParts, nextIndex);
+                return null;
             }
             return null;
         }

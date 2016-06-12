@@ -8,21 +8,21 @@ using StructureMap;
 
 namespace org.chabu.test.director.tests
 {
-    public class Bandwidth : ITest
+    public class Reconnect : ITest
     {
         public string Name { get; }
         public string Description { get; }
 
-        public Bandwidth()
+        public Reconnect()
         {
             Name = this.GetType().Name;
-            Description = @"Test the bandwidth as an unidirectional and a bidirectional connection on a single channel";
+            Description = @"Several connect/close cycles";
         }
 
         public async Task Setup(TestNode tn)
         {
             var res = await tn.Setup(Constants.DirectorVersion);
-            Console.WriteLine($@"Setup: {res.ChabuProtocolVersion} {res.Implemenation}");
+            Console.WriteLine($@"Setup: {tn.Host} {res.ChabuProtocolVersion} {res.Implemenation}");
 
             await tn.BuilderStart(0x123, "BW", 10020, 3);
             await tn.BuilderAddChannel(0, 2);
@@ -44,17 +44,12 @@ namespace org.chabu.test.director.tests
                 Setup(hostB));
 
             await ctx.ConnectFrom(Host.A);
-
-            const int amount = 100 * 1024 * 1024;
-            await hostB.ChannelRecv(0, amount);
-            await hostA.ChannelXmit(0, amount);
-
-            await ctx.Pause(5000);
-
+            await ctx.Pause(100);
             await ctx.HostB.ExpectClose();
             await ctx.HostA.Close();
-            await ctx.Pause(100);
+            await ctx.Pause(300);
             await ctx.HostB.EnsureClosed();
+
 
         }
     }

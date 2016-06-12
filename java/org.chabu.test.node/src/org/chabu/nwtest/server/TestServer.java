@@ -116,11 +116,21 @@ public class TestServer implements TestServerPort {
                 }
 				else {
 					AConnection cons = (AConnection) key.attachment();
-					if( key.isWritable()/* && !cons.hasWriteReq()*/ ){
-						cons.resetWriteReq();
-					}
 					if( key.channel().isOpen() ){
-						cons.accept( key );
+						try{
+							if( key.isWritable()/* && !cons.hasWriteReq()*/ ){
+								cons.resetWriteReq();
+							}
+							cons.accept( key );
+						}
+						catch( IOException e ){
+							e.printStackTrace();
+							key.channel().register( selector, 0 );
+							key.channel().close();
+							key.attach(null);
+							key.cancel();
+							System.out.println("Removing key from server");
+						}
 					}
 				}
 			}
@@ -154,7 +164,8 @@ public class TestServer implements TestServerPort {
 
 	public void close() {
 		try {
-			selector.close();
+			testConnection.channel.close();
+			testConnection = null;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

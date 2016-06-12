@@ -29,7 +29,7 @@ class ControlConnection extends AConnection {
 	Chabu chabu;
 	private ArrayList<TestChannelUser> chabuChannelUsers = new ArrayList<>( 20 );
 	ByteBuffer recvBuffer = ByteBuffer.allocate(10000);
-	ByteBuffer xmitBuffer = ByteBuffer.allocate(1000);
+	ByteBuffer xmitBuffer = ByteBuffer.allocate(10000);
 	ChabuBuilder builder;
 	String firstError = null;
 	private TestServerPort testServer;
@@ -50,15 +50,19 @@ class ControlConnection extends AConnection {
 	}
 
 	public void accept(SelectionKey t) throws Exception {
-		try{
+//		try{
 			if( !t.isValid() ){
 
 			}
 			if( t.isReadable() ){
 				recvBuffer.compact();
-				channel.read(recvBuffer);
+				int readCount = channel.read(recvBuffer);
 				recvBuffer.flip();
 				//System.out.printf("channel.read: %s%n", recvBuffer);
+				if( readCount < 0 ){
+					System.out.println("end of stream in control connection");
+					throw new IOException();
+				}
 			}
 
 			try{
@@ -99,10 +103,10 @@ class ControlConnection extends AConnection {
 				t.interestOps( t.interestOps() & ~SelectionKey.OP_WRITE );
 			}
 
-		}
-		catch( IOException e ){
-			throw new RuntimeException(e);
-		}
+//		}
+//		catch( IOException e ){
+//			throw new RuntimeException(e);
+//		}
 	}
 
 	private String getRequest() {
@@ -248,7 +252,6 @@ class ControlConnection extends AConnection {
 	}
 
 	private XferItem chabuGetState() {
-		System.out.printf("chabuGetState()\n");
 		int channelCount = chabu.getChannelCount();
 		Parameter[] channelInfo = new Parameter[ channelCount ];
 		for( int channelId = 0; channelId < chabu.getChannelCount(); channelId++ ){

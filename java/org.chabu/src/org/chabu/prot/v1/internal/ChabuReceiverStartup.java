@@ -25,17 +25,17 @@ public class ChabuReceiverStartup extends ChabuReceiver {
 //		Utils.ensure( activated, ChabuErrorCode.NOT_ACTIVATED, "While receiving the SETUP block, org.chabu was not activated." );
 
 		String pn = getRecvString(8);
-		if( !Constants.PROTOCOL_NAME.equals(pn) ) {
-			localAbortMessage.setPending( ChabuErrorCode.SETUP_REMOTE_CHABU_NAME.getCode(), 
-					String.format("Chabu protocol name mismatch. Expected %s, received %d", Constants.PROTOCOL_NAME, pn ));
-			return;
-		}
-		
 		int pv = recvBuf.getInt();
-		
 		int rs = recvBuf.getInt();
 		int av = recvBuf.getInt();
 		String an = getRecvString(56);
+
+		if( !Constants.PROTOCOL_NAME.equals(pn) ) {
+			localAbortMessage.setPending( ChabuErrorCode.SETUP_REMOTE_CHABU_NAME.getCode(), 
+					String.format("Chabu protocol name mismatch. Expected %s, received %s", Constants.PROTOCOL_NAME, pn ));
+			return;
+		}
+		
 
 		ChabuSetupInfo info = new ChabuSetupInfo( rs, av, an );
 

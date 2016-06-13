@@ -52,7 +52,8 @@ public enum ChabuErrorCode {
 	PROTOCOL_ACCEPT_TWICE                ( 50, 14 ),
 	PROTOCOL_EXPECTED_SETUP              ( 50, 15 ),
 	PROTOCOL_CHANNEL_RECV_OVERFLOW       ( 50, 16 ),  
-	PROTOCOL_DATA_OVERFLOW               ( 50, 17),
+	PROTOCOL_DATA_OVERFLOW               ( 50, 17 ),
+	PROTOCOL_ACCEPT_WITHOUT_SETUP        ( 50, 18 ),
 	
 	REMOTE_ABORT                         (100), 
 

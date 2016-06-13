@@ -113,4 +113,8 @@ public class Setup {
 		return recvAccepted == RecvState.RECVED;
 	}
 
+	public ChabuSetupInfo getInfoRemote() {
+		return infoRemote;
+	}
+
 }

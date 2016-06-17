@@ -1,36 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using StructureMap;
+﻿using System.Threading.Tasks;
 
 namespace org.chabu.test.director.prot
 {
-    class TestRunner 
+    public class TestRunner 
     {
-        private readonly ITest _test;
-        private readonly TestCtx _ctx;
-        private readonly string _hostA;
-        private readonly string _hostB;
+        private readonly ITest test;
+        private readonly TestCtx ctx;
 
-        public TestRunner(ITest test, TestCtx ctx, string hostA, string hostB )
+        public TestRunner(ITest test, TestCtx ctx )
         {
-            _test = test;
-            _ctx = ctx;
-            _hostA = hostA;
-            _hostB = hostB;
+            this.test = test;
+            this.ctx = ctx;
         }
 
         public async Task Run()
         {
 
-            await Task.WhenAll(_ctx.HostA.ConnectCtrl(), _ctx.HostB.ConnectCtrl());
+            await Task.WhenAll(ctx.HostA.ConnectCtrl(), ctx.HostB.ConnectCtrl());
 
-            await _test.Run( _ctx );
+            await test.Run( ctx );
 
-            _ctx.HostA.DisconnectCtrl();
-            _ctx.HostB.DisconnectCtrl();
+            ctx.HostA.DisconnectCtrl();
+            ctx.HostB.DisconnectCtrl();
         }
     }
 

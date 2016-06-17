@@ -5,23 +5,6 @@ using org.chabu.test.director.gui;
 
 namespace org.chabu.test.director.prot
 {
-    public enum Host
-    {
-        A, B
-    }
-
-    public enum Implemenation
-    {
-        // ReSharper disable once InconsistentNaming
-        Java, CSharp, C, VHDL
-    }
-
-    public struct SetupResult
-    {
-        public Implemenation Implemenation;
-        public string ChabuProtocolVersion;
-    }
-
     public class TestNode
     {
         public string HostName { get; set; }

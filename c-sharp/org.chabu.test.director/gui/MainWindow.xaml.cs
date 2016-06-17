@@ -1,28 +1,29 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Net;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Documents;
 using org.chabu.test.director.prot;
 using org.chabu.test.director.Properties;
 using org.chabu.test.director.tests;
-using StructureMap;
+using OxyPlot;
+using OxyPlot.Series;
 
 namespace org.chabu.test.director.gui
 {
+
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
-        private readonly ObservableCollection<ITest> _tests = new ObservableCollection<ITest>();
-        private readonly ILogContainer _logContainer;
+        private readonly ObservableCollection<ITest> tests = new ObservableCollection<ITest>();
+        private readonly ILogContainer logContainer;
 
         public MainWindow(ILogContainer logContainer)
         {
-            _logContainer = logContainer;
-            _logContainer.Updated += LoggingUpdated;
+            this.logContainer = logContainer;
+            this.logContainer.Updated += LoggingUpdated;
             InitializeComponent();
             MenuMru.MenuClick += (s, e) => FileOpenCore(e.Filepath);
 
@@ -30,13 +31,13 @@ namespace org.chabu.test.director.gui
             var testFactory = new TestFactory();
             foreach (var test in testFactory.GetList())
             {
-                _tests.Add(test);
+                tests.Add(test);
                 if (test.Name.Equals(Settings.Default.SelectedTest))
                 {
                     selectedTest = test;
                 }
             }
-            CmbTests.DataContext = _tests;
+            CmbTests.DataContext = tests;
 
             if (selectedTest != null)
             {
@@ -49,18 +50,23 @@ namespace org.chabu.test.director.gui
                 CmbTests.IsDropDownOpen = true;
                 BtnStart.IsEnabled = false;
             }
-
-
+            var lineSerie = new StairStepSeries()
+            {
+                Smooth = true, MarkerType = MarkerType.Diamond
+            };
+            lineSerie.Points.Add(new DataPoint(0.4, 4));
+            lineSerie.Points.Add(new DataPoint(10, 13));
+            lineSerie.Points.Add(new DataPoint(20, 15));
+            lineSerie.Points.Add(new DataPoint(30, 16));
+            lineSerie.Points.Add(new DataPoint(40, 12));
+            lineSerie.Points.Add(new DataPoint(50, 12));
+            var model = new PlotModel();
+            model.Series.Add(lineSerie);
+            Plot.Model = model;
         }
-
         private void FileOpenCore(string filepath)
         {
             MessageBox.Show(filepath);
-        }
-
-        private void MenuItem_Click(object sender, RoutedEventArgs e)
-        {
-
         }
 
         private void ConfigureChannel_Click(object sender, RoutedEventArgs e)
@@ -120,7 +126,7 @@ namespace org.chabu.test.director.gui
 
         private void MenuLogClear_Click(object sender, RoutedEventArgs e)
         {
-            _logContainer.Clear();
+            logContainer.Clear();
         }
 
         private async void ButtonStart(object sender, RoutedEventArgs e)
@@ -128,11 +134,11 @@ namespace org.chabu.test.director.gui
             BtnStart.IsEnabled = false;
             try
             {
-                _logContainer.Add(@"cmbTests.SelectedItem : {0}", CmbTests.SelectedItem);
-                _logContainer.Add(@"cmbTests.SelectedValue: {0}", CmbTests.SelectedValue);
-                var ctx = new TestCtx(_logContainer, Settings.Default.HostA, Settings.Default.HostB );
+                logContainer.Add(@"cmbTests.SelectedItem : {0}", CmbTests.SelectedItem);
+                logContainer.Add(@"cmbTests.SelectedValue: {0}", CmbTests.SelectedValue);
+                var ctx = new TestCtx(logContainer, Settings.Default.HostA, Settings.Default.HostB );
                 var test = (ITest)CmbTests.SelectedItem;
-                var runner = new TestRunner(test, ctx, Settings.Default.HostA, Settings.Default.HostB );
+                var runner = new TestRunner(test, ctx );
                 await runner.Run();
             }
             finally
@@ -145,7 +151,7 @@ namespace org.chabu.test.director.gui
         {
             var doc = new FlowDocument();
             TxtLogging.Document = doc;
-            doc.Blocks.Add( new Paragraph(new Run( _logContainer.GetText() )));
+            doc.Blocks.Add( new Paragraph(new Run( logContainer.GetText() )));
             TxtLogging.ScrollToEnd();
         }
 
@@ -171,18 +177,16 @@ namespace org.chabu.test.director.gui
 
         private void LogHostSettings()
         {
-            _logContainer.Add("HostA: {0} HostB: {1}", Settings.Default.HostA, Settings.Default.HostB);
+            logContainer.Add("HostA: {0} HostB: {1}", Settings.Default.HostA, Settings.Default.HostB);
         }
 
         private void CmbTests_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
             var selectedTest = (ITest)CmbTests.SelectedItem;
-            if (selectedTest != null)
-            {
-                Settings.Default.SelectedTest = selectedTest.Name;
-                BtnStart.IsEnabled = true;
-                Settings.Default.Save();
-            }
+            if (selectedTest == null) return;
+            Settings.Default.SelectedTest = selectedTest.Name;
+            BtnStart.IsEnabled = true;
+            Settings.Default.Save();
         }
     }
 }

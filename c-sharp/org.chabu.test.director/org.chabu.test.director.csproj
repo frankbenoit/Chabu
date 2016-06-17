@@ -41,6 +41,18 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="Microsoft.VisualStudio.QualityTools.UnitTestFramework, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="OxyPlot, Version=1.0.0.0, Culture=neutral, PublicKeyToken=638079a8f0bd61e9, processorArchitecture=MSIL">
+      <HintPath>..\packages\OxyPlot.Core.1.0.0-unstable2100\lib\net45\OxyPlot.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="OxyPlot.Wpf, Version=1.0.0.0, Culture=neutral, PublicKeyToken=75e952ba404cdbb0, processorArchitecture=MSIL">
+      <HintPath>..\packages\OxyPlot.Wpf.1.0.0-unstable2100\lib\net45\OxyPlot.Wpf.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="OxyPlot.Xps, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\OxyPlot.Wpf.1.0.0-unstable2100\lib\net45\OxyPlot.Xps.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="StructureMap, Version=4.2.0.402, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\structuremap.4.2.0.402\lib\net40\StructureMap.dll</HintPath>
       <Private>True</Private>
@@ -81,6 +93,17 @@
     <Compile Include="gui\ILogContainer.cs" />
     <Compile Include="gui\LogContainer.cs" />
     <Compile Include="gui\RecentFileList.cs" />
+    <Compile Include="prot\Category.cs" />
+    <Compile Include="prot\ChannelState.cs" />
+    <Compile Include="prot\Host.cs" />
+    <Compile Include="prot\Implemenation.cs" />
+    <Compile Include="prot\Parameter.cs" />
+    <Compile Include="prot\ParameterValue.cs" />
+    <Compile Include="prot\ParameterWithChilds.cs" />
+    <Compile Include="prot\SetupResult.cs" />
+    <Compile Include="prot\Trace.cs" />
+    <Compile Include="prot\TraceItem.cs" />
+    <Compile Include="prot\TraceItemChannel.cs" />
     <Compile Include="prot\XferItem.cs" />
     <Compile Include="prot\XferItemTest.cs" />
     <Compile Include="prot\NwClient.cs" />
@@ -143,6 +166,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="ClassDiagram1.cd" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

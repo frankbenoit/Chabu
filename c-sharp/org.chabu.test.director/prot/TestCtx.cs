@@ -7,52 +7,6 @@ using org.chabu.test.director.gui;
 
 namespace org.chabu.test.director.prot
 {
-    public class TraceItem
-    {
-        public Host Host { get; set; }
-        public long Time { get; set; }
-    }
-
-    public class TraceItemChannel : TraceItem
-    {
-        public List<TestNode.GetStateResultChannel> Channels { get; set; }
-    }
-
-    public enum EventType
-    {
-            
-    }
-
-    public class TraceItemEvent : TraceItem
-    {
-
-    }
-
-    public class Trace
-    {
-        private readonly List<TraceItem> traceItems = new List<TraceItem>(100);
-
-        public TraceItemChannel GetLastTraceItemChannelFor(Host host, Func<TraceItemChannel> defaultValue)
-        {
-            var idx = traceItems.Count;
-            while (idx > 0)
-            {
-                idx--;
-                var item = traceItems[idx];
-                var channelItem = item as TraceItemChannel;
-                if (channelItem != null && channelItem.Host == host)
-                {
-                    return channelItem;
-                }
-            }
-            return defaultValue?.Invoke();
-        }
-
-        public void Add(TraceItem item)
-        {
-            traceItems.Add(item);
-        }
-    }
 
     public class TestCtx
     {
@@ -121,25 +75,38 @@ namespace org.chabu.test.director.prot
             stopwatch.Stop();
         }
 
+        private void AddTraceItem(Host host, TestNode.GetStateResult result)
+        {
+            var item = new TraceItemChannel
+            {
+                Time = Stopwatch.GetTimestamp(),
+                Host = host
+                //Channels = results[0].Channels
+            };
+            var channelId = 0;
+            foreach (var ch in result.Channels)
+            {
+                item.Channels.Add(new ChannelState
+                {
+                    ChannelId = channelId,
+                    RecvPosition = ch.RecvPostion,
+                    XmitPosition = ch.XmitPosition,
+                    RecvLimit = ch.RecvLimit,
+                    XmitLimit = ch.XmitLimit,
+                });
+                channelId++;
+            }
+            Trace.Add(item);
+
+        }
         private async Task GetAndTraceStates()
         {
             var results = await Task.WhenAll(HostA.GetState(), HostB.GetState());
-            Trace.Add( new TraceItemChannel
-            {
-                Time = Stopwatch.GetTimestamp(),
-                Host = Host.A,
-                Channels = results[0].Channels
-            });
-            Trace.Add( new TraceItemChannel
-            {
-                Time = Stopwatch.GetTimestamp(),
-                Host = Host.B,
-                Channels = results[1].Channels
-            });
-
+            AddTraceItem( Host.A, results[0] );
+            AddTraceItem( Host.B, results[1] );
             var cha = Trace.GetLastTraceItemChannelFor(Host.A, null)?.Channels[0];
             var chb = Trace.GetLastTraceItemChannelFor(Host.B, null)?.Channels[0];
-            Console.WriteLine($@"Stats {cha?.RecvPostion} {chb?.RecvPostion}");
+            Console.WriteLine($@"Stats {cha?.RecvPosition} {chb?.RecvPosition}");
         }
         public async Task ConnectFrom(Host host)
         {

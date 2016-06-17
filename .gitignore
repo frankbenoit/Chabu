@@ -19,3 +19,7 @@ hs_err_pid*
 /c-sharp/ChabuCSTest/bin
 /c-sharp/ChabuCSTest/obj
 /c-sharp/org.chabu.test.director/obj
+/c-sharp/Debug
+/c-sharp/ipch
+/c-sharp/packages
+/c-sharp/TestResults

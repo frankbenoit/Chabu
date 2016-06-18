@@ -7,6 +7,9 @@ using org.chabu.test.director.Properties;
 using org.chabu.test.director.tests;
 using OxyPlot;
 using OxyPlot.Series;
+using System.Collections.Generic;
+using System.Diagnostics;
+using Trace = org.chabu.test.director.prot.Trace;
 
 namespace org.chabu.test.director.gui
 {
@@ -140,11 +143,60 @@ namespace org.chabu.test.director.gui
                 var test = (ITest)CmbTests.SelectedItem;
                 var runner = new TestRunner(test, ctx );
                 await runner.Run();
+
+                UpdateTrace(runner.GetTrace());
             }
             finally
             {
                 BtnStart.IsEnabled = true;
             }
+        }
+
+        private static IEnumerable<StairStepSeries> GetLineSeriesForHost(Trace trace, Host host)
+        {
+            var res = new List<StairStepSeries>(trace.ChannelCount*2);
+
+            for (var i = 0; i < trace.ChannelCount*2; i++)
+            {
+                res.Add( new StairStepSeries()
+                {
+                    Smooth = true,
+                    MarkerType = MarkerType.Diamond
+                });
+            }
+
+            foreach (var itemChannel in trace.GetLastTraceItemChannelsFor(host))
+            {
+                for (var i = 0; i < trace.ChannelCount; i++)
+                {
+                    if (itemChannel.PreviousTime == long.MinValue)
+                    {
+                        continue;
+                    }
+                    var channel = itemChannel.Channels[i];
+                    var time0 = (itemChannel.PreviousTime - trace.FirstTime) / (double)Stopwatch.Frequency;
+                    var time1 = (itemChannel.Time - trace.FirstTime) / (double)Stopwatch.Frequency;
+                    res[i*2].Points.Add(new DataPoint(time0, channel.RecvPositionSpeedKbps));
+                    res[i*2].Points.Add(new DataPoint(time1, channel.RecvPositionSpeedKbps));
+                    res[i*2+1].Points.Add(new DataPoint(time0, channel.XmitPositionSpeedKbps));
+                    res[i*2+1].Points.Add(new DataPoint(time1, channel.XmitPositionSpeedKbps));
+                    Console.WriteLine($@"{host}ch[{channel}]: {time0} {time1} -> {channel.RecvPositionSpeedKbps}");
+
+                }
+            }
+            return res;
+        }
+        private void UpdateTrace(Trace trace)
+        {
+            var lineSeries = new List<StairStepSeries>(trace.ChannelCount*2);
+            lineSeries.AddRange( GetLineSeriesForHost(trace, Host.A));
+            lineSeries.AddRange( GetLineSeriesForHost(trace, Host.B));
+            var model = new PlotModel();
+            foreach (var serie in lineSeries)
+            {
+                model.Series.Add(serie);
+            }
+            Plot.Model = model;
         }
 
         private void LoggingUpdated(object sender, EventArgs args)

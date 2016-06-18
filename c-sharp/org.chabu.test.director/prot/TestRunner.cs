@@ -23,6 +23,11 @@ namespace org.chabu.test.director.prot
             ctx.HostA.DisconnectCtrl();
             ctx.HostB.DisconnectCtrl();
         }
+
+        public Trace GetTrace()
+        {
+            return ctx.Trace;
+        }
     }
 
 

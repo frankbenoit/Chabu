@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace org.chabu.test.director.prot
 {
@@ -10,14 +11,26 @@ namespace org.chabu.test.director.prot
         private TraceItemChannel lastTraceItemChannelB;
 
         public int ModifyCount { get; private set; } = 0;
+        public int ChannelCount { get; private set; } = 0;
+        public long FirstTime { get; private set; } = long.MinValue;
 
         public void Add(TraceItem item)
         {
             ModifyCount++;
             traceItems.Add(item);
 
+            if (FirstTime == long.MinValue)
+            {
+                FirstTime = item.Time;
+            }
+
             var chItem = item as TraceItemChannel;
             if (chItem == null) return;
+
+            if (ChannelCount == 0)
+            {
+                ChannelCount = chItem.Channels.Count;
+            }
 
             if (item.Host == Host.A)
             {
@@ -47,5 +60,13 @@ namespace org.chabu.test.director.prot
             return defaultValue?.Invoke();
         }
 
+        public List<TraceItemChannel> GetLastTraceItemChannelsFor(Host host)
+        {
+            var res = traceItems
+                .Where(x => x.Host == host)
+                .OfType<TraceItemChannel>( )
+                .ToList();
+            return res;
+        }
     }
 }

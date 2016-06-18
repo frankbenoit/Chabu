@@ -1,3 +1,5 @@
+using System;
+
 namespace org.chabu.test.director.prot
 {
     public class ChannelState
@@ -13,12 +15,18 @@ namespace org.chabu.test.director.prot
         public int XmitLimitSpeedKbps;
         public int XmitPositionSpeedKbps;
 
-        public void UpdateDeltas(ChannelState oldState, int deltaMillis )
+        private static int Kbps(long deltaCount, double deltaSeconds)
         {
-            RecvPositionSpeedKbps = (int)(RecvPosition - oldState.RecvPosition) * 1000 / deltaMillis;
-            XmitPositionSpeedKbps = (int)(XmitPosition - oldState.XmitPosition) * 1000 / deltaMillis;
-            RecvLimitSpeedKbps = (int)(RecvLimit - oldState.RecvLimit) * 1000 / deltaMillis;
-            XmitLimitSpeedKbps = (int)(XmitLimit - oldState.XmitLimit) * 1000 / deltaMillis;
+            return (int) Math.Round(deltaCount/deltaSeconds);
+        }
+
+        public void UpdateDeltas(ChannelState oldState, double deltaSeconds )
+        {
+            RecvPositionSpeedKbps = Kbps(RecvPosition - oldState.RecvPosition, deltaSeconds);
+            Console.WriteLine($@"kbps{RecvPositionSpeedKbps} {RecvPosition} {oldState.RecvPosition} {deltaSeconds}");
+            XmitPositionSpeedKbps = Kbps(XmitPosition - oldState.XmitPosition, deltaSeconds);
+            RecvLimitSpeedKbps = Kbps(RecvLimit - oldState.RecvLimit, deltaSeconds);
+            XmitLimitSpeedKbps = Kbps(XmitLimit - oldState.XmitLimit, deltaSeconds);
         }
     }
 }

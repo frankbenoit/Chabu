@@ -114,13 +114,15 @@
       <DependentUpon>TestNodeSetup.xaml</DependentUpon>
     </Compile>
     <Compile Include="SmTest.cs" />
+    <Compile Include="tests\BandwidthBiDir.cs" />
     <Compile Include="tests\Reconnect.cs" />
     <Compile Include="tests\Priorities.cs" />
-    <Compile Include="tests\Bandwidth.cs" />
+    <Compile Include="tests\BandwidthUniDir.cs" />
     <Compile Include="prot\Constants.cs" />
     <Compile Include="prot\ITest.cs" />
     <Compile Include="prot\TestCtx.cs" />
     <Compile Include="tests\TestFactory.cs" />
+    <Compile Include="tests\Utils.cs" />
     <Page Include="gui\ConfigureChannels.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>

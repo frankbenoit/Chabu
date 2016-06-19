@@ -36,7 +36,7 @@ namespace org.chabu.test.director.prot
         {
             await Pause(ms, _ => false);
         }
-        public async Task Pause(int ms, Func<TestCtx, bool> cancel )
+        public async Task<double> Pause(int ms, Func<TestCtx, bool> cancel )
         {
             log.Add(@"Pause {0}", ms);
             var isCancelled = false;
@@ -73,6 +73,7 @@ namespace org.chabu.test.director.prot
             }
 
             stopwatch.Stop();
+            return stopwatch.ElapsedMilliseconds;
         }
 
         private void AddTraceItem(Host host, TestNode.GetStateResult result)
@@ -116,6 +117,11 @@ namespace org.chabu.test.director.prot
             await localNode.Connect( remoteNode.HostName );
             await Task.Delay(200);
 
+        }
+
+        public void Log(string s)
+        {
+            log.Add(@"{0}", s);
         }
     }
 }

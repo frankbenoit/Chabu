@@ -38,6 +38,12 @@ namespace org.chabu.test.director.prot
             return pv.ValueAsInt();
         }
 
+        public long GetLong(string path)
+        {
+            var pv = FindParameterValue(path, true);
+            return pv.ValueAsLong();
+        }
+
         public double GetDouble(string path)
         {
             var pv = FindParameterValue(path, true);

@@ -14,7 +14,6 @@ using Trace = org.chabu.test.director.prot.Trace;
 namespace org.chabu.test.director.gui
 {
 
-
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -158,10 +157,13 @@ namespace org.chabu.test.director.gui
 
             for (var i = 0; i < trace.ChannelCount*2; i++)
             {
+                var channelId = i/2;
+                var type = i%2 == 0 ? "Recv" : "Xmit";
                 res.Add( new StairStepSeries()
                 {
                     Smooth = true,
-                    MarkerType = MarkerType.Diamond
+                    MarkerType = MarkerType.Diamond,
+                    Title = $@"{host}[{channelId}] {type}"
                 });
             }
 
@@ -197,6 +199,7 @@ namespace org.chabu.test.director.gui
                 model.Series.Add(serie);
             }
             Plot.Model = model;
+            //model.Series[1].IsVisible
         }
 
         private void LoggingUpdated(object sender, EventArgs args)

@@ -8,15 +8,17 @@ using StructureMap;
 
 namespace org.chabu.test.director.tests
 {
-    public class Bandwidth : ITest
+    public class BandwidthBiDir : ITest
     {
+        private readonly int amount;
         public string Name { get; }
         public string Description { get; }
 
-        public Bandwidth()
+        public BandwidthBiDir( int amount )
         {
-            Name = this.GetType().Name;
-            Description = @"Test the bandwidth as an unidirectional and a bidirectional connection on a single channel";
+            this.amount = amount;
+            Name = this.GetType().Name + $@" {Utils.GetSizeAsString(amount)}";
+            Description = @"Test the bandwidth as a bidirectional connection on a single channel";
         }
 
         public async Task Setup(TestNode tn)
@@ -45,19 +47,31 @@ namespace org.chabu.test.director.tests
 
             await ctx.ConnectFrom(Host.A);
 
-            const int amount = 100 * 1024 * 1024;
             await hostB.ChannelRecv(0, amount);
             await hostA.ChannelXmit(0, amount);
+            await hostA.ChannelRecv(0, amount);
+            await hostB.ChannelXmit(0, amount);
 
-            await ctx.Pause(5000);
+            var durationMs = await ctx.Pause(50000, _ => 
+                _.Trace.GetLastTraceItemChannelFor(Host.B, null)?.Channels[0]?.RecvPosition == amount && 
+                _.Trace.GetLastTraceItemChannelFor(Host.A, null)?.Channels[0]?.RecvPosition == amount);
 
+            var xmitted = ctx.Trace.GetLastTraceItemChannelFor(Host.B, null).Channels[0].RecvPosition;
+            var speedKbps = xmitted / durationMs * 1000;
+            var speedStr = Utils.GetSizeAsString((long)speedKbps);
+            var amountStr = Utils.GetSizeAsString(xmitted
+                );
+            ctx.Log($@"Overall duration {durationMs} ms, amount {amountStr}, speed: {speedStr}/s");
             await ctx.HostB.ExpectClose();
             await ctx.HostA.Close();
             await ctx.Pause(100);
             await ctx.HostB.EnsureClosed();
 
         }
+
+       
     }
+    
 }
 
 

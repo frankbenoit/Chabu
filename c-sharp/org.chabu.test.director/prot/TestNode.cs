@@ -226,10 +226,10 @@ namespace org.chabu.test.director.prot
             {
                 result.Channels.Add( new GetStateResultChannel
                 {
-                    RecvLimit = rs.GetInt($@"channel/{i}/recvLimit"),
-                    RecvPostion = rs.GetInt($@"channel/{i}/recvPosition"),
-                    XmitLimit = rs.GetInt($@"channel/{i}/xmitLimit"),
-                    XmitPosition  = rs.GetInt($@"channel/{i}/xmitPosition")
+                    RecvLimit = rs.GetLong($@"channel/{i}/recvLimit"),
+                    RecvPostion = rs.GetLong($@"channel/{i}/recvPosition"),
+                    XmitLimit = rs.GetLong($@"channel/{i}/xmitLimit"),
+                    XmitPosition  = rs.GetLong($@"channel/{i}/xmitPosition")
                 });
             }
             return result;

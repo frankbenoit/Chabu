@@ -31,6 +31,10 @@ namespace org.chabu.test.director.prot
         {
             return Convert.ToInt32(Value);
         }
+        public long ValueAsLong()
+        {
+            return Convert.ToInt64(Value);
+        }
         public double ValueAsDouble()
         {
             return Convert.ToDouble(Value);

@@ -11,7 +11,25 @@ namespace org.chabu.test.director.tests
     {
         public List<ITest> GetList()
         {
-            var tests = new List<ITest> {new Bandwidth(), new Priorities(), new Reconnect()};
+            var tests = new List<ITest>
+            {
+                new BandwidthUniDir( 100000 ),
+                new BandwidthUniDir( 1000000 ),
+                new BandwidthUniDir( 10000000 ),
+                new BandwidthUniDir( 100000000 ),
+                new BandwidthUniDir( 300000000 ),
+                new BandwidthUniDir( 700000000 ),
+                new BandwidthUniDir( 1000000000 ),
+                new BandwidthBiDir( 100000 ),
+                new BandwidthBiDir( 1000000 ),
+                new BandwidthBiDir( 10000000 ),
+                new BandwidthBiDir( 100000000 ),
+                new BandwidthBiDir( 300000000 ),
+                new BandwidthBiDir( 700000000 ),
+                new BandwidthBiDir( 1000000000 ),
+                new Priorities(),
+                new Reconnect()
+            };
             return tests;
         }
     }

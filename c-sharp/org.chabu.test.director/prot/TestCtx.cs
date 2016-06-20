@@ -52,8 +52,8 @@ namespace org.chabu.test.director.prot
                 {
                     break;
                 }
-
-                if (ms - stopwatch.ElapsedMilliseconds > pausingStepMs)
+                var remaining = ms - stopwatch.ElapsedMilliseconds;
+                if (remaining > pausingStepMs)
                 {
                     await Task.Delay(pausingStepMs);
                 }
@@ -107,7 +107,7 @@ namespace org.chabu.test.director.prot
             AddTraceItem( Host.B, results[1] );
             var cha = Trace.GetLastTraceItemChannelFor(Host.A, null)?.Channels[0];
             var chb = Trace.GetLastTraceItemChannelFor(Host.B, null)?.Channels[0];
-            Console.WriteLine($@"Stats {cha?.RecvPosition} {chb?.RecvPosition}");
+            Console.WriteLine($@"Stats a.r:{cha?.RecvPosition,12} a.x:{cha?.XmitPosition,12} b.r:{chb?.RecvPosition,12} b.x:{chb?.XmitPosition,12}");
         }
         public async Task ConnectFrom(Host host)
         {

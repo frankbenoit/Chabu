@@ -131,12 +131,12 @@ struct Chabu_Channel_Data;
 struct Chabu_Data;
 
 
-typedef void (__cdecl TChabu_AssertFunction     )( enum Chabu_ErrorCode code, void* userData, struct Chabu_Data*         chabuData, const char* file, int line, const char* fmt, ... );
-typedef void (__cdecl TChabu_UserCallback       )( void* userData, struct Chabu_Data*         chabuData, enum Chabu_Event         event );
-typedef void (__cdecl TChabu_ChannelUserCallback)( void* userData, struct Chabu_Channel_Data* chabuData, enum Chabu_Channel_Event event );
+typedef void (CALL_SPEC TChabu_AssertFunction     )( enum Chabu_ErrorCode code, void* userData, struct Chabu_Data*         chabuData, const char* file, int line, const char* fmt, ... );
+typedef void (CALL_SPEC TChabu_UserCallback       )( void* userData, struct Chabu_Data*         chabuData, enum Chabu_Event         event );
+typedef void (CALL_SPEC TChabu_ChannelUserCallback)( void* userData, struct Chabu_Channel_Data* chabuData, enum Chabu_Channel_Event event );
 
 struct Chabu_ConnectionInfo_Data {
-	uint16  receiveBufferSize;
+	uint32  receiveBufferSize;
 	uint32  applicationVersion;
 	uint8   applicationNameLength;
 	char    applicationName[Chabu_APPLICATION_NAME_SIZE_MAX];

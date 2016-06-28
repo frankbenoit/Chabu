@@ -21,14 +21,11 @@
 #define Chabu_CHANNEL_COUNT_MAX 8
 
 
-//#define Chabu_AssertPrintf(_cond, fmt, args... ) 								\
-//				fprintf(stderr, fmt, ##args ); 									\
-
 #define Chabu_AssertPrintf( _code, _cond, _fmt, ... ) 							\
 	do{ 																		\
 		if( !(_cond) ){															\
 				chabu->assertFunction( (_code), chabu->userData, chabu,			\
-				__FILE__, __LINE__, (_fmt), __VA_ARGS__ );						\
+				__FILE__, __LINE__, (_fmt), ##__VA_ARGS__ );					\
 				return;															\
 		} 																		\
 	}while(false)
@@ -38,7 +35,7 @@
 	do{ 																		\
 		if( !(_cond) ){															\
 				chabu->assertFunction( (_code), chabu->userData, chabu,			\
-				__FILE__, __LINE__, (_fmt), __VA_ARGS__ );						\
+				__FILE__, __LINE__, (_fmt), ##__VA_ARGS__ );					\
 				return 0;														\
 		} 																		\
 	}while(false)

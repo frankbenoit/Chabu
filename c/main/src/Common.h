@@ -21,12 +21,15 @@
 #    else
 #        define LIBRARY_API __declspec(dllimport)
 #    endif
-#elif
+#else
 #    define LIBRARY_API
 #    define CALL_SPEC
 #endif
 
-
+#ifndef __cplusplus
+# define true 1
+# define false 0
+#endif
 
 #define countof(_v) (sizeof(_v)/(sizeof(_v[0])))
 

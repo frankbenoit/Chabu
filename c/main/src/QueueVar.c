@@ -8,7 +8,7 @@
 #define AssertPrintf(_cond, fmt, ... ) 												\
 	do{ 																			\
 		if( !(_cond) ){																\
-			queue->assertFunction( queue, __FILE__, __LINE__, fmt, __VA_ARGS__ );	\
+			queue->assertFunction( queue, __FILE__, __LINE__, fmt, ##__VA_ARGS__ );	\
 			return;																	\
 		} 																			\
 	}while(false)
@@ -16,7 +16,7 @@
 #define AssertPrintf0(_cond, fmt, ... ) 											\
 	do{ 																			\
 		if( !(_cond) ){																\
-			queue->assertFunction( queue, __FILE__, __LINE__, fmt, __VA_ARGS__ );	\
+			queue->assertFunction( queue, __FILE__, __LINE__, fmt, ##__VA_ARGS__ );	\
 			return 0;																\
 		} 																			\
 	}while(false)

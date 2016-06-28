@@ -267,15 +267,15 @@ static struct Chabu_Channel_Data * calcNextXmitChannelArm( struct Chabu_Data* ch
  * Try to copy as much as possible into the buffer.
  * The amount of bytes copied is returned.
  */
-static int copyMemoryToBuffer( struct ByteBuffer_Data* trgBuf, void* srcData, int srcLength ){
-	int cpySz = trgBuf->limit - trgBuf->position;
-	if( cpySz > srcLength){
-		cpySz = srcLength;
-	}
-	memcpy( trgBuf->data + trgBuf->position, srcData, cpySz );
-	trgBuf->position += cpySz;
-	return cpySz;
-}
+//static int copyMemoryToBuffer( struct ByteBuffer_Data* trgBuf, void* srcData, int srcLength ){
+//	int cpySz = trgBuf->limit - trgBuf->position;
+//	if( cpySz > srcLength){
+//		cpySz = srcLength;
+//	}
+//	memcpy( trgBuf->data + trgBuf->position, srcData, cpySz );
+//	trgBuf->position += cpySz;
+//	return cpySz;
+//}
 static int copyBufferToBuffer( struct ByteBuffer_Data* trgBuf, struct ByteBuffer_Data* srcBuf ){
 	int cpySzTrg = trgBuf->limit - trgBuf->position;
 	int cpySzSrc = srcBuf->limit - srcBuf->position;
@@ -440,7 +440,6 @@ void Chabu_PutRecvData ( struct Chabu_Data* chabu, struct ByteBuffer_Data* recvD
 	Chabu_LOCK_DO_LOCK(chabu->lock);
 
 	Chabu_Assert( Chabu_ErrorCode_NOT_ACTIVATED, chabu->activated );
-	int idx = 0;
 
 	while( ByteBuffer_hasRemaining(recvData) ){
 

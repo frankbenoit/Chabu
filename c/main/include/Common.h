@@ -17,9 +17,9 @@
 #ifdef _WIN32
 #    define CALL_SPEC __cdecl
 #    ifdef _LIB
-#        define LIBRARY_API __declspec(dllexport)
+#        define LIBRARY_API __stdcall __declspec(dllexport)
 #    else
-#        define LIBRARY_API __declspec(dllimport)
+#        define LIBRARY_API __stdcall __declspec(dllimport)
 #    endif
 #else
 #    define LIBRARY_API
@@ -119,30 +119,6 @@ typedef unsigned long long time64;
 
 #define UNUSED(x) do { (void)(x); } while (0)
 
-enum TYPE_ID {
-	TYPE_ID_NULL,
-	TYPE_ID_bool,
-	TYPE_ID_uint8,
-	TYPE_ID_uint16,
-	TYPE_ID_uint32,
-	TYPE_ID_uint64,
-	TYPE_ID_int8,
-	TYPE_ID_int16,
-	TYPE_ID_int32,
-	TYPE_ID_int64,
-	TYPE_ID_variant,
-	TYPE_ID_Abool,
-	TYPE_ID_Auint8,
-	TYPE_ID_Auint16,
-	TYPE_ID_Auint32,
-	TYPE_ID_Auint64,
-	TYPE_ID_Aint8,
-	TYPE_ID_Aint16,
-	TYPE_ID_Aint32,
-	TYPE_ID_Aint64,
-	TYPE_ID_Avariant,
-};
-
 #define UINT16_HI(v) (uint8)(((uint16)(v))>>8)
 #define UINT16_LO(v) (uint8)(((uint16)(v)))
 #define UINT16_B0 UINT16_LO
@@ -239,99 +215,22 @@ typedef float       float32;
 typedef double      float64;
 typedef long double float80;
 
-typedef struct {
-	int  used;
+struct Buffer {
+	int capacity;
 	int  limit;
+	int  position;
 	uint8 * data;
-} Buffer;
-
-typedef struct {
-	bool * data;
-	int length;
-} Abool;
-typedef struct {
-	uint8 * data;
-	int length;
-} Auint8;
-typedef struct {
-	uint16 * data;
-	int length;
-} Auint16;
-typedef struct {
-	uint32 * data;
-	int length;
-} Auint32;
-typedef struct {
-	uint64 * data;
-	int length;
-} Auint64;
-typedef struct {
-	int8 * data;
-	int length;
-} Aint8;
-typedef struct {
-	int16 * data;
-	int length;
-} Aint16;
-typedef struct {
-	int32 * data;
-	int length;
-} Aint32;
-typedef struct {
-	int64 * data;
-	int length;
-} Aint64;
-
-extern Abool   buildAbool  ( bool  * ptr, uint32 length );
-extern Auint8  buildAuint8 ( uint8 * ptr, uint32 length );
-extern Auint16 buildAuint16( uint16* ptr, uint32 length );
-extern Auint32 buildAuint32( uint32* ptr, uint32 length );
-extern Auint64 buildAuint64( uint64* ptr, uint32 length );
-extern Aint8   buildAint8  ( int8  * ptr, uint32 length );
-extern Aint16  buildAint16 ( int16 * ptr, uint32 length );
-extern Aint32  buildAint32 ( int32 * ptr, uint32 length );
-extern Aint64  buildAint64 ( int64 * ptr, uint32 length );
-
-#define align8(v) (((v)+7)&~7)
-#define align4(v) (((v)+3)&~3)
-#define align2(v) (((v)+1)&~1)
-
-#define is_aligned_2(v) ((((int)(v))&1)==0)
-#define is_aligned_4(v) ((((int)(v))&3)==0)
-#define is_aligned_8(v) ((((int)(v))&7)==0)
-
-#define BufferInitNull( buf ) do{ (buf)->data=NULL; (buf)->used=0; (buf)->limit = 0; } while(false)
-#define BufferInit( buf, _d ) do{ (buf)->data=(_d); (buf)->used=0; (buf)->limit = sizeof(_d); } while(false)
-extern void BufferAppendData( Buffer* buf, uint8* data, int length);
-extern void BufferAppendU8( Buffer* buf, uint8 data);
-extern void BufferAppendU16( Buffer* buf, uint16 data);
-extern void BufferAppendU32( Buffer* buf, uint32 data);
-extern void BufferAppendU64( Buffer* buf, uint64 data);
-
-enum {
-	RC_OK,
-	RC_FATAL,
-	RC_OBJ,
-	RC_FNC,
-	RC_IMPL_MISSING,
-	RC_PARAM_VALUE,
-	RC_DATA_MISSING,
-	RC_TOO_MUCH_DATA,
-	RC_RUNTIME_STATE
 };
-//#define RC_OK             0
-//#define RC_FATAL          1
-//#define RC_OBJ            2
-//#define RC_FNC            3
-//#define RC_IMPL_MISSING   4
-//#define RC_PARAM_VALUE    5
-//#define RC_DATA_MISSING   6
-//#define RC_TOO_MUCH_DATA  7
-//#define RC_RUNTIME_STATE  8
 
-//#define Assert(c) Chabu_Assert(c)
-//#define AssertPrintf(c, fmt, arg... ) Chabu_AssertPrintf(c, fmt, ##args )
-//#define AssertPrintf(c, fmt, ... ) Chabu_AssertPrintf(c, fmt, __VA_ARGS__ )
+#define Common_AlignUp8(v) (((v)+7)&~7)
+#define Common_AlignUp4(v) (((v)+3)&~3)
+#define Common_AlignUp2(v) (((v)+1)&~1)
+
+#define Common_IsAligned2(v) ((((int)(v))&1)==0)
+#define Common_IsAligned4(v) ((((int)(v))&3)==0)
+#define Common_IsAligned8(v) ((((int)(v))&7)==0)
+
+#define BufferInit( buf, _d ) do{ (buf)->data=(_d); (buf)->used=0; (buf)->limit = sizeof(_d); } while(false)
 
 /** A compile time assertion check.
  *
@@ -363,17 +262,6 @@ enum {
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
 
-uint32 Common_Crc32ComputeBuf( uint32 crc32, const uint8 *buf, size_t bufLen );
-
-struct LinkedItem {
-	const void*               parent;
-	const struct LinkedItem*  nextSibling;
-};
-
-
-//extern pthread_mutex_t Common_global_mutex;
-//#define Common_CriticalEnter() do{ pthread_mutex_lock  (&Common_global_mutex); }while(false)
-//#define Common_CriticalLeave() do{ pthread_mutex_unlock(&Common_global_mutex); }while(false)
 
 extern void Common_Init();
 extern void Common_Exit();

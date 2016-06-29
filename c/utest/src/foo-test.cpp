@@ -7,6 +7,7 @@
 
 //#include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include <stdio.h>
 #include "fff.h"
 
 #define UNIT_TESTING

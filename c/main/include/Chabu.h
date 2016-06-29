@@ -32,7 +32,6 @@ extern "C" {
 
 #include "ChabuOpts.h"
 #include "Common.h"
-#include "ByteBuffer.h"
 
 #ifdef Chabu_USE_LOCK
 
@@ -73,6 +72,8 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_NOT_ACTIVATED = 3,
     Chabu_ErrorCode_IS_ACTIVATED = 4,
     Chabu_ErrorCode_ILLEGAL_ARGUMENT = 5,
+    Chabu_ErrorCode_CHABU_IS_NULL,
+    Chabu_ErrorCode_CHABU_IS_NOT_INITIALIZED,
     Chabu_ErrorCode_CONFIGURATION_PRIOCOUNT = 11,
     Chabu_ErrorCode_CONFIGURATION_NETWORK = 12,
     Chabu_ErrorCode_CONFIGURATION_CH_ID = 13,
@@ -100,6 +101,7 @@ enum Chabu_ErrorCode {
 
 enum Chabu_Event {
 
+	Chabu_Event_InitChannels  = 0,
 	Chabu_Event_DataAvailable = 1,
 	Chabu_Event_CanTransmit   = 2,
 	Chabu_Event_Connecting    = 3,
@@ -120,26 +122,31 @@ enum Chabu_Event {
 
 };
 
-enum Chabu_Channel_Event {
-	Chabu_Channel_Event_Activated     = 1,
-	Chabu_Channel_Event_DataAvailable = 2,
-	Chabu_Channel_Event_PreTransmit   = 3,
-	Chabu_Channel_Event_Transmitted   = 4,
-};
-
 struct Chabu_Channel_Data;
 struct Chabu_Data;
 
 
-typedef void (CALL_SPEC TChabu_AssertFunction     )( enum Chabu_ErrorCode code, void* userData, struct Chabu_Data*         chabuData, const char* file, int line, const char* fmt, ... );
-typedef void (CALL_SPEC TChabu_UserCallback       )( void* userData, struct Chabu_Data*         chabuData, enum Chabu_Event         event );
-typedef void (CALL_SPEC TChabu_ChannelUserCallback)( void* userData, struct Chabu_Channel_Data* chabuData, enum Chabu_Channel_Event event );
+typedef void           (CALL_SPEC Chabu_ErrorFunction               )( void* userData, enum Chabu_ErrorCode code, const char* file, int line, const char* fmt, ... );
+typedef void           (CALL_SPEC Chabu_ConfigureChannels           )( void* userData );
+typedef void           (CALL_SPEC Chabu_NetworkRegisterWriteRequest )( void* userData );
+typedef int            (CALL_SPEC Chabu_NetworkRecvBuffer           )( void* userData, struct Buffer* buffer );
+typedef int            (CALL_SPEC Chabu_NetworkXmitBuffer           )( void* userData, struct Buffer* buffer );
+
+typedef struct Buffer* (CALL_SPEC Chabu_ChannelGetXmitBuffer)( void* userData );
+typedef void           (CALL_SPEC Chabu_ChannelXmitCompleted)( void* userData );
+typedef struct Buffer* (CALL_SPEC Chabu_ChannelGetRecvBuffer)( void* userData );
+typedef void           (CALL_SPEC Chabu_ChannelRecvCompleted)( void* userData );
 
 struct Chabu_ConnectionInfo_Data {
 	uint32  receiveBufferSize;
 	uint32  applicationVersion;
 	uint8   applicationNameLength;
 	char    applicationName[Chabu_APPLICATION_NAME_SIZE_MAX];
+};
+struct Chabu_Channel_Data;
+
+struct Chabu_Priority_Data {
+	struct Chabu_Channel_Data* firstChannelForPriority;
 };
 
 struct Chabu_Channel_Data {
@@ -149,7 +156,10 @@ struct Chabu_Channel_Data {
 	int                channelId;
 	int                priority;
 
-	TChabu_ChannelUserCallback * userCallback;
+	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
+	Chabu_ChannelXmitCompleted * userCallback_ChannelXmitCompleted;
+	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
+	Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted;
 	void                       * userData;
 
 	struct QueueVar* xmitQueue;
@@ -170,7 +180,7 @@ struct Chabu_Channel_Data {
 
 struct Chabu_Data {
 
-	TChabu_AssertFunction * assertFunction;
+	Chabu_ErrorFunction * errorFunction;
 
 	struct Chabu_ConnectionInfo_Data connectionInfoLocal;
 	struct Chabu_ConnectionInfo_Data connectionInfoRemote;
@@ -179,94 +189,72 @@ struct Chabu_Data {
 	Chabu_LOCK_TYPE    lock;
 #endif
 
-	TChabu_UserCallback * userCallback;
-	void                * userData;
+	Chabu_ErrorFunction               * userCallback_ErrorFunction;
+	Chabu_NetworkRegisterWriteRequest * userCallback_NetworkRegisterWriteRequest;
+	Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer;
+	Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer;
+	void                              * userData;
 
-	struct Chabu_Channel_Data* channels[Chabu_CHANNEL_COUNT_MAX];
-	int                        channelCount;
-	int                        priorityCount;
+	struct Chabu_Channel_Data**  channels;
+	int                          channelCount;
 
-	int    xmitChannelIdx;
-
-	struct Chabu_Channel_Data*  xmitRequestArmListHead[Chabu_PRIORITY_COUNT_MAX];
-	struct Chabu_Channel_Data*  xmitRequestArmListTail[Chabu_PRIORITY_COUNT_MAX];
-	struct Chabu_Channel_Data*  xmitRequestDataListHead[Chabu_PRIORITY_COUNT_MAX];
-	struct Chabu_Channel_Data*  xmitRequestDataListTail[Chabu_PRIORITY_COUNT_MAX];
-
-	struct ByteBuffer_Data recvBuffer;
-
-	struct ByteBuffer_Data xmitBuffer;
-	int                 xmitMaxPacketSize;
-
-	bool activated; // true when initialization is completed
-	bool setupRx;   // reveived the setup packet
-	bool setupTx;   // put the setup packet into xmit buffer
-	bool acceptRx;  // received the accept packet
-	bool acceptTx;  // put the accept packet into the xmit buffer
-
-	bool xmitAbort; // an abort packet shall be send on next possibility
-
-	int   lastErrorCode;
-	char* lastErrorString;
-
+	struct Chabu_Priority_Data** priorities;
+	int                          priorityCount;
 };
 
 LIBRARY_API extern void Chabu_Init(
 		struct Chabu_Data* chabu,
-		int     priorityCount,
-		int     applicationVersion,
-		char*   applicationName,
 
-		uint8*  recvBufferMemory,
-		int recvBufferSize,
+		int           applicationVersion,
+		const char*   applicationName,
 
-		uint8*  xmitBufferMemory,
-		int xmitBufferSize,
+		struct Chabu_Channel_Data*  channels,
+		int                         channelCount,
 
-		TChabu_UserCallback * userCallback,
-		void * userData,
+		struct Chabu_Priority_Data* priorities,
+		int                         priorityCount,
 
-		TChabu_AssertFunction assertFunction
-		);
+		Chabu_ErrorFunction               * userCallback_ErrorFunction,
+		Chabu_ConfigureChannels           * userCallback_ConfigureChannels,
+		Chabu_NetworkRegisterWriteRequest * userCallback_NetworkRegisterWriteRequest,
+		Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer,
+		Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer,
+		void * userData );
 
-LIBRARY_API extern void Chabu_Init_AddChannel (
+/**
+ * Calls are only allowed from within the Chabu userCallback on event Chabu_Event_InitChannels
+ */
+LIBRARY_API extern void Chabu_ConfigureChannel (
 		struct Chabu_Data* chabu,
 		int channelId,
-		struct Chabu_Channel_Data* channel,
-		TChabu_ChannelUserCallback * userCallback, void * userData,
 		int priority,
-		struct QueueVar* recvQueue,
-		struct QueueVar* xmitQueue );
+		Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer,
+		Chabu_ChannelXmitCompleted * userCallback_ChannelXmitCompleted,
+		Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer,
+		Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted,
+		void * userData );
 
-LIBRARY_API extern void Chabu_Init_Complete ( struct Chabu_Data* chabu );
+LIBRARY_API extern enum Chabu_ErrorCode  Chabu_LastError( struct Chabu_Data* chabu );
 
-LIBRARY_API extern struct Chabu_Channel_Data* Chabu_GetChannel (
-		struct Chabu_Data* chabu,
-		int channelId );
-
-LIBRARY_API extern void* Chabu_Channel_GetUserData ( struct Chabu_Channel_Data* channel );
-
-
-//extern char* Chabu_GetLastErrorString( struct Chabu_Data* data );
-//extern int   Chabu_GetLastErrorCode( struct Chabu_Data* data );
 /////////////////////////////////////////////////////////
 // Network <-> Chabu
 
-/**
- * Called by the network connection to transfer received data into chabu and distribute it towards the channels.
- */
-LIBRARY_API extern void Chabu_PutRecvData ( struct Chabu_Data* chabu, struct ByteBuffer_Data* recvData );
-
-/**
- * Called by the network connection to retrieve data from chabu.
- */
-LIBRARY_API extern bool Chabu_GetXmitData ( struct Chabu_Data* chabu, struct ByteBuffer_Data* xmitData );
-
+LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu );
 
 /////////////////////////////////////////////////////////
 // Chabu Channel <-> Application
-LIBRARY_API extern void Chabu_Channel_evUserRecvRequest( struct Chabu_Channel_Data* channel );
-LIBRARY_API extern void Chabu_Channel_XmitRequestData( struct Chabu_Channel_Data* channel );
+
+LIBRARY_API extern void  Chabu_Channel_SetXmitLimit( struct Chabu_Data* chabu, int channelId, int64 limit );
+LIBRARY_API extern void  Chabu_Channel_AddXmitLimit( struct Chabu_Data* chabu, int channelId, int added );
+LIBRARY_API extern int64 Chabu_Channel_GetXmitLimit( struct Chabu_Data* chabu, int channelId );
+LIBRARY_API extern int64 Chabu_Channel_GetXmitPosition( struct Chabu_Data* chabu, int channelId );
+LIBRARY_API extern int   Chabu_Channel_GetXmitRemaining( struct Chabu_Data* chabu, int channelId );
+
+LIBRARY_API extern void  Chabu_Channel_SetRecvLimit( struct Chabu_Data* chabu, int channelId, int64 limit );
+LIBRARY_API extern void  Chabu_Channel_AddRecvLimit( struct Chabu_Data* chabu, int channelId, int added );
+LIBRARY_API extern int64 Chabu_Channel_GetRecvLimit( struct Chabu_Data* chabu, int channelId );
+LIBRARY_API extern int64 Chabu_Channel_GetRecvPosition( struct Chabu_Data* chabu, int channelId );
+LIBRARY_API extern int   Chabu_Channel_GetRecvRemaining( struct Chabu_Data* chabu, int channelId );
 
 #ifdef __cplusplus
 }

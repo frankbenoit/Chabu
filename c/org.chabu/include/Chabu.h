@@ -67,35 +67,46 @@ extern "C" {
 
 enum Chabu_ErrorCode {
     Chabu_ErrorCode_OK_NOERROR = 0,
-    Chabu_ErrorCode_UNKNOWN = 1,
-    Chabu_ErrorCode_ASSERT = 2,
-    Chabu_ErrorCode_NOT_ACTIVATED = 3,
-    Chabu_ErrorCode_IS_ACTIVATED = 4,
-    Chabu_ErrorCode_ILLEGAL_ARGUMENT = 5,
+    Chabu_ErrorCode_UNKNOWN,
+    Chabu_ErrorCode_ASSERT,
+    Chabu_ErrorCode_NOT_ACTIVATED,
+    Chabu_ErrorCode_IS_ACTIVATED,
+    Chabu_ErrorCode_ILLEGAL_ARGUMENT,
     Chabu_ErrorCode_CHABU_IS_NULL,
     Chabu_ErrorCode_CHABU_IS_NOT_INITIALIZED,
-    Chabu_ErrorCode_CONFIGURATION_PRIOCOUNT = 11,
-    Chabu_ErrorCode_CONFIGURATION_NETWORK = 12,
-    Chabu_ErrorCode_CONFIGURATION_CH_ID = 13,
-    Chabu_ErrorCode_CONFIGURATION_CH_PRIO = 14,
-    Chabu_ErrorCode_CONFIGURATION_CH_USER = 15,
-    Chabu_ErrorCode_CONFIGURATION_CH_RECVSZ = 16,
-    Chabu_ErrorCode_CONFIGURATION_NO_CHANNELS = 17,
-    Chabu_ErrorCode_CONFIGURATION_VALIDATOR = 18,
-    Chabu_ErrorCode_SETUP_LOCAL_MAXRECVSIZE = 21,
-    Chabu_ErrorCode_SETUP_LOCAL_APPLICATIONNAME = 23,
-    Chabu_ErrorCode_SETUP_REMOTE_CHABU_VERSION = 31,
-    Chabu_ErrorCode_SETUP_REMOTE_CHABU_NAME = 31,
-    Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE = 32,
-    Chabu_ErrorCode_PROTOCOL_LENGTH = 50,
-    Chabu_ErrorCode_PROTOCOL_PCK_TYPE = 51,
-    Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH = 52,
-    Chabu_ErrorCode_PROTOCOL_SETUP_TWICE = 53,
-    Chabu_ErrorCode_PROTOCOL_ACCEPT_TWICE = 54,
-    Chabu_ErrorCode_PROTOCOL_EXPECTED_SETUP = 55,
-    Chabu_ErrorCode_PROTOCOL_CHANNEL_RECV_OVERFLOW = 56,
-    Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW = 57,
-    Chabu_ErrorCode_REMOTE_ABORT = 100,
+    Chabu_ErrorCode_INIT_ERROR_FUNC_NULL,
+    Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL,
+    Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL,
+    Chabu_ErrorCode_INIT_NW_READ_FUNC_NULL,
+    Chabu_ErrorCode_INIT_NW_WRITE_FUNC_NULL,
+    Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL,
+    Chabu_ErrorCode_INIT_PARAM_CHANNELS_RANGE,
+    Chabu_ErrorCode_INIT_PARAM_PRIORITIES_NULL,
+    Chabu_ErrorCode_INIT_PARAM_PRIORITIES_RANGE,
+    Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL,
+    Chabu_ErrorCode_INIT_CHANNELS_NOT_CONFIGURED,
+    Chabu_ErrorCode_CONFIGURATION_PRIOCOUNT,
+    Chabu_ErrorCode_CONFIGURATION_NETWORK,
+    Chabu_ErrorCode_CONFIGURATION_CH_ID,
+    Chabu_ErrorCode_CONFIGURATION_CH_PRIO,
+    Chabu_ErrorCode_CONFIGURATION_CH_USER,
+    Chabu_ErrorCode_CONFIGURATION_CH_RECVSZ,
+    Chabu_ErrorCode_CONFIGURATION_NO_CHANNELS,
+    Chabu_ErrorCode_CONFIGURATION_VALIDATOR,
+    Chabu_ErrorCode_SETUP_LOCAL_MAXRECVSIZE,
+    Chabu_ErrorCode_SETUP_LOCAL_APPLICATIONNAME,
+    Chabu_ErrorCode_SETUP_REMOTE_CHABU_VERSION,
+    Chabu_ErrorCode_SETUP_REMOTE_CHABU_NAME,
+    Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE,
+    Chabu_ErrorCode_PROTOCOL_LENGTH,
+    Chabu_ErrorCode_PROTOCOL_PCK_TYPE,
+    Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH,
+    Chabu_ErrorCode_PROTOCOL_SETUP_TWICE,
+    Chabu_ErrorCode_PROTOCOL_ACCEPT_TWICE,
+    Chabu_ErrorCode_PROTOCOL_EXPECTED_SETUP,
+    Chabu_ErrorCode_PROTOCOL_CHANNEL_RECV_OVERFLOW,
+    Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW,
+    Chabu_ErrorCode_REMOTE_ABORT,
     Chabu_ErrorCode_APPLICATION_VALIDATOR = 256,
 };
 
@@ -124,9 +135,9 @@ enum Chabu_Event {
 
 struct Chabu_Channel_Data;
 struct Chabu_Data;
+struct Chabu_StructInfo;
 
-
-typedef void           (CALL_SPEC Chabu_ErrorFunction               )( void* userData, enum Chabu_ErrorCode code, const char* file, int line, const char* fmt, ... );
+typedef void           (CALL_SPEC Chabu_ErrorFunction               )( void* userData, enum Chabu_ErrorCode code, const char* file, int line, const char* msg );
 typedef void           (CALL_SPEC Chabu_ConfigureChannels           )( void* userData );
 typedef void           (CALL_SPEC Chabu_NetworkRegisterWriteRequest )( void* userData );
 typedef int            (CALL_SPEC Chabu_NetworkRecvBuffer           )( void* userData, struct Buffer* buffer );
@@ -138,6 +149,7 @@ typedef struct Buffer* (CALL_SPEC Chabu_ChannelGetRecvBuffer)( void* userData );
 typedef void           (CALL_SPEC Chabu_ChannelRecvCompleted)( void* userData );
 
 struct Chabu_ConnectionInfo_Data {
+	const struct Chabu_StructInfo* info;
 	uint32  receiveBufferSize;
 	uint32  applicationVersion;
 	uint8   applicationNameLength;
@@ -146,11 +158,12 @@ struct Chabu_ConnectionInfo_Data {
 struct Chabu_Channel_Data;
 
 struct Chabu_Priority_Data {
+	struct Chabu_StructInfo* info;
 	struct Chabu_Channel_Data* firstChannelForPriority;
 };
 
 struct Chabu_Channel_Data {
-
+	const struct Chabu_StructInfo* info;
 	struct Chabu_Data* chabu;
 	char*              instanceName;
 	int                channelId;
@@ -180,7 +193,7 @@ struct Chabu_Channel_Data {
 
 struct Chabu_Data {
 
-	Chabu_ErrorFunction * errorFunction;
+	const struct Chabu_StructInfo* info;
 
 	struct Chabu_ConnectionInfo_Data connectionInfoLocal;
 	struct Chabu_ConnectionInfo_Data connectionInfoRemote;
@@ -194,12 +207,14 @@ struct Chabu_Data {
 	Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer;
 	Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer;
 	void                              * userData;
+	enum Chabu_ErrorCode         lastError;
 
-	struct Chabu_Channel_Data**  channels;
+	struct Chabu_Channel_Data*   channels;
 	int                          channelCount;
 
-	struct Chabu_Priority_Data** priorities;
+	struct Chabu_Priority_Data*  priorities;
 	int                          priorityCount;
+	char                         errorMessage[200];
 };
 
 LIBRARY_API extern void Chabu_Init(

@@ -12,11 +12,11 @@
 
 class ChabuTest : public ::testing::Test{
 public:
-	ChabuTest();
-	virtual ~ChabuTest();
+//	ChabuTest();
+//	virtual ~ChabuTest();
 
 	virtual void SetUp() = 0;
-	virtual void TearDown() = 0;
+//	virtual void TearDown() = 0;
 
 };
 

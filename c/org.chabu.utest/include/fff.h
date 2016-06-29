@@ -157,6 +157,7 @@ FFF_END_EXTERN_C \
         } FUNCNAME##_Fake;\
         extern FUNCNAME##_Fake FUNCNAME##_fake;\
         void FUNCNAME##_reset(); \
+        void FUNCNAME(ARG0_TYPE arg0); \
     FFF_END_EXTERN_C \
 
 #define DEFINE_FAKE_VOID_FUNC1(FUNCNAME, ARG0_TYPE) \
@@ -315,6 +316,7 @@ FFF_END_EXTERN_C \
         } FUNCNAME##_Fake;\
         extern FUNCNAME##_Fake FUNCNAME##_fake;\
         void FUNCNAME##_reset(); \
+        void FUNCNAME(ARG0_TYPE arg0, ARG1_TYPE arg1, ARG2_TYPE arg2, ARG3_TYPE arg3, ARG4_TYPE arg4); \
     FFF_END_EXTERN_C \
 
 #define DEFINE_FAKE_VOID_FUNC5(FUNCNAME, ARG0_TYPE, ARG1_TYPE, ARG2_TYPE, ARG3_TYPE, ARG4_TYPE) \
@@ -1440,6 +1442,7 @@ FFF_END_EXTERN_C \
             RETURN_TYPE(*custom_fake)(ARG0_TYPE arg0); \
         } FUNCNAME##_Fake;\
         extern FUNCNAME##_Fake FUNCNAME##_fake;\
+        RETURN_TYPE FUNCNAME(ARG0_TYPE arg0); \
         void FUNCNAME##_reset(); \
     FFF_END_EXTERN_C \
 
@@ -1478,6 +1481,7 @@ FFF_END_EXTERN_C \
         } FUNCNAME##_Fake;\
         extern FUNCNAME##_Fake FUNCNAME##_fake;\
         void FUNCNAME##_reset(); \
+        RETURN_TYPE FUNCNAME(ARG0_TYPE arg0, ARG1_TYPE arg1); \
     FFF_END_EXTERN_C \
 
 #define DEFINE_FAKE_VALUE_FUNC2(RETURN_TYPE, FUNCNAME, ARG0_TYPE, ARG1_TYPE) \

@@ -77,6 +77,7 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_INIT_ERROR_FUNC_NULL,
     Chabu_ErrorCode_INIT_PARAM_APNAME_NULL,
     Chabu_ErrorCode_INIT_PARAM_APNAME_TOO_LONG,
+    Chabu_ErrorCode_INIT_PARAM_RPS_RANGE,
     Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL,
     Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL,
     Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL,
@@ -225,6 +226,7 @@ LIBRARY_API extern void Chabu_Init(
 
 		int           applicationVersion,
 		const char*   applicationName,
+		int           receivePacketSize,
 
 		struct Chabu_Channel_Data*  channels,
 		int                         channelCount,
@@ -253,6 +255,7 @@ LIBRARY_API extern void Chabu_ConfigureChannel (
 		void * userData );
 
 LIBRARY_API extern enum Chabu_ErrorCode  Chabu_LastError( struct Chabu_Data* chabu );
+LIBRARY_API extern const char*  Chabu_LastErrorStr( struct Chabu_Data* chabu );
 
 /////////////////////////////////////////////////////////
 // Network <-> Chabu

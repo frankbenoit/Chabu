@@ -12,10 +12,7 @@
 
 class ChabuInitTest : public ChabuTest {
 public:
-	ChabuInitTest();
-	virtual ~ChabuInitTest();
 	virtual void SetUp();
-	virtual void TearDown();
 };
 
 #endif /* CHABUINITTEST_HPP_ */

@@ -262,6 +262,27 @@ struct Buffer {
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
 
+static __inline__
+size_t Common_strnlen( const char *start, size_t maxlen ) {
+
+	if( start == NULL )
+		return 0;
+	/* Determine the length of a NUL terminated string, subject
+	 * to a maximum permitted length constraint.
+	 */
+	const char *stop = start;
+
+	/* Scan at most maxlen bytes, seeking a NUL terminator;
+	 * note that we MUST enforce the length check, BEFORE the
+	 * terminator check, otherwise we could scan maxlen + 1
+	 * bytes, which POSIX forbids.
+	 */
+	while( ((stop - start) < (signed)maxlen) && *stop )
+		++stop;
+
+	// Result is the number of non-NUL bytes actually scanned.
+	return stop - start;
+}
 
 extern void Common_Init();
 extern void Common_Exit();

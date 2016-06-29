@@ -7,6 +7,7 @@
 
 #include "Chabu.h"
 #include <stdarg.h>
+#include <stdio.h>
 
 struct Chabu_StructInfo {
 	const char* name;
@@ -18,6 +19,7 @@ const static struct Chabu_StructInfo structInfo_channel = { "channel" };
 
 #define CHANNEL_COUNT_MAX  100
 #define PRIORITY_COUNT_MAX 100
+#define APN_MAX_LENGTH      56
 
 #define REPORT_ERROR_IF( cond, c, e, f, ... ) do { if( (cond) ) { reportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ ); } } while(false)
 #define REPORT_ERROR( c, e, f, ... ) reportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ )
@@ -65,6 +67,10 @@ LIBRARY_API void Chabu_Init(
 	}
 	chabu->userCallback_ErrorFunction = userCallback_ErrorFunction;
 
+	REPORT_ERROR_IF(( applicationName == NULL ),
+			chabu, Chabu_ErrorCode_INIT_PARAM_APNAME_NULL, "application protocol name must not be NULL" );
+	REPORT_ERROR_IF(( Common_strnlen( applicationName, APN_MAX_LENGTH+1 ) > APN_MAX_LENGTH ),
+			chabu, Chabu_ErrorCode_INIT_PARAM_APNAME_TOO_LONG, "application protocol name exceeds maximum length of %d chars", APN_MAX_LENGTH );
 	REPORT_ERROR_IF(( channels == NULL ),
 			chabu, Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL, "channels must not be NULL" );
 	REPORT_ERROR_IF(( channelCount <= 0 || channelCount > CHANNEL_COUNT_MAX ),
@@ -131,8 +137,11 @@ LIBRARY_API void Chabu_ConfigureChannel (
 		Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted,
 		void * userData ){
 
+
 	struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
 
+	REPORT_ERROR_IF(( channelId < 0 || channelId >= chabu->channelCount ),
+			chabu, Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL, "channel id invalid" );
 	REPORT_ERROR_IF(( userCallback_ChannelGetXmitBuffer == NULL ),
 			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelGetXmitBuffer'" );
 	REPORT_ERROR_IF(( userCallback_ChannelXmitCompleted == NULL ),
@@ -149,6 +158,7 @@ LIBRARY_API void Chabu_ConfigureChannel (
 	ch->userCallback_ChannelXmitCompleted = userCallback_ChannelXmitCompleted;
 	ch->userCallback_ChannelGetRecvBuffer = userCallback_ChannelGetRecvBuffer;
 	ch->userCallback_ChannelRecvCompleted = userCallback_ChannelRecvCompleted;
+	ch->userData = userData;
 }
 
 LIBRARY_API enum Chabu_ErrorCode  Chabu_LastError( struct Chabu_Data* chabu ){

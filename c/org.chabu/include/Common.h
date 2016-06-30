@@ -99,23 +99,15 @@
 #define BIT_62 (1LL<<62)
 #define BIT_63 (1LL<<63)
 
-typedef signed char      int8;
-typedef signed short     int16;
-typedef signed long      int32;
-typedef signed long long int64;
+typedef signed char        int8;
+typedef signed short       int16;
+typedef signed long        int32;
+typedef signed long long   int64;
 
 typedef unsigned char      uint8;
 typedef unsigned short     uint16;
 typedef unsigned long      uint32;
 typedef unsigned long long uint64;
-typedef unsigned long long variant;
-typedef unsigned long long time64;
-#define TIME64_MAX 0xFFFFFFFFFFFFFFFFLL
-
-#define BOOL2INT(v) (((v) != 0) ? 1 : 0 )
-#define BOOL_isTrue(v) ((v) != 0)
-#define BOOL_isFalse(v) ((v) == 0)
-#define BIT_SWITCH( _var, _msk, _cond ) if((_cond) != 0){ (_var) |= (_msk); }else { (_var) &= ~(_msk); }
 
 #define UNUSED(x) do { (void)(x); } while (0)
 
@@ -215,13 +207,6 @@ typedef float       float32;
 typedef double      float64;
 typedef long double float80;
 
-struct Buffer {
-	int capacity;
-	int  limit;
-	int  position;
-	uint8 * data;
-};
-
 #define Common_AlignUp8(v) (((v)+7)&~7)
 #define Common_AlignUp4(v) (((v)+3)&~3)
 #define Common_AlignUp2(v) (((v)+1)&~1)
@@ -230,130 +215,19 @@ struct Buffer {
 #define Common_IsAligned4(v) ((((int)(v))&3)==0)
 #define Common_IsAligned8(v) ((((int)(v))&7)==0)
 
-#define BufferInit( buf, _d ) do{ (buf)->data=(_d); (buf)->used=0; (buf)->limit = sizeof(_d); } while(false)
-
-/** A compile time assertion check.
- *
- *  Validate at compile time that the predicate is true without
- *  generating code. This can be used at any point in a source file
- *  where typedef is legal.
- *
- *  On success, compilation proceeds normally.
- *
- *  On failure, attempts to typedef an array type of negative size. The
- *  offending line will look like
- *      typedef assertion_failed_file_h_42[-1]
- *  where file is the content of the second parameter which should
- *  typically be related in some obvious way to the containing file
- *  name, 42 is the line number in the file on which the assertion
- *  appears, and -1 is the result of a calculation based on the
- *  predicate failing.
- *
- *  \param predicate The predicate to test. It must evaluate to
- *  something that can be coerced to a normal C boolean.
- *
- *  \param file A sequence of legal identifier characters that should
- *  uniquely identify the source file in which this condition appears.
- */
+// ------------------
 #define CompileAssert(predicate, file) _impl_CASSERT_LINE(predicate,__LINE__,file)
-
 #define _impl_PASTE(a,b) a##b
 #define _impl_CASSERT_LINE(predicate, line, file) \
     typedef char _impl_PASTE(assertion_failed_##file##_,line)[2*!!(predicate)-1];
 
 
+// ------------------
 static __inline__
 size_t Common_strnlen( const char *start, size_t maxlen ) {
-
-	if( start == NULL )
-		return 0;
-	/* Determine the length of a NUL terminated string, subject
-	 * to a maximum permitted length constraint.
-	 */
-	const char *stop = start;
-
-	/* Scan at most maxlen bytes, seeking a NUL terminator;
-	 * note that we MUST enforce the length check, BEFORE the
-	 * terminator check, otherwise we could scan maxlen + 1
-	 * bytes, which POSIX forbids.
-	 */
-	while( ((stop - start) < (signed)maxlen) && *stop )
-		++stop;
-
-	// Result is the number of non-NUL bytes actually scanned.
-	return stop - start;
+	if( start == NULL ) return 0;
+	void* _p2 = memchr( start, 0, maxlen);
+	return (_p2 == NULL ? maxlen : (_p2 - (void*)(start)));
 }
-
-extern void Common_Init();
-extern void Common_Exit();
-
-/**
- * Safe memcpy replacement.
- * Specify the range for target and source, and the amount to be copied from which source offset to which target offset.
- * @param _trg pointer to the target memory area start
- * @param _trgSz in bytes, size of target area
- * @param _trgOff in bytes, Assert: (0 <= _trgOff) && (( _trgOff + _len ) < _trgSz)
- * @param _src pointer to the source memory area start
- * @param _srcSz in bytes, size of source area
- * @param _srcOff in bytes, Assert: (0 <= _srcOff) && (( _srcOff + _len ) < _srcSz)
- * @param _len in bytes, count of bytes to be copied. Assert: (0 <= _len)
- */
-#define Common_MemCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \
-		_Common_MemCopy( (_trg), (_trgSz), (_trgOff), (_src), (_srcSz), (_srcOff), (_len) )
-
-/**
- * Safe memcpy replacement for arrays.
- * Specify the range for target and source, and the amount to be copied from which source offset to which target offset.
- * The size of the element types in source array and target array must be the same.
- * @param _trg target array
- * @param _trgSz number of elements in _trg, e.g. countof(_trg)
- * @param _trgOff index of first target element in _trg, Assert: (0 <= _trgOff) && (( _trgOff + _len ) < _trgSz)
- * @param _src source array
- * @param _srcSz number of elements in _src, e.g. countof(_src)
- * @param _srcOff index of first source element in _src, Assert: (0 <= _srcOff) && (( _srcOff + _len ) < _srcSz)
- * @param _len in bytes, count of bytes to be copied. Assert: (0 <= _len)
- */
-#define Common_ArrayCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \
-		_Common_ArrayCopy( (_trg), (_trgSz), (_trgOff), (_src), (_srcSz), (_srcOff), (_len) )
-
-
-#ifdef FEATURE_DEFENSIVE_PROGRAMMING
-
-static inline void _Common_MemCopy( void* _trg, int _trgSz, int _trgOff, const void* _src, int _srcSz, int _srcOff, int _len ){
-//#pragma GCC diagnostic push
-//#pragma GCC ignored "-Wtype-limits"
-	Assert(( (_len) >= 0 ) && ((_srcOff) >= 0 ) && ((_trgOff) >= 0) && ((_trgSz) >= 0 ) && ((_srcSz)>=0 ));
-	Assert( ( (_trgOff)+(_len) <= (_trgSz) ) && ( (_srcOff)+(_len) <= (_srcSz) ));
-	Assert( ( (_trg) != NULL ) && ( (_src) != NULL ));
-//#pragma GCC diagnostic pop
-	memcpy( ((void*)(_trg))+(_trgOff), ((void*)(_src))+(_srcOff), (_len));\
-}
-
-#define _Common_ArrayCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \
-	do{\
-		Assert(( (_len) >= 0 ) && ((_srcOff) >= 0 ) && ((_trgOff) >= 0) && ((_trgSz) >= 0 ) && ((_srcSz)>=0 )\
-		&& ( (_trgOff)+(_len) <= (_trgSz) ) && ( (_srcOff)+(_len) <= (_srcSz) )\
-		&& ( (_trg) != NULL ) && ( (_src) != NULL ) && (sizeof(_trg[0]) == sizeof(_src[0])));\
-		memcpy( (void*)(&(_trg)[(_trgOff)]), (void*)(&(_src)[(_srcOff)]), (_len));\
-	}while( false )
-
-#else
-
-#define _Common_MemCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \
-	memcpy( ((char*)(_trg))+(_trgOff), ((char*)(_src))+(_srcOff), (_len))
-
-
-#define _Common_ArrayCopy( _trg, _trgSz, _trgOff, _src, _srcSz, _srcOff, _len ) \
-	memcpy( (void*)(&(_trg)[(_trgOff)]), (void*)(&(_src)[(_srcOff)]), (_len))
-
-#endif
-
-/**
- * if delayed is true, each line is printed in a schedule low priority task.
- * data must then a pointer to long valid data.
- */
-extern void Common_DumpMemory( bool delayed, void* data, int len );
-
-
 
 #endif /* CHABU_SRC_COMMON_H_ */

@@ -27,6 +27,9 @@ struct TestData {
 	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
 	Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted;
 
+
+	uint8 mem[1000];
+	struct Chabu_ByteBuffer_Data buffer;
 };
 
 static struct TestData tdata;
@@ -42,6 +45,15 @@ static void configureChannels_Cfg1( void* userData ){
 			data->userCallback_ChannelXmitCompleted,
 			data->userCallback_ChannelGetRecvBuffer,
 			data->userCallback_ChannelRecvCompleted, NULL );
+
+}
+
+static int networkRecvBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
+	return 0;
+}
+static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
+
+	return 0;
 }
 
 static void configureStdSetup(){
@@ -52,12 +64,25 @@ static void configureStdSetup(){
 	tdata.userCallback_ChannelRecvCompleted = channelRecvCompleted;
 	tdata.channelId = 0;
 	configureChannels_fake.custom_fake = configureChannels_Cfg1;
+
+	tdata.buffer.data = tdata.mem;
+	tdata.buffer.capacity = sizeof(tdata.mem);
+	tdata.buffer.position = 0;
+	tdata.buffer.limit    = 0;
+
+	Chabu_ByteBuffer_Init( &tdata.buffer, tdata.mem, sizeof(tdata.mem) );
+	tdata.buffer.limit = tdata.buffer.capacity;
+
+	networkRecvBuffer_fake.custom_fake = networkRecvBufferImpl;
+	networkXmitBuffer_fake.custom_fake = networkXmitBufferImpl;
 }
+
+
 
 #define STD_SETUP()
 #define ASSERT_NO_ERROR() ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu )) << Chabu_LastErrorStr( &chabu )
 
-TEST_F( SetupXmitTest, StdSetup_calls_read ){
+TEST_F( SetupXmitTest, StdSetup_calls_network_recv_and_xmit ){
 
 
 	configureStdSetup();
@@ -79,6 +104,7 @@ TEST_F( SetupXmitTest, StdSetup_calls_read ){
 
 	Chabu_HandleNetwork( &chabu );
 
-
+	EXPECT_LE( 1u, networkRecvBuffer_fake.call_count );
+	EXPECT_LE( 1u, networkXmitBuffer_fake.call_count );
 
 }

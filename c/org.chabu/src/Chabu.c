@@ -19,9 +19,17 @@ const struct Chabu_StructInfo structInfo_channel = { "channel" };
 
 
 LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
-	chabu->xmitBuffer.limit = 42;
+
+	if( Chabu_ByteBuffer_hasRemaining( &chabu->xmitBuffer )){
+
+		int written = chabu->userCallback_NetworkXmitBuffer( chabu->userData, &chabu->xmitBuffer );
+
+		if( Chabu_ByteBuffer_hasRemaining( &chabu->xmitBuffer )){
+			chabu->userCallback_NetworkRegisterWriteRequest( chabu->userData );
+			return;
+		}
+	}
 	chabu->recvBuffer.limit = 42;
 	chabu->userCallback_NetworkRecvBuffer( chabu->userData, &chabu->recvBuffer );
-	chabu->userCallback_NetworkXmitBuffer( chabu->userData, &chabu->xmitBuffer );
 }
 

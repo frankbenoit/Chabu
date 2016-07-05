@@ -8,6 +8,7 @@
 #ifndef FAKEFUNCTIONS_H_
 #define FAKEFUNCTIONS_H_
 
+#include <cstring>
 #include "fff.h"
 #include "Chabu.h"
 

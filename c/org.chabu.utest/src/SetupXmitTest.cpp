@@ -9,6 +9,9 @@
 #include "gtest/gtest.h"
 #include "FakeFunctions.h"
 #include <Chabu.h>
+#include <string>
+#include "Utils.h"
+using std::string;
 
 void SetupXmitTest::SetUp(){
 	FakeFunctions_ResetAll();
@@ -28,8 +31,12 @@ struct TestData {
 	Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted;
 
 
-	uint8 mem[1000];
-	struct Chabu_ByteBuffer_Data buffer;
+	uint8 memRx[1000];
+	struct Chabu_ByteBuffer_Data recvBuffer;
+	uint8 memTx[1000];
+	struct Chabu_ByteBuffer_Data xmitBuffer;
+	uint8 memTst[1000];
+	struct Chabu_ByteBuffer_Data testBuffer;
 };
 
 static struct TestData tdata;
@@ -49,11 +56,10 @@ static void configureChannels_Cfg1( void* userData ){
 }
 
 static int networkRecvBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
-	return 0;
+	return Chabu_ByteBuffer_xferAllPossible( buffer, &tdata.recvBuffer );
 }
 static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
-
-	return 0;
+	return Chabu_ByteBuffer_xferAllPossible( &tdata.xmitBuffer, buffer );
 }
 
 static void configureStdSetup(){
@@ -65,31 +71,28 @@ static void configureStdSetup(){
 	tdata.channelId = 0;
 	configureChannels_fake.custom_fake = configureChannels_Cfg1;
 
-	tdata.buffer.data = tdata.mem;
-	tdata.buffer.capacity = sizeof(tdata.mem);
-	tdata.buffer.position = 0;
-	tdata.buffer.limit    = 0;
+	Chabu_ByteBuffer_Init( &tdata.xmitBuffer, tdata.memTx, sizeof(tdata.memTx) );
+	tdata.xmitBuffer.limit = tdata.xmitBuffer.capacity;
 
-	Chabu_ByteBuffer_Init( &tdata.buffer, tdata.mem, sizeof(tdata.mem) );
-	tdata.buffer.limit = tdata.buffer.capacity;
+	Chabu_ByteBuffer_Init( &tdata.recvBuffer, tdata.memRx, sizeof(tdata.memRx) );
+	tdata.recvBuffer.limit = tdata.recvBuffer.capacity;
+
+	Chabu_ByteBuffer_Init( &tdata.testBuffer, tdata.memTst, sizeof(tdata.memTst) );
+	tdata.recvBuffer.limit = tdata.testBuffer.capacity;
 
 	networkRecvBuffer_fake.custom_fake = networkRecvBufferImpl;
 	networkXmitBuffer_fake.custom_fake = networkXmitBufferImpl;
 }
 
-
-
-#define STD_SETUP()
 #define ASSERT_NO_ERROR() ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu )) << Chabu_LastErrorStr( &chabu )
 
-TEST_F( SetupXmitTest, StdSetup_calls_network_recv_and_xmit ){
-
+static void setup1Ch(){
 
 	configureStdSetup();
 
 	Chabu_Init(
 			&chabu,
-			0, APPL_NAME, RPS,
+			APPL_VERSION, APPL_NAME, RPS,
 			channels, countof(channels),
 			priorities, countof(priorities),
 			errorFunction,
@@ -100,6 +103,12 @@ TEST_F( SetupXmitTest, StdSetup_calls_network_recv_and_xmit ){
 			&tdata );
 
 	ASSERT_NO_ERROR();
+
+}
+
+
+TEST_F( SetupXmitTest, sendsSetup_callsNetworkRecvAndXmit ){
+	setup1Ch();
 	//ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu ));
 
 	Chabu_HandleNetwork( &chabu );
@@ -108,3 +117,55 @@ TEST_F( SetupXmitTest, StdSetup_calls_network_recv_and_xmit ){
 	EXPECT_LE( 1u, networkXmitBuffer_fake.call_count );
 
 }
+
+TEST_F( SetupXmitTest, sendsSetup_hasCorrectLength ){
+
+	setup1Ch();
+	Chabu_HandleNetwork( &chabu );
+	EXPECT_EQ( 0x28, tdata.xmitBuffer.position );
+
+}
+
+TEST_F( SetupXmitTest, sendsSetup_withCorrectContent ){
+
+	setup1Ch();
+	Chabu_HandleNetwork( &chabu );
+	Chabu_ByteBuffer_AppendHex( &tdata.testBuffer, string("00 00 00 28 77 77 00 F0 "));
+	Chabu_ByteBuffer_AppendHex( &tdata.testBuffer, string("00 00 00 05 43 48 41 42 55 00 00 00 "));
+	Chabu_ByteBuffer_putIntBe( &tdata.testBuffer, Chabu_ProtocolVersion );
+	Chabu_ByteBuffer_putIntBe( &tdata.testBuffer, RPS );
+	Chabu_ByteBuffer_putIntBe( &tdata.testBuffer, APPL_VERSION);
+	Chabu_ByteBuffer_AppendHex( &tdata.testBuffer, string("00 00 00 03 41 42 43 00 "));
+
+	Chabu_ByteBuffer_flip( &tdata.testBuffer );
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
+	VerifyContent( &tdata.testBuffer, &tdata.xmitBuffer );
+
+}
+
+TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_registersWriteRequest ){
+
+	setup1Ch();
+	tdata.xmitBuffer.limit = 20;
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_EQ( 1u, networkRegisterWriteRequest_fake.call_count );
+
+}
+
+TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_completesOnNextRound ){
+
+	setup1Ch();
+	tdata.xmitBuffer.limit = 20;
+	Chabu_HandleNetwork( &chabu );
+	tdata.xmitBuffer.limit = 50;
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_EQ( 0x28, tdata.xmitBuffer.position );
+
+}
+
+
+
+
+

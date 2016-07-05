@@ -30,7 +30,7 @@ extern "C" {
 #endif
 
 
-#include "ChabuOpts.h"
+//#include "ChabuOpts.h"
 #include "Common.h"
 
 #ifdef Chabu_USE_LOCK
@@ -63,6 +63,8 @@ extern "C" {
 #define Chabu_HEADER_SIZE_MAX 10
 #define Chabu_HEADER_ARM_SIZE  8
 #define Chabu_HEADER_SEQ_SIZE 10
+
+#define Chabu_ProtocolVersion 0x00010001UL
 
 
 enum Chabu_ErrorCode {
@@ -204,6 +206,17 @@ struct Chabu_Channel_Data {
 	struct Chabu_Channel_Data*  xmitRequestDataNext;
 };
 
+
+enum Chabu_XmitState {
+	Chabu_XmitState_Setup,
+	Chabu_XmitState_WaitRemoteSetup,
+	Chabu_XmitState_Accept,
+	Chabu_XmitState_WaitRemoteAccept,
+	Chabu_XmitState_Abort,
+	Chabu_XmitState_Seq,
+	Chabu_XmitState_Ack,
+	Chabu_XmitState_Idle,
+};
 struct Chabu_Data {
 
 	const struct Chabu_StructInfo* info;
@@ -228,6 +241,9 @@ struct Chabu_Data {
 	struct Chabu_Priority_Data*  priorities;
 	int                          priorityCount;
 	char                         errorMessage[200];
+
+	enum Chabu_XmitState         state;
+	int                          receivePacketSize;
 
 	uint8                        xmitMemory[0x100];
 	struct Chabu_ByteBuffer_Data       xmitBuffer;
@@ -298,37 +314,29 @@ LIBRARY_API extern int   Chabu_Channel_GetRecvRemaining( struct Chabu_Data* chab
 // Chabu Byte Buffer
 
 
-static __inline__ void Chabu_ByteBuffer_Init( struct Chabu_ByteBuffer_Data* data, uint8* memory, int size ){
+static inline void Chabu_ByteBuffer_Init( struct Chabu_ByteBuffer_Data* data, uint8* memory, int size ){
 	data->capacity = size;
-	data->limit    = 0;
+	data->limit    = size;
 	data->position = 0;
 	data->data     = memory;
 	data->byteOrderIsBigEndian = true;
 }
 
-static __inline__ void Chabu_ByteBuffer_clear(struct Chabu_ByteBuffer_Data* data){
+static inline void Chabu_ByteBuffer_clear(struct Chabu_ByteBuffer_Data* data){
 	data->limit    = 0;
 	data->position = 0;
 }
 
-static __inline__ void Chabu_ByteBuffer_flip(struct Chabu_ByteBuffer_Data* data){
+static inline void Chabu_ByteBuffer_flip(struct Chabu_ByteBuffer_Data* data){
 	data->limit    = data->position;
 	data->position = 0;
 }
 
-static __inline__ bool Chabu_ByteBuffer_hasRemaining(struct Chabu_ByteBuffer_Data* data){
+static inline bool Chabu_ByteBuffer_hasRemaining(struct Chabu_ByteBuffer_Data* data){
 	return data->position < data->limit;
 }
 
-static __inline__ int  Chabu_ByteBuffer_xferAllPossible(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src){
-	int remTrg = trg->limit - trg->position;
-	int remSrc = src->limit - src->position;
-	int rem = ( remTrg < remSrc ) ? remTrg : remSrc;
-	memcpy( trg->data + trg->position, src->data + src->position, rem );
-	src->position += rem;
-	trg->position += rem;
-	return rem;
-}
+int  Chabu_ByteBuffer_xferAllPossible(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src);
 
 static __inline__ int  Chabu_ByteBuffer_remaining(struct Chabu_ByteBuffer_Data* data){
 	return data->limit - data->position;
@@ -339,18 +347,22 @@ static __inline__ void Chabu_ByteBuffer_putByte(struct Chabu_ByteBuffer_Data* da
 	data->position++;
 }
 
+static __inline__ void Chabu_ByteBuffer_putIntBe(struct Chabu_ByteBuffer_Data* data, int32 value){
+	data->data[ data->position++ ] = value >> 24;
+	data->data[ data->position++ ] = value >> 16;
+	data->data[ data->position++ ] = value >>  8;
+	data->data[ data->position++ ] = value >>  0;
+}
+
+void Chabu_ByteBuffer_putString(struct Chabu_ByteBuffer_Data* data, const char* const value);
+
 static __inline__ uint8 Chabu_ByteBuffer_get(struct Chabu_ByteBuffer_Data* data){
 	uint8 res = data->data[ data->position ];
 	data->position++;
 	return res;
 }
 
-static __inline__ void Chabu_ByteBuffer_compact(struct Chabu_ByteBuffer_Data* data){
-	int rem = Chabu_ByteBuffer_remaining(data);
-	memmove( data->data, data->data + data->position, rem);
-	data->position = rem;
-	data->limit = data->capacity;
-}
+void Chabu_ByteBuffer_compact(struct Chabu_ByteBuffer_Data* data);
 
 
 

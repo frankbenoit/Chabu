@@ -11,6 +11,8 @@
 
 #include "ChabuInternal.h"
 #include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 
 static void reportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, const char* file, int line, const char* fmt, ... ){
@@ -93,6 +95,8 @@ LIBRARY_API void Chabu_Init(
 	chabu->priorities    = priorities;
 	chabu->priorityCount = priorityCount;
 
+	chabu->receivePacketSize = receivePacketSize;
+
 	Chabu_ByteBuffer_Init( &chabu->xmitBuffer, chabu->xmitMemory, sizeof(chabu->xmitMemory) );
 	Chabu_ByteBuffer_Init( &chabu->recvBuffer, chabu->recvMemory, sizeof(chabu->recvMemory) );
 
@@ -117,6 +121,17 @@ LIBRARY_API void Chabu_Init(
 	}
 
 
+	int length = 0x24 + Common_AlignUp4(Common_strnlen( applicationName, APN_MAX_LENGTH+1 ));
+	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, length );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, PACKET_MAGIC | PacketType_Setup );
+	Chabu_ByteBuffer_putString( &chabu->xmitBuffer, "CHABU" );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, Chabu_ProtocolVersion );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, chabu->receivePacketSize );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, applicationVersion );
+	Chabu_ByteBuffer_putString( &chabu->xmitBuffer, applicationName );
+	Chabu_ByteBuffer_flip( &chabu->xmitBuffer );
+
+	chabu->state = Chabu_XmitState_Setup;
 }
 
 /**

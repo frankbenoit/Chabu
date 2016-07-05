@@ -8,11 +8,11 @@
 #ifndef CHABU_SRC_COMMON_H_
 #define CHABU_SRC_COMMON_H_
 
-#include <string.h>
+//#include <string.h>
 //#include <stdbool.h>
-#include <stdio.h>
-#include "ChabuOpts.h"
+//#include "ChabuOpts.h"
 //#include <pthread.h>
+#include <stddef.h>
 
 #ifdef _WIN32
 #    define CALL_SPEC __cdecl
@@ -199,10 +199,12 @@ typedef unsigned long long uint64;
 #define UINT64_W1_MASK 0x00000000FFFF0000LL
 #define UINT64_W2_MASK 0x0000FFFF00000000LL
 #define UINT64_W3_MASK 0xFFFF000000000000LL
-#define UINT64_HI_MASK 0xFFFFFFFF00000000LL
 #define UINT64_LO_MASK 0x00000000FFFFFFFFLL
+#define UINT64_HI_MASK 0xFFFFFFFF00000000LL
 
+#ifndef __cplusplus
 #define bool uint8
+#endif
 typedef float       float32;
 typedef double      float64;
 typedef long double float80;
@@ -223,11 +225,6 @@ typedef long double float80;
 
 
 // ------------------
-static __inline__
-size_t Common_strnlen( const char *start, size_t maxlen ) {
-	if( start == NULL ) return 0;
-	void* _p2 = memchr( start, 0, maxlen);
-	return (_p2 == NULL ? maxlen : (_p2 - (void*)(start)));
-}
+size_t Common_strnlen( const char *start, size_t maxlen );
 
 #endif /* CHABU_SRC_COMMON_H_ */

@@ -1564,6 +1564,7 @@ FFF_END_EXTERN_C \
             RETURN_TYPE(*custom_fake)(ARG0_TYPE arg0, ARG1_TYPE arg1, ARG2_TYPE arg2, ARG3_TYPE arg3); \
         } FUNCNAME##_Fake;\
         extern FUNCNAME##_Fake FUNCNAME##_fake;\
+        RETURN_TYPE FUNCNAME(ARG0_TYPE arg0, ARG1_TYPE arg1, ARG2_TYPE arg2, ARG3_TYPE arg3); \
         void FUNCNAME##_reset(); \
     FFF_END_EXTERN_C \
 

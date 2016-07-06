@@ -10,6 +10,7 @@
 
 DEFINE_FFF_GLOBALS;
 
+DEFINE_FAKE_VALUE_FUNC4(enum Chabu_ErrorCode, acceptConnection,  void*, struct Chabu_ConnectionInfo_Data*, struct Chabu_ConnectionInfo_Data*, struct Chabu_ByteBuffer_Data* );
 DEFINE_FAKE_VOID_FUNC5(errorFunction, void*, enum Chabu_ErrorCode, const char* , int , const char*  );
 DEFINE_FAKE_VOID_FUNC1(configureChannels, void*  );
 DEFINE_FAKE_VOID_FUNC1(networkRegisterWriteRequest, void*  );
@@ -23,6 +24,7 @@ DEFINE_FAKE_VOID_FUNC1(channelRecvCompleted, void*  );
 
 void FakeFunctions_ResetAll(){
 
+	RESET_FAKE(acceptConnection);
 	RESET_FAKE(errorFunction);
 	RESET_FAKE(configureChannels);
 	RESET_FAKE(networkRecvBuffer);

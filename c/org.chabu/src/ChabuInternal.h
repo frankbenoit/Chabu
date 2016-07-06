@@ -19,8 +19,9 @@ extern const struct Chabu_StructInfo structInfo_channel;
 #define RPS_MIN             0x100LL
 #define RPS_MAX             0x10000000UL
 #define PACKET_MAGIC        0x77770000UL
+#define PROTOCOL_NAME       "CHABU"
 
-#define REPORT_ERROR_IF( cond, c, e, f, ... ) do { if( (cond) ) { reportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ ); } } while(false)
+#define REPORT_ERROR_IF( cond, c, e, f, ... ) do { if( (cond) ) { Chabu_ReportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ ); } } while(false)
 #define REPORT_ERROR( c, e, f, ... ) reportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ )
 
 enum PacketType {
@@ -35,5 +36,7 @@ enum PacketType {
 	PacketType_PING    = 0x78,
 	PacketType_PONG    = 0x69,
 };
+
+void Chabu_ReportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, const char* file, int line, const char* fmt, ... );
 
 #endif /* CHABUINTERNAL_H_ */

@@ -12,6 +12,7 @@
 #include "fff.h"
 #include "Chabu.h"
 
+DECLARE_FAKE_VALUE_FUNC4(enum Chabu_ErrorCode, acceptConnection,  void*, struct Chabu_ConnectionInfo_Data*, struct Chabu_ConnectionInfo_Data*, struct Chabu_ByteBuffer_Data* );
 DECLARE_FAKE_VOID_FUNC5(errorFunction, void*, enum Chabu_ErrorCode, const char* , int , const char*  );
 DECLARE_FAKE_VOID_FUNC1(configureChannels, void*  );
 DECLARE_FAKE_VALUE_FUNC1(struct Chabu_ByteBuffer_Data*, channelGetXmitBuffer, void*  );

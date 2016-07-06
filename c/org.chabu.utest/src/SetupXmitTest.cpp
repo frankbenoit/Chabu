@@ -15,7 +15,6 @@ using std::string;
 
 void SetupXmitTest::SetUp(){
 	FakeFunctions_ResetAll();
-
 }
 
 #define  RPS         0x200
@@ -63,6 +62,7 @@ static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* 
 }
 
 static void configureStdSetup(){
+	FakeFunctions_ResetAll();
 	tdata.chabu = &chabu;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
 	tdata.userCallback_ChannelXmitCompleted = channelXmitCompleted;
@@ -78,10 +78,12 @@ static void configureStdSetup(){
 	tdata.recvBuffer.limit = tdata.recvBuffer.capacity;
 
 	Chabu_ByteBuffer_Init( &tdata.testBuffer, tdata.memTst, sizeof(tdata.memTst) );
-	tdata.recvBuffer.limit = tdata.testBuffer.capacity;
+	tdata.recvBuffer.limit = 0;
 
 	networkRecvBuffer_fake.custom_fake = networkRecvBufferImpl;
 	networkXmitBuffer_fake.custom_fake = networkXmitBufferImpl;
+
+	acceptConnection_fake.return_val = Chabu_ErrorCode_OK_NOERROR;
 }
 
 #define ASSERT_NO_ERROR() ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu )) << Chabu_LastErrorStr( &chabu )
@@ -96,6 +98,7 @@ static void setup1Ch(){
 			channels, countof(channels),
 			priorities, countof(priorities),
 			errorFunction,
+			acceptConnection,
 			configureChannels,
 			networkRegisterWriteRequest,
 			networkRecvBuffer,
@@ -165,7 +168,124 @@ TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_completesOnNextRound ){
 
 }
 
+TEST_F( SetupXmitTest, sendsSetup_thenWaitsRemoteSetup ){
 
+	setup1Ch();
+	Chabu_HandleNetwork( &chabu );
+	EXPECT_EQ( Chabu_State_Setup, chabu.xmit.state );
 
+}
+
+static void prepareRecvSetup(){
+	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 28 77 77 00 F0 "));
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 05 43 48 41 42 55 00 00 00 "));
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, Chabu_ProtocolVersion );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, RPS );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, APPL_VERSION);
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 03 41 42 43 00 "));
+
+	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
+
+}
+
+TEST( SetupRecvTest, receiveGood_byFirstSendingThenRecv_ConsumedAllSetup ){
+	setup1Ch();
+	Chabu_HandleNetwork( &chabu );
+
+	prepareRecvSetup();
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_FALSE( Chabu_ByteBuffer_hasRemaining( &tdata.recvBuffer ) );
+
+}
+
+TEST( SetupRecvTest, receiveGood_byFirstSendingThenRecv_ChangedToAcceptState ){
+	setup1Ch();
+	Chabu_HandleNetwork( &chabu );
+
+	prepareRecvSetup();
+	Chabu_HandleNetwork( &chabu );
+	EXPECT_EQ( Chabu_State_Accept, chabu.xmit.state );
+
+}
+
+static void allowNoXmit(){
+	tdata.xmitBuffer.limit = 0;
+}
+
+static void allowToXmit( int size ){
+	tdata.xmitBuffer.limit += size;
+}
+
+TEST( SetupRecvTest, receiveGood_byFirstRecvThenSending_ChangedToAcceptState ){
+	setup1Ch();
+
+	allowNoXmit();
+	prepareRecvSetup();
+
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_FALSE( Chabu_ByteBuffer_hasRemaining( &tdata.recvBuffer ) );
+
+	allowToXmit( 50 );
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_EQ( Chabu_State_Accept, chabu.xmit.state );
+
+}
+
+TEST( SetupRecvTest, recvSetupAndAskUserToAccept_IsCallingUser ){
+	setup1Ch();
+
+	prepareRecvSetup();
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_EQ( 1u, acceptConnection_fake.call_count );
+}
+
+TEST( SetupRecvTest, recvSetupAndAskUserToAccept_UserRejects_AbortIsSend ){
+	setup1Ch();
+
+	acceptConnection_fake.return_val = Chabu_ErrorCode_UNKNOWN;
+
+	prepareRecvSetup();
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_EQ( Chabu_State_Abort, chabu.xmit.state );
+}
+
+TEST( AbortXmitTest, abortOnUserReject_AbortHasRightFormat ){
+	setup1Ch();
+
+	acceptConnection_fake.return_val = Chabu_ErrorCode_UNKNOWN;
+
+	Chabu_HandleNetwork( &chabu );
+	Chabu_ByteBuffer_clear( &tdata.xmitBuffer );
+
+	prepareRecvSetup();
+	Chabu_HandleNetwork( &chabu );
+
+	EXPECT_EQ( Chabu_State_Abort, chabu.xmit.state );
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
+	int packetLength = Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer );
+	EXPECT_TRUE( packetLength >= 16 ) << "packetLength: " << packetLength;
+	EXPECT_TRUE( packetLength <= 64 ) << "packetLength: " << packetLength;
+	int packetType   = Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer );
+
+	EXPECT_EQ( 0x777700D2, packetType );
+	int error = Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer );
+	EXPECT_NE( 0, error );
+	int stringLen = Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer );
+	int padding = packetLength - 16 - stringLen;
+	EXPECT_TRUE( padding >= 0 ) << "value: " << padding;
+	EXPECT_TRUE( padding < 4 ) << "value: " << padding;
+
+}
+
+//TEST( SetupRecvTest, receiveWrongVersion ){
+//	setup1Ch();
+//
+//}
 
 

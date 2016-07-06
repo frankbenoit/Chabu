@@ -15,7 +15,7 @@
 #include <string.h>
 
 
-static void reportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, const char* file, int line, const char* fmt, ... ){
+void Chabu_ReportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, const char* file, int line, const char* fmt, ... ){
 	va_list arglist;
 	va_start( arglist, fmt );
 	if( chabu->lastError == Chabu_ErrorCode_OK_NOERROR ){
@@ -40,6 +40,7 @@ LIBRARY_API void Chabu_Init(
 		int                         priorityCount,
 
 		Chabu_ErrorFunction               * userCallback_ErrorFunction,
+		Chabu_AcceptConnection            * userCallback_AcceptConnection,
 		Chabu_ConfigureChannels           * userCallback_ConfigureChannels,
 		Chabu_NetworkRegisterWriteRequest * userCallback_NetworkRegisterWriteRequest,
 		Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer,
@@ -75,6 +76,8 @@ LIBRARY_API void Chabu_Init(
 			chabu, Chabu_ErrorCode_INIT_PARAM_PRIORITIES_RANGE, "count of priorities must be in range 0 .. %d", PRIORITY_COUNT_MAX );
 	REPORT_ERROR_IF(( userCallback_ConfigureChannels == NULL ),
 			chabu, Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL, "callback is null: 'userCallback_ConfigureChannels'" );
+	REPORT_ERROR_IF(( userCallback_AcceptConnection == NULL ),
+			chabu, Chabu_ErrorCode_INIT_ACCEPT_FUNC_NULL, "callback is null: 'userCallback_AcceptConnection'" );
 	REPORT_ERROR_IF(( userCallback_NetworkRegisterWriteRequest == NULL ),
 			chabu, Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL, "callback is null: 'userCallback_NetworkRegisterWriteRequest'" );
 	REPORT_ERROR_IF(( userCallback_NetworkRecvBuffer == NULL ),
@@ -84,6 +87,7 @@ LIBRARY_API void Chabu_Init(
 
 	if( chabu->lastError != Chabu_ErrorCode_OK_NOERROR ) return;
 
+	chabu->userCallback_AcceptConnection = userCallback_AcceptConnection;
 	chabu->userCallback_NetworkRecvBuffer = userCallback_NetworkRecvBuffer;
 	chabu->userCallback_NetworkXmitBuffer = userCallback_NetworkXmitBuffer;
 	chabu->userCallback_NetworkRegisterWriteRequest = userCallback_NetworkRegisterWriteRequest;
@@ -97,8 +101,8 @@ LIBRARY_API void Chabu_Init(
 
 	chabu->receivePacketSize = receivePacketSize;
 
-	Chabu_ByteBuffer_Init( &chabu->xmitBuffer, chabu->xmitMemory, sizeof(chabu->xmitMemory) );
-	Chabu_ByteBuffer_Init( &chabu->recvBuffer, chabu->recvMemory, sizeof(chabu->recvMemory) );
+	Chabu_ByteBuffer_Init( &chabu->xmit.buffer, chabu->xmit.memory, sizeof(chabu->xmit.memory) );
+	Chabu_ByteBuffer_Init( &chabu->recv.buffer, chabu->recv.memory, sizeof(chabu->recv.memory) );
 
 	int i;
 
@@ -122,16 +126,18 @@ LIBRARY_API void Chabu_Init(
 
 
 	int length = 0x24 + Common_AlignUp4(Common_strnlen( applicationName, APN_MAX_LENGTH+1 ));
-	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, length );
-	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, PACKET_MAGIC | PacketType_Setup );
-	Chabu_ByteBuffer_putString( &chabu->xmitBuffer, "CHABU" );
-	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, Chabu_ProtocolVersion );
-	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, chabu->receivePacketSize );
-	Chabu_ByteBuffer_putIntBe( &chabu->xmitBuffer, applicationVersion );
-	Chabu_ByteBuffer_putString( &chabu->xmitBuffer, applicationName );
-	Chabu_ByteBuffer_flip( &chabu->xmitBuffer );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, length );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_Setup );
+	Chabu_ByteBuffer_putString( &chabu->xmit.buffer, "CHABU" );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, Chabu_ProtocolVersion );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, chabu->receivePacketSize );
+	Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, applicationVersion );
+	Chabu_ByteBuffer_putString( &chabu->xmit.buffer, applicationName );
+	Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
-	chabu->state = Chabu_XmitState_Setup;
+	chabu->xmit.state = Chabu_State_Setup;
+	chabu->connectionInfoRemote.hasContent = false;
+	chabu->connectionInfoLocal.hasContent = false;
 }
 
 /**

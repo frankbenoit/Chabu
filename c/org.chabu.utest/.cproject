@@ -19,7 +19,7 @@
 					<folderInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.1938262198." name="/" resourcePath="">
 						<toolChain id="cdt.managedbuild.toolchain.gnu.cygwin.base.118609958" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.base">
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.Cygwin_PE;org.eclipse.cdt.core.GNU_ELF" id="cdt.managedbuild.target.gnu.platform.cygwin.base.1934452445" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.cygwin.base"/>
-							<builder buildPath="${workspace_loc:/org.chabu.utest}/Debug" enableAutoBuild="true" id="cdt.managedbuild.target.gnu.builder.cygwin.base.388316338" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.cygwin.base"/>
+							<builder buildPath="${workspace_loc:/org.chabu.utest}/Debug" enableAutoBuild="true" id="cdt.managedbuild.target.gnu.builder.cygwin.base.388316338" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" parallelBuildOn="true" parallelizationNumber="optimal" superClass="cdt.managedbuild.target.gnu.builder.cygwin.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.cygwin.base.740164973" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.cygwin.base">
 								<option id="gnu.both.asm.option.include.paths.481830603" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/org.chabu.utest/include}&quot;"/>

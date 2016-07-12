@@ -23,10 +23,9 @@ void SetUp(){
 struct TestData {
 	struct Chabu_Data* chabu;
 	int channelId;
+	Chabu_ChannelEvent         * userCallback_ChannelEvent;
 	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
-	Chabu_ChannelXmitCompleted * userCallback_ChannelXmitCompleted;
 	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
-	Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted;
 
 
 	uint8 memRx[1000];
@@ -46,10 +45,9 @@ static void configureChannels_Cfg1( void* userData ){
 	struct TestData* data = (struct TestData*)userData;
 	struct Chabu_Data* chabu = data->chabu;
 	Chabu_ConfigureChannel(chabu, data->channelId, 0,
+			data->userCallback_ChannelEvent,
 			data->userCallback_ChannelGetXmitBuffer,
-			data->userCallback_ChannelXmitCompleted,
-			data->userCallback_ChannelGetRecvBuffer,
-			data->userCallback_ChannelRecvCompleted, NULL );
+			data->userCallback_ChannelGetRecvBuffer, NULL );
 
 }
 
@@ -63,10 +61,9 @@ static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* 
 static void configureStdSetup(){
 	FakeFunctions_ResetAll();
 	tdata.chabu = &chabu;
+	tdata.userCallback_ChannelEvent         = channelEvent;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
-	tdata.userCallback_ChannelXmitCompleted = channelXmitCompleted;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
-	tdata.userCallback_ChannelRecvCompleted = channelRecvCompleted;
 	tdata.channelId = 0;
 	configureChannels_fake.custom_fake = configureChannels_Cfg1;
 

@@ -147,10 +147,9 @@ LIBRARY_API void Chabu_ConfigureChannel (
 		struct Chabu_Data* chabu,
 		int channelId,
 		int priority,
+		Chabu_ChannelEvent         * userCallback_ChannelEvent,
 		Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer,
-		Chabu_ChannelXmitCompleted * userCallback_ChannelXmitCompleted,
 		Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer,
-		Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted,
 		void * userData ){
 
 
@@ -158,22 +157,19 @@ LIBRARY_API void Chabu_ConfigureChannel (
 
 	REPORT_ERROR_IF(( channelId < 0 || channelId >= chabu->channelCount ),
 			chabu, Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL, "channel id invalid" );
+	REPORT_ERROR_IF(( userCallback_ChannelEvent == NULL ),
+			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelEvent'" );
 	REPORT_ERROR_IF(( userCallback_ChannelGetXmitBuffer == NULL ),
 			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelGetXmitBuffer'" );
-	REPORT_ERROR_IF(( userCallback_ChannelXmitCompleted == NULL ),
-			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelXmitCompleted'" );
 	REPORT_ERROR_IF(( userCallback_ChannelGetRecvBuffer == NULL ),
 			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelGetRecvBuffer'" );
-	REPORT_ERROR_IF(( userCallback_ChannelRecvCompleted == NULL ),
-			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelRecvCompleted'" );
 
 	if( chabu->lastError != Chabu_ErrorCode_OK_NOERROR ) return;
 
 	ch->priority = priority;
+	ch->userCallback_ChannelEvent         = userCallback_ChannelEvent;
 	ch->userCallback_ChannelGetXmitBuffer = userCallback_ChannelGetXmitBuffer;
-	ch->userCallback_ChannelXmitCompleted = userCallback_ChannelXmitCompleted;
 	ch->userCallback_ChannelGetRecvBuffer = userCallback_ChannelGetRecvBuffer;
-	ch->userCallback_ChannelRecvCompleted = userCallback_ChannelRecvCompleted;
 	ch->userData = userData;
 }
 

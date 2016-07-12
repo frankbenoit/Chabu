@@ -420,20 +420,18 @@ TEST_F( ChabuInitTest, channels_not_configured ){
 struct TestData {
 	struct Chabu_Data* chabu;
 	int channelId;
+	Chabu_ChannelEvent         * userCallback_ChannelEvent;
 	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
-	Chabu_ChannelXmitCompleted * userCallback_ChannelXmitCompleted;
 	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
-	Chabu_ChannelRecvCompleted * userCallback_ChannelRecvCompleted;
 
 };
 static void configureChannels_Cfg1( void* userData ){
 	struct TestData* data = (struct TestData*)userData;
 	struct Chabu_Data* chabu = data->chabu;
 	Chabu_ConfigureChannel(chabu, data->channelId, 0,
+			data->userCallback_ChannelEvent,
 			data->userCallback_ChannelGetXmitBuffer,
-			data->userCallback_ChannelXmitCompleted,
-			data->userCallback_ChannelGetRecvBuffer,
-			data->userCallback_ChannelRecvCompleted, NULL );
+			data->userCallback_ChannelGetRecvBuffer, NULL );
 }
 
 TEST_F( ChabuInitTest, channels_funcs_null ){
@@ -473,10 +471,9 @@ TEST_F( ChabuInitTest, channels_configured ){
 
 	struct TestData tdata;
 	tdata.chabu = &chabu;
+	tdata.userCallback_ChannelEvent = channelEvent;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
-	tdata.userCallback_ChannelXmitCompleted = channelXmitCompleted;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
-	tdata.userCallback_ChannelRecvCompleted = channelRecvCompleted;
 	tdata.channelId = 0;
 	configureChannels_fake.custom_fake = configureChannels_Cfg1;
 
@@ -505,10 +502,9 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_low ){
 
 	struct TestData tdata;
 	tdata.chabu = &chabu;
+	tdata.userCallback_ChannelEvent = channelEvent;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
-	tdata.userCallback_ChannelXmitCompleted = channelXmitCompleted;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
-	tdata.userCallback_ChannelRecvCompleted = channelRecvCompleted;
 	tdata.channelId = -1;
 	configureChannels_fake.custom_fake = configureChannels_Cfg1;
 
@@ -537,10 +533,9 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_high ){
 
 	struct TestData tdata;
 	tdata.chabu = &chabu;
+	tdata.userCallback_ChannelEvent = channelEvent;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
-	tdata.userCallback_ChannelXmitCompleted = channelXmitCompleted;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
-	tdata.userCallback_ChannelRecvCompleted = channelRecvCompleted;
 	tdata.channelId = 1;
 	configureChannels_fake.custom_fake = configureChannels_Cfg1;
 

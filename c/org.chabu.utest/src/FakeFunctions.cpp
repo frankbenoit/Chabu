@@ -17,10 +17,9 @@ DEFINE_FAKE_VOID_FUNC1(networkRegisterWriteRequest, void*  );
 DEFINE_FAKE_VALUE_FUNC2(int, networkRecvBuffer, void*, struct Chabu_ByteBuffer_Data* );
 DEFINE_FAKE_VALUE_FUNC2(int, networkXmitBuffer, void*, struct Chabu_ByteBuffer_Data* );
 
-DEFINE_FAKE_VALUE_FUNC1(struct Chabu_ByteBuffer_Data*, channelGetXmitBuffer, void*  );
-DEFINE_FAKE_VOID_FUNC1(channelXmitCompleted, void*  );
-DEFINE_FAKE_VALUE_FUNC1(struct Chabu_ByteBuffer_Data*, channelGetRecvBuffer, void*  );
-DEFINE_FAKE_VOID_FUNC1(channelRecvCompleted, void*  );
+DEFINE_FAKE_VOID_FUNC4(channelEvent, void*, int, enum Chabu_Channel_Event, int32  );
+DEFINE_FAKE_VALUE_FUNC2(struct Chabu_ByteBuffer_Data*, channelGetXmitBuffer, void*, int  );
+DEFINE_FAKE_VALUE_FUNC2(struct Chabu_ByteBuffer_Data*, channelGetRecvBuffer, void*, int  );
 
 void FakeFunctions_ResetAll(){
 
@@ -31,9 +30,8 @@ void FakeFunctions_ResetAll(){
 	RESET_FAKE(networkXmitBuffer);
 	RESET_FAKE(networkRegisterWriteRequest);
 
+	RESET_FAKE(channelEvent);
 	RESET_FAKE(channelGetXmitBuffer);
-	RESET_FAKE(channelXmitCompleted);
 	RESET_FAKE(channelGetRecvBuffer);
-	RESET_FAKE(channelRecvCompleted);
 
 }

@@ -5,7 +5,6 @@
  *      Author: Frank
  */
 
-#include "SetupXmitTest.hpp"
 #include "gtest/gtest.h"
 #include "FakeFunctions.h"
 #include <Chabu.h>
@@ -13,7 +12,7 @@
 #include "Utils.h"
 using std::string;
 
-void SetupXmitTest::SetUp(){
+void SetUp(){
 	FakeFunctions_ResetAll();
 }
 
@@ -110,7 +109,7 @@ static void setup1Ch(){
 }
 
 
-TEST_F( SetupXmitTest, sendsSetup_callsNetworkRecvAndXmit ){
+TEST( SetupXmitTest, sendsSetup_callsNetworkRecvAndXmit ){
 	setup1Ch();
 	//ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu ));
 
@@ -121,7 +120,7 @@ TEST_F( SetupXmitTest, sendsSetup_callsNetworkRecvAndXmit ){
 
 }
 
-TEST_F( SetupXmitTest, sendsSetup_hasCorrectLength ){
+TEST( SetupXmitTest, sendsSetup_hasCorrectLength ){
 
 	setup1Ch();
 	Chabu_HandleNetwork( &chabu );
@@ -129,7 +128,7 @@ TEST_F( SetupXmitTest, sendsSetup_hasCorrectLength ){
 
 }
 
-TEST_F( SetupXmitTest, sendsSetup_withCorrectContent ){
+TEST( SetupXmitTest, sendsSetup_withCorrectContent ){
 
 	setup1Ch();
 	Chabu_HandleNetwork( &chabu );
@@ -146,7 +145,7 @@ TEST_F( SetupXmitTest, sendsSetup_withCorrectContent ){
 
 }
 
-TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_registersWriteRequest ){
+TEST( SetupXmitTest, sendsSetup_cannotFullySend_registersWriteRequest ){
 
 	setup1Ch();
 	tdata.xmitBuffer.limit = 20;
@@ -156,7 +155,7 @@ TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_registersWriteRequest ){
 
 }
 
-TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_completesOnNextRound ){
+TEST( SetupXmitTest, sendsSetup_cannotFullySend_completesOnNextRound ){
 
 	setup1Ch();
 	tdata.xmitBuffer.limit = 20;
@@ -168,7 +167,7 @@ TEST_F( SetupXmitTest, sendsSetup_cannotFullySend_completesOnNextRound ){
 
 }
 
-TEST_F( SetupXmitTest, sendsSetup_thenWaitsRemoteSetup ){
+TEST( SetupXmitTest, sendsSetup_thenWaitsRemoteSetup ){
 
 	setup1Ch();
 	Chabu_HandleNetwork( &chabu );
@@ -255,6 +254,8 @@ TEST( SetupRecvTest, recvSetupAndAskUserToAccept_UserRejects_AbortIsSend ){
 	EXPECT_EQ( Chabu_State_Abort, chabu.xmit.state );
 }
 
+// DISABLED_
+
 TEST( AbortXmitTest, abortOnUserReject_AbortHasRightFormat ){
 	setup1Ch();
 
@@ -283,9 +284,20 @@ TEST( AbortXmitTest, abortOnUserReject_AbortHasRightFormat ){
 
 }
 
-//TEST( SetupRecvTest, receiveWrongVersion ){
-//	setup1Ch();
-//
-//}
+TEST( SetupRecvTest, DISABLED_receiveWrongChabuVersion ){
+	setup1Ch();
+}
+
+TEST( SetupRecvTest, DISABLED_receiveWrongChabuName ){
+	setup1Ch();
+}
+
+TEST( SetupRecvTest, DISABLED_receiveWrongApplVersion ){
+	setup1Ch();
+}
+
+TEST( SetupRecvTest, DISABLED_receiveWrongApplName ){
+	setup1Ch();
+}
 
 

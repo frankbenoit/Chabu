@@ -23,3 +23,6 @@ hs_err_pid*
 /c-sharp/ipch
 /c-sharp/packages
 /c-sharp/TestResults
+/c/org.chabu.utest/*.stackdump
+/c/org.chabu/.settings/language.settings.xml
+/c/org.chabu.utest/.settings/language.settings.xml

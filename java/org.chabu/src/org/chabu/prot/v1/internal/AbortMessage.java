@@ -1,5 +1,7 @@
 package org.chabu.prot.v1.internal;
 
+import org.chabu.prot.v1.ChabuErrorCode;
+
 public class AbortMessage {
 	
 	private XmitState    xmitAbortPending = XmitState.IDLE;
@@ -33,6 +35,9 @@ public class AbortMessage {
 		xmitAbortPending = XmitState.XMITTED;
 	}
 
+	public void setPending(ChabuErrorCode code, String message) {
+		setPending( code.getCode(), message );
+	}
 	public void setPending(int code, String message) {
 		xmitAbortCode    = code;
 		xmitAbortMessage = message;

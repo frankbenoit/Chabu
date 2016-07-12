@@ -77,7 +77,6 @@ public class PriorizerTest {
 			assertEquals( ch, (int)requests.get(i) );
 		}
 		assertEquals( chars.length, requests.size() );
-		
 	}
 
 	private void rq( int prio, String req ){

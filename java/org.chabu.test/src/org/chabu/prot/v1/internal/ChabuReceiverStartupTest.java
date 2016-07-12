@@ -1,7 +1,8 @@
 package org.chabu.prot.v1.internal;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 import java.nio.charset.StandardCharsets;
@@ -121,7 +122,7 @@ public class ChabuReceiverStartupTest {
 	recv_remote_setup_with_wrong_protocol_minor_version_ignored() throws Exception {
 		byteChannel.putRecvData(getSetupRecvData("CHABU", Constants.PROTOCOL_VERSION + 0x1000, 1000, 0x12345678, "ABC"));
 		sut.recv(byteChannel);
-		verify(abortMessage).setPending(Matchers.eq(ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION.getCode()), Matchers.anyString());
+		verify(abortMessage, never()).setPending(Matchers.eq(ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION.getCode()), Matchers.anyString());
 	}	
 	
 	@Test public void
@@ -198,7 +199,7 @@ public class ChabuReceiverStartupTest {
 		byteChannel.putRecvData( data );
 		sut.recv(byteChannel);
 		verify(abortMessage).setPending(
-				Matchers.eq(ChabuErrorCode.PROTOCOL_ACCEPT_WITHOUT_SETUP.getCode()), 
+				Matchers.eq(ChabuErrorCode.PROTOCOL_ACCEPT_WITHOUT_SETUP), 
 				Matchers.contains(""));
 	}
 	

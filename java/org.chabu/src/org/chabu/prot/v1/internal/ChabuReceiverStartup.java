@@ -52,6 +52,9 @@ public class ChabuReceiverStartup extends ChabuReceiver {
 
 	@Override
 	protected void processRecvAccept() {
+		if( !setup.isRemoteSetupReceived()){
+			localAbortMessage.setPending(ChabuErrorCode.PROTOCOL_ACCEPT_WITHOUT_SETUP, "Accept was received before a Setup packet.");
+		}
 		setup.setRemoteAcceptReceived();
 		cancelCurrentReceive = true;
 		completedStartupListener.run();

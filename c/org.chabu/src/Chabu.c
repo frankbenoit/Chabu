@@ -70,7 +70,7 @@ static bool writePendingXmitData( struct Chabu_Data* chabu ){
 		chabu->userCallback_NetworkXmitBuffer( chabu->userData, &chabu->xmit.buffer );
 
 		if( hasPendingXmitData( chabu )){
-			chabu->userCallback_NetworkRegisterWriteRequest( chabu->userData );
+			chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
 			return false;
 		}
 	}

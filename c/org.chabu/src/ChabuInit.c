@@ -41,8 +41,7 @@ LIBRARY_API void Chabu_Init(
 
 		Chabu_ErrorFunction               * userCallback_ErrorFunction,
 		Chabu_AcceptConnection            * userCallback_AcceptConnection,
-		Chabu_ConfigureChannels           * userCallback_ConfigureChannels,
-		Chabu_NetworkRegisterWriteRequest * userCallback_NetworkRegisterWriteRequest,
+		Chabu_EventNotification           * userCallback_EventNotification,
 		Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer,
 		Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer,
 		void * userData ){
@@ -74,12 +73,10 @@ LIBRARY_API void Chabu_Init(
 			chabu, Chabu_ErrorCode_INIT_PARAM_PRIORITIES_NULL, "priorities must not be NULL" );
 	REPORT_ERROR_IF(( priorityCount <= 0 || priorityCount > PRIORITY_COUNT_MAX ),
 			chabu, Chabu_ErrorCode_INIT_PARAM_PRIORITIES_RANGE, "count of priorities must be in range 0 .. %d", PRIORITY_COUNT_MAX );
-	REPORT_ERROR_IF(( userCallback_ConfigureChannels == NULL ),
-			chabu, Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL, "callback is null: 'userCallback_ConfigureChannels'" );
+	REPORT_ERROR_IF(( userCallback_EventNotification == NULL ),
+			chabu, Chabu_ErrorCode_INIT_EVENT_FUNC_NULL, "callback is null: 'userCallback_EventNotification'" );
 	REPORT_ERROR_IF(( userCallback_AcceptConnection == NULL ),
 			chabu, Chabu_ErrorCode_INIT_ACCEPT_FUNC_NULL, "callback is null: 'userCallback_AcceptConnection'" );
-	REPORT_ERROR_IF(( userCallback_NetworkRegisterWriteRequest == NULL ),
-			chabu, Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL, "callback is null: 'userCallback_NetworkRegisterWriteRequest'" );
 	REPORT_ERROR_IF(( userCallback_NetworkRecvBuffer == NULL ),
 			chabu, Chabu_ErrorCode_INIT_NW_READ_FUNC_NULL, "callback is null: 'userCallback_NetworkRecvBuffer'" );
 	REPORT_ERROR_IF(( userCallback_NetworkXmitBuffer == NULL ),
@@ -90,7 +87,7 @@ LIBRARY_API void Chabu_Init(
 	chabu->userCallback_AcceptConnection = userCallback_AcceptConnection;
 	chabu->userCallback_NetworkRecvBuffer = userCallback_NetworkRecvBuffer;
 	chabu->userCallback_NetworkXmitBuffer = userCallback_NetworkXmitBuffer;
-	chabu->userCallback_NetworkRegisterWriteRequest = userCallback_NetworkRegisterWriteRequest;
+	chabu->userCallback_EventNotification = userCallback_EventNotification;
 
 	chabu->userData = userData;
 
@@ -115,7 +112,7 @@ LIBRARY_API void Chabu_Init(
 	}
 
 	// <-- Call the user to configure the channels -->
-	userCallback_ConfigureChannels( userData );
+	userCallback_EventNotification( userData, Chabu_Event_InitChannels );
 
 	for( i = 0; i < channelCount; i++ ){
 		struct Chabu_Channel_Data* ch = &channels[i];
@@ -147,7 +144,7 @@ LIBRARY_API void Chabu_ConfigureChannel (
 		struct Chabu_Data* chabu,
 		int channelId,
 		int priority,
-		Chabu_ChannelEvent         * userCallback_ChannelEvent,
+		Chabu_ChannelEventNotification * userCallback_ChannelEventNotification,
 		Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer,
 		Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer,
 		void * userData ){
@@ -157,8 +154,8 @@ LIBRARY_API void Chabu_ConfigureChannel (
 
 	REPORT_ERROR_IF(( channelId < 0 || channelId >= chabu->channelCount ),
 			chabu, Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL, "channel id invalid" );
-	REPORT_ERROR_IF(( userCallback_ChannelEvent == NULL ),
-			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelEvent'" );
+	REPORT_ERROR_IF(( userCallback_ChannelEventNotification == NULL ),
+			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelEventNotification'" );
 	REPORT_ERROR_IF(( userCallback_ChannelGetXmitBuffer == NULL ),
 			chabu, Chabu_ErrorCode_INIT_CHANNEL_FUNCS_NULL, "channel callback was NULL: 'userCallback_ChannelGetXmitBuffer'" );
 	REPORT_ERROR_IF(( userCallback_ChannelGetRecvBuffer == NULL ),
@@ -167,9 +164,9 @@ LIBRARY_API void Chabu_ConfigureChannel (
 	if( chabu->lastError != Chabu_ErrorCode_OK_NOERROR ) return;
 
 	ch->priority = priority;
-	ch->userCallback_ChannelEvent         = userCallback_ChannelEvent;
-	ch->userCallback_ChannelGetXmitBuffer = userCallback_ChannelGetXmitBuffer;
-	ch->userCallback_ChannelGetRecvBuffer = userCallback_ChannelGetRecvBuffer;
+	ch->userCallback_ChannelEventNotification = userCallback_ChannelEventNotification;
+	ch->userCallback_ChannelGetXmitBuffer     = userCallback_ChannelGetXmitBuffer;
+	ch->userCallback_ChannelGetRecvBuffer     = userCallback_ChannelGetRecvBuffer;
 	ch->userData = userData;
 }
 

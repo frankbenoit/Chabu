@@ -82,9 +82,8 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_INIT_PARAM_APNAME_TOO_LONG,
     Chabu_ErrorCode_INIT_PARAM_RPS_RANGE,
     Chabu_ErrorCode_INIT_ACCEPT_FUNC_NULL,
-    Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL,
     Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL,
-    Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL,
+    Chabu_ErrorCode_INIT_EVENT_FUNC_NULL,
     Chabu_ErrorCode_INIT_NW_READ_FUNC_NULL,
     Chabu_ErrorCode_INIT_NW_WRITE_FUNC_NULL,
     Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL,
@@ -119,31 +118,15 @@ enum Chabu_ErrorCode {
 };
 
 enum Chabu_Event {
-
-	Chabu_Event_InitChannels  = 0,
-	Chabu_Event_DataAvailable = 1,
-	Chabu_Event_CanTransmit   = 2,
-	Chabu_Event_Connecting    = 3,
-
-	Chabu_Event_Error         = 0x1000,
-	Chabu_Event_Error_AbortRx,
-
-	Chabu_Event_Error_Protocol = 0x1100,
-	Chabu_Event_Error_Protocol_UnknownRx,
-
-	Chabu_Event_Error_RxSetup_PN = 0x1200,
-	Chabu_Event_Error_RxSetup_PV,
-	Chabu_Event_Error_RxSetup_RS,
-	Chabu_Event_Error_RxSetup_AV,
-	Chabu_Event_Error_RxSetup_AN,
-	Chabu_Event_Error_RxSetup_AN_Length,
-
-
+	Chabu_Event_InitChannels,
+	Chabu_Event_NetworkRegisterWriteRequest,
+	Chabu_Event_RemotePing,
 };
 
 enum Chabu_Channel_Event {
 	Chabu_Channel_Event_XmitCompleted,
 	Chabu_Channel_Event_RecvCompleted,
+	Chabu_Channel_Event_RemoteArm,
 	Chabu_Channel_Event_RemoteDavail,
 	Chabu_Channel_Event_RemoteReset,
 	Chabu_Channel_Event_ResetCompleted
@@ -157,12 +140,11 @@ struct Chabu_ConnectionInfo_Data;
 
 typedef enum Chabu_ErrorCode (CALL_SPEC Chabu_AcceptConnection      )( void* userData, struct Chabu_ConnectionInfo_Data* local, struct Chabu_ConnectionInfo_Data* remote, struct Chabu_ByteBuffer_Data* msg );
 typedef void           (CALL_SPEC Chabu_ErrorFunction               )( void* userData, enum Chabu_ErrorCode code, const char* file, int line, const char* msg );
-typedef void           (CALL_SPEC Chabu_ConfigureChannels           )( void* userData );
-typedef void           (CALL_SPEC Chabu_NetworkRegisterWriteRequest )( void* userData );
+typedef void           (CALL_SPEC Chabu_EventNotification           )( void* userData, enum Chabu_Event event );
 typedef int            (CALL_SPEC Chabu_NetworkRecvBuffer           )( void* userData, struct Chabu_ByteBuffer_Data* buffer );
 typedef int            (CALL_SPEC Chabu_NetworkXmitBuffer           )( void* userData, struct Chabu_ByteBuffer_Data* buffer );
 
-typedef void           (CALL_SPEC Chabu_ChannelEvent)( void* userData, int channelId,enum Chabu_Channel_Event event, int32 param );
+typedef void           (CALL_SPEC Chabu_ChannelEventNotification)( void* userData, int channelId, enum Chabu_Channel_Event event, int32 param );
 typedef struct Chabu_ByteBuffer_Data* (CALL_SPEC Chabu_ChannelGetXmitBuffer)( void* userData, int channelId );
 typedef struct Chabu_ByteBuffer_Data* (CALL_SPEC Chabu_ChannelGetRecvBuffer)( void* userData, int channelId );
 
@@ -199,7 +181,7 @@ struct Chabu_Channel_Data {
 	int                channelId;
 	int                priority;
 
-	Chabu_ChannelEvent         * userCallback_ChannelEvent;
+	Chabu_ChannelEventNotification * userCallback_ChannelEventNotification;
 	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
 	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
 	void                       * userData;
@@ -243,7 +225,7 @@ struct Chabu_Data {
 
 	Chabu_ErrorFunction               * userCallback_ErrorFunction;
 	Chabu_AcceptConnection            * userCallback_AcceptConnection;
-	Chabu_NetworkRegisterWriteRequest * userCallback_NetworkRegisterWriteRequest;
+	Chabu_EventNotification           * userCallback_EventNotification;
 	Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer;
 	Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer;
 	void                              * userData;
@@ -287,12 +269,11 @@ LIBRARY_API extern void Chabu_Init(
 		struct Chabu_Priority_Data* priorities,
 		int                         priorityCount,
 
-		Chabu_ErrorFunction               * userCallback_ErrorFunction,
-		Chabu_AcceptConnection            * userCallback_AcceptConnection,
-		Chabu_ConfigureChannels           * userCallback_ConfigureChannels,
-		Chabu_NetworkRegisterWriteRequest * userCallback_NetworkRegisterWriteRequest,
-		Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer,
-		Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer,
+		Chabu_ErrorFunction                 * userCallback_ErrorFunction,
+		Chabu_AcceptConnection              * userCallback_AcceptConnection,
+		Chabu_EventNotification             * userCallback_EventNotification,
+		Chabu_NetworkRecvBuffer             * userCallback_NetworkRecvBuffer,
+		Chabu_NetworkXmitBuffer             * userCallback_NetworkXmitBuffer,
 		void * userData );
 
 /**
@@ -302,9 +283,9 @@ LIBRARY_API extern void Chabu_ConfigureChannel (
 		struct Chabu_Data* chabu,
 		int channelId,
 		int priority,
-		Chabu_ChannelEvent         * userCallback_ChannelEvent,
-		Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer,
-		Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer,
+		Chabu_ChannelEventNotification * userCallback_ChannelEvent,
+		Chabu_ChannelGetXmitBuffer     * userCallback_ChannelGetXmitBuffer,
+		Chabu_ChannelGetRecvBuffer     * userCallback_ChannelGetRecvBuffer,
 		void * userData );
 
 LIBRARY_API extern enum Chabu_ErrorCode  Chabu_LastError( struct Chabu_Data* chabu );

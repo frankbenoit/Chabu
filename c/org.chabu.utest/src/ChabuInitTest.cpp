@@ -39,7 +39,7 @@ TEST_F( ChabuInitTest, LastError_set_for_chabu_null_error_func ){
 			0, NULL, 0,
 			NULL, 0,
 			NULL, 0,
-			NULL, NULL, NULL, NULL, NULL, NULL,
+			NULL, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( Chabu_ErrorCode_INIT_ERROR_FUNC_NULL, Chabu_LastError( &chabu ));
 }
@@ -52,7 +52,7 @@ TEST_F( ChabuInitTest, on_error_lastError_is_set ){
 			0, APPL_NAME, RPS,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL, Chabu_LastError( &chabu )) <<  Chabu_LastErrorStr( &chabu );
 
@@ -66,7 +66,7 @@ TEST_F( ChabuInitTest, on_error_error_func_is_called_once ){
 			0, NULL, 0,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( 1u, errorFunction_fake.call_count );
 }
@@ -86,7 +86,7 @@ TEST_F( ChabuInitTest, application_protocol_name_is_null ){
 			0, NULL, 0,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( Chabu_ErrorCode_INIT_PARAM_APNAME_NULL, Chabu_LastError( &chabu ));
 
@@ -100,7 +100,7 @@ TEST_F( ChabuInitTest, application_protocol_name_is_too_long ){
 			0, "123456789012345678901234567890123456789012345678901234567890", 0,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( Chabu_ErrorCode_INIT_PARAM_APNAME_TOO_LONG, Chabu_LastError( &chabu ));
 
@@ -114,7 +114,7 @@ TEST_F( ChabuInitTest, rps_range_too_low ){
 			0, APPL_NAME, 0x100-1,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( Chabu_ErrorCode_INIT_PARAM_RPS_RANGE, Chabu_LastError( &chabu ));
 
@@ -129,7 +129,7 @@ TEST_F( ChabuInitTest, rps_range_low ){
 			0, APPL_NAME, 0x100,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	ASSERT_NE( Chabu_ErrorCode_INIT_PARAM_RPS_RANGE, Chabu_LastError( &chabu ));
@@ -144,7 +144,7 @@ TEST_F( ChabuInitTest, rps_range_too_high ){
 			0, APPL_NAME, 0x10000000+1,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 	EXPECT_EQ( Chabu_ErrorCode_INIT_PARAM_RPS_RANGE, Chabu_LastError( &chabu ));
 
@@ -158,7 +158,7 @@ TEST_F( ChabuInitTest, rps_range_high ){
 			0, APPL_NAME, 0x10000000,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	ASSERT_NE( Chabu_ErrorCode_INIT_PARAM_RPS_RANGE, Chabu_LastError( &chabu ));
@@ -173,7 +173,7 @@ TEST_F( ChabuInitTest, channels_null ){
 			0, APPL_NAME, RPS,
 			NULL, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL, "channels must not be NULL");
@@ -190,7 +190,7 @@ TEST_F( ChabuInitTest, channels_count_zero ){
 			0, APPL_NAME, RPS,
 			channels, 0,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_PARAM_CHANNELS_RANGE, "count of channels");
@@ -206,7 +206,7 @@ TEST_F( ChabuInitTest, channels_count_too_high ){
 			0, APPL_NAME, RPS,
 			channels, 10000,
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_PARAM_CHANNELS_RANGE, "count of channels");
@@ -222,7 +222,7 @@ TEST_F( ChabuInitTest, priorities_null ){
 			0, APPL_NAME, RPS,
 			channels, countof(channels),
 			NULL, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_PARAM_PRIORITIES_NULL, "priorities must not be NULL");
@@ -239,7 +239,7 @@ TEST_F( ChabuInitTest, priorities_count_zero ){
 			0, APPL_NAME, RPS,
 			channels, countof(channels),
 			priorities, 0,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_PARAM_PRIORITIES_RANGE, "count of priorities");
@@ -256,7 +256,7 @@ TEST_F( ChabuInitTest, priorities_count_too_high ){
 			0, APPL_NAME, RPS,
 			channels, countof(channels),
 			priorities, 10000,
-			errorFunction, NULL, NULL, NULL, NULL, NULL,
+			errorFunction, NULL, NULL, NULL, NULL,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_PARAM_PRIORITIES_RANGE, "count of priorities");
@@ -275,35 +275,12 @@ TEST_F( ChabuInitTest, func_accept_null ){
 			priorities, countof(priorities),
 			errorFunction,
 			NULL,//acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			NULL );
 
 	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_ACCEPT_FUNC_NULL, "callback is null");
-
-}
-
-TEST_F( ChabuInitTest, func_configure_null ){
-
-	struct Chabu_Data chabu;
-	struct Chabu_Channel_Data channels[1];
-	struct Chabu_Priority_Data priorities[1];
-	Chabu_Init(
-			&chabu,
-			0, APPL_NAME, RPS,
-			channels, countof(channels),
-			priorities, countof(priorities),
-			errorFunction,
-			acceptConnection,
-			NULL,//configureChannels,
-			networkRegisterWriteRequest,
-			networkRecvBuffer,
-			networkXmitBuffer,
-			NULL );
-
-	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL, "callback is null");
 
 }
 
@@ -319,13 +296,12 @@ TEST_F( ChabuInitTest, func_write_req_null ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			NULL,//networkRegisterWriteRequest,
+			NULL,//eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			NULL );
 
-	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL, "callback is null");
+	VERIFY_ERROR_INFO( Chabu_ErrorCode_INIT_EVENT_FUNC_NULL, "callback is null");
 
 }
 
@@ -341,8 +317,7 @@ TEST_F( ChabuInitTest, func_read_null ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			NULL,//networkRecvBuffer,
 			networkXmitBuffer,
 			NULL );
@@ -363,8 +338,7 @@ TEST_F( ChabuInitTest, func_write_null ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			NULL,//networkXmitBuffer,
 			NULL );
@@ -385,13 +359,13 @@ TEST_F( ChabuInitTest, func_configure_called ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			NULL );
 
-	ASSERT_EQ( 1u, configureChannels_fake.call_count );
+	ASSERT_EQ( 1u, eventNotification_fake.call_count );
+	ASSERT_EQ( Chabu_Event_InitChannels, eventNotification_fake.arg1_val );
 
 }
 
@@ -407,8 +381,7 @@ TEST_F( ChabuInitTest, channels_not_configured ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			NULL );
@@ -420,18 +393,26 @@ TEST_F( ChabuInitTest, channels_not_configured ){
 struct TestData {
 	struct Chabu_Data* chabu;
 	int channelId;
-	Chabu_ChannelEvent         * userCallback_ChannelEvent;
+	Chabu_ChannelEventNotification * userCallback_ChannelEventNotification;
 	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
 	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
 
 };
-static void configureChannels_Cfg1( void* userData ){
-	struct TestData* data = (struct TestData*)userData;
-	struct Chabu_Data* chabu = data->chabu;
-	Chabu_ConfigureChannel(chabu, data->channelId, 0,
-			data->userCallback_ChannelEvent,
-			data->userCallback_ChannelGetXmitBuffer,
-			data->userCallback_ChannelGetRecvBuffer, NULL );
+static void eventNotification_Cfg1( void* userData, enum Chabu_Event event ){
+	switch( event ){
+	case Chabu_Event_InitChannels:
+	{
+		struct TestData* data = (struct TestData*)userData;
+		struct Chabu_Data* chabu = data->chabu;
+		Chabu_ConfigureChannel(chabu, data->channelId, 0,
+				data->userCallback_ChannelEventNotification,
+				data->userCallback_ChannelGetXmitBuffer,
+				data->userCallback_ChannelGetRecvBuffer, NULL );
+	}
+		break;
+	default:
+		break;
+	}
 }
 
 TEST_F( ChabuInitTest, channels_funcs_null ){
@@ -444,7 +425,7 @@ TEST_F( ChabuInitTest, channels_funcs_null ){
 	memset(&tdata, 0, sizeof(tdata));
 	tdata.chabu = &chabu;
 	tdata.channelId = 0;
-	configureChannels_fake.custom_fake = configureChannels_Cfg1;
+	eventNotification_fake.custom_fake = eventNotification_Cfg1;
 
 	Chabu_Init(
 			&chabu,
@@ -453,8 +434,7 @@ TEST_F( ChabuInitTest, channels_funcs_null ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			&tdata );
@@ -471,11 +451,11 @@ TEST_F( ChabuInitTest, channels_configured ){
 
 	struct TestData tdata;
 	tdata.chabu = &chabu;
-	tdata.userCallback_ChannelEvent = channelEvent;
+	tdata.userCallback_ChannelEventNotification = channelEventNotification;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
 	tdata.channelId = 0;
-	configureChannels_fake.custom_fake = configureChannels_Cfg1;
+	eventNotification_fake.custom_fake = eventNotification_Cfg1;
 
 	Chabu_Init(
 			&chabu,
@@ -484,8 +464,7 @@ TEST_F( ChabuInitTest, channels_configured ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			&tdata );
@@ -502,11 +481,11 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_low ){
 
 	struct TestData tdata;
 	tdata.chabu = &chabu;
-	tdata.userCallback_ChannelEvent = channelEvent;
+	tdata.userCallback_ChannelEventNotification = channelEventNotification;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
 	tdata.channelId = -1;
-	configureChannels_fake.custom_fake = configureChannels_Cfg1;
+	eventNotification_fake.custom_fake = eventNotification_Cfg1;
 
 	Chabu_Init(
 			&chabu,
@@ -515,8 +494,7 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_low ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			&tdata );
@@ -533,11 +511,11 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_high ){
 
 	struct TestData tdata;
 	tdata.chabu = &chabu;
-	tdata.userCallback_ChannelEvent = channelEvent;
+	tdata.userCallback_ChannelEventNotification = channelEventNotification;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
 	tdata.channelId = 1;
-	configureChannels_fake.custom_fake = configureChannels_Cfg1;
+	eventNotification_fake.custom_fake = eventNotification_Cfg1;
 
 	Chabu_Init(
 			&chabu,
@@ -546,8 +524,7 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_high ){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			&tdata );

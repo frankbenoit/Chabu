@@ -12,7 +12,7 @@
 #include "Utils.h"
 using std::string;
 
-void SetUp(){
+static void SetUp(){
 	FakeFunctions_ResetAll();
 }
 
@@ -23,7 +23,7 @@ void SetUp(){
 struct TestData {
 	struct Chabu_Data* chabu;
 	int channelId;
-	Chabu_ChannelEvent         * userCallback_ChannelEvent;
+	Chabu_ChannelEventNotification * userCallback_ChannelEventNotification;
 	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
 	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
 
@@ -41,11 +41,11 @@ static struct Chabu_Data chabu;
 static struct Chabu_Channel_Data channels[1];
 static struct Chabu_Priority_Data priorities[1];
 
-static void configureChannels_Cfg1( void* userData ){
+static void eventNotification_Cfg1( void* userData, enum Chabu_Event event ){
 	struct TestData* data = (struct TestData*)userData;
 	struct Chabu_Data* chabu = data->chabu;
 	Chabu_ConfigureChannel(chabu, data->channelId, 0,
-			data->userCallback_ChannelEvent,
+			data->userCallback_ChannelEventNotification,
 			data->userCallback_ChannelGetXmitBuffer,
 			data->userCallback_ChannelGetRecvBuffer, NULL );
 
@@ -59,13 +59,13 @@ static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* 
 }
 
 static void configureStdSetup(){
-	FakeFunctions_ResetAll();
+	SetUp();
 	tdata.chabu = &chabu;
-	tdata.userCallback_ChannelEvent         = channelEvent;
+	tdata.userCallback_ChannelEventNotification = channelEventNotification;
 	tdata.userCallback_ChannelGetXmitBuffer = channelGetXmitBuffer;
 	tdata.userCallback_ChannelGetRecvBuffer = channelGetRecvBuffer;
 	tdata.channelId = 0;
-	configureChannels_fake.custom_fake = configureChannels_Cfg1;
+	eventNotification_fake.custom_fake = eventNotification_Cfg1;
 
 	Chabu_ByteBuffer_Init( &tdata.xmitBuffer, tdata.memTx, sizeof(tdata.memTx) );
 	tdata.xmitBuffer.limit = tdata.xmitBuffer.capacity;
@@ -95,8 +95,7 @@ static void setup1Ch(){
 			priorities, countof(priorities),
 			errorFunction,
 			acceptConnection,
-			configureChannels,
-			networkRegisterWriteRequest,
+			eventNotification,
 			networkRecvBuffer,
 			networkXmitBuffer,
 			&tdata );
@@ -148,7 +147,9 @@ TEST( SetupXmitTest, sendsSetup_cannotFullySend_registersWriteRequest ){
 	tdata.xmitBuffer.limit = 20;
 	Chabu_HandleNetwork( &chabu );
 
-	EXPECT_EQ( 1u, networkRegisterWriteRequest_fake.call_count );
+	// expect 2 calls, one for init channels, then the netw write request
+	EXPECT_EQ( 2u, eventNotification_fake.call_count );
+	EXPECT_EQ( Chabu_Event_NetworkRegisterWriteRequest, eventNotification_fake.arg1_history[1] );
 
 }
 

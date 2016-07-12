@@ -1,9 +1,11 @@
 /*
- * XmitterTest.cpp
+ * ReceiverTest.cpp
  *
  *  Created on: 12.07.2016
  *      Author: Frank
  */
+
+
 
 #include "gtest/gtest.h"
 #include "FakeFunctions.h"
@@ -12,9 +14,6 @@
 #include "Utils.h"
 using std::string;
 
-
-TEST( XmitterTest, DISABLED_receiveWrongApplName ){
+TEST( ResetTest, DISABLED_receiveWrongApplName ){
 }
-
-
 

@@ -34,9 +34,8 @@ LIBRARY_API extern const char*  Chabu_LastErrorStr( struct Chabu_Data* chabu ){
 	case Chabu_ErrorCode_INIT_PARAM_APNAME_NULL         : return "Chabu_ErrorCode_INIT_PARAM_APNAME_NULL";
 	case Chabu_ErrorCode_INIT_PARAM_APNAME_TOO_LONG     : return "Chabu_ErrorCode_INIT_PARAM_APNAME_TOO_LONG";
 	case Chabu_ErrorCode_INIT_PARAM_RPS_RANGE           : return "Chabu_ErrorCode_INIT_PARAM_RPS_RANGE";
-	case Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL       : return "Chabu_ErrorCode_INIT_CONFIGURE_FUNC_NULL";
 	case Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL : return "Chabu_ErrorCode_INIT_CONFIGURE_INVALID_CHANNEL";
-	case Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL    : return "Chabu_ErrorCode_INIT_NW_WRITE_REQ_FUNC_NULL";
+	case Chabu_ErrorCode_INIT_EVENT_FUNC_NULL           : return "Chabu_ErrorCode_INIT_EVENT_FUNC_NULL";
 	case Chabu_ErrorCode_INIT_NW_READ_FUNC_NULL         : return "Chabu_ErrorCode_INIT_NW_READ_FUNC_NULL";
 	case Chabu_ErrorCode_INIT_NW_WRITE_FUNC_NULL        : return "Chabu_ErrorCode_INIT_NW_WRITE_FUNC_NULL";
 	case Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL       : return "Chabu_ErrorCode_INIT_PARAM_CHANNELS_NULL";

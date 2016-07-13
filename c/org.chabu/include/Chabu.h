@@ -202,14 +202,25 @@ struct Chabu_Channel_Data {
 	struct Chabu_Channel_Data*  xmitRequestDataNext;
 };
 
+/**
+ * Indicates the state this is in sending progress.
+ */
+enum Chabu_XmitState {
+	Chabu_XmitState_Setup,
+	Chabu_XmitState_Accept,
+	Chabu_XmitState_Abort,
+	Chabu_XmitState_Seq,
+	Chabu_XmitState_Ack,
+	Chabu_XmitState_Idle,
+};
 
-enum Chabu_State {
-	Chabu_State_Setup,
-	Chabu_State_Accept,
-	Chabu_State_Abort,
-	Chabu_State_Seq,
-	Chabu_State_Ack,
-	Chabu_State_Idle,
+/**
+ * Indicates the state that must follow next
+ */
+enum Chabu_RecvState {
+	Chabu_RecvState_Setup,
+	Chabu_RecvState_Accept,
+	Chabu_RecvState_Ready,
 };
 
 struct Chabu_Data {
@@ -239,13 +250,13 @@ struct Chabu_Data {
 	char                         errorMessage[200];
 
 	struct {
-		enum Chabu_State             state;
+		enum Chabu_XmitState         state;
 		uint8                        memory[0x100];
 		struct Chabu_ByteBuffer_Data buffer;
 	} xmit;
 
 	struct {
-		enum Chabu_State             state;
+		enum Chabu_RecvState         state;
 		uint8                        memory[0x100];
 		struct Chabu_ByteBuffer_Data buffer;
 

@@ -93,6 +93,11 @@ static void prepareRecvSetup(){
 	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
 
 }
+static void prepareRecvAccept(){
+	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 08 77 77 00 E1 "));
+	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
+}
 
 #define ASSERT_NO_ERROR() ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu )) << Chabu_LastErrorStr( &chabu )
 
@@ -125,16 +130,21 @@ static void setup1Ch(){
 	allowNoXmit();
 	allowToXmit(8);
 	prepareRecvSetup();
+	prepareRecvAccept();
 	ASSERT_NO_ERROR();
 	Chabu_HandleNetwork( &chabu );
 
 }
 
-TEST( XmitterTest, DISABLED_receiveWrongApplName ){
+TEST( XferTest, notReadyForRecv_noArmXmitted ){
 	setup1Ch();
-	allowToXmit(16);
-	Chabu_HandleNetwork( &chabu );
 
+	Chabu_ByteBuffer_clear( &tdata.xmitBuffer );
+	Chabu_HandleNetwork( &chabu );
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
+	EXPECT_EQ( 0, Chabu_ByteBuffer_remaining( &tdata.xmitBuffer ) );
+	EXPECT_EQ( Chabu_XmitState_Idle, chabu.xmit.state );
+	EXPECT_EQ( Chabu_RecvState_Ready, chabu.recv.state );
 }
 
 

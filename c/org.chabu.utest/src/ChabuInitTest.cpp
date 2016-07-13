@@ -5,13 +5,12 @@
  *      Author: Frank
  */
 
-#include "ChabuInitTest.hpp"
 #include "gtest/gtest.h"
 #include "FakeFunctions.h"
 #include <Chabu.h>
 
 
-void ChabuInitTest::SetUp(){
+static void setup(){
 	FakeFunctions_ResetAll();
 
 }
@@ -22,17 +21,20 @@ void ChabuInitTest::SetUp(){
 #define APPL_NAME    "ABC"
 
 
-TEST_F( ChabuInitTest, LastError_set_for_chabu_NULL ){
+TEST( ChabuInitTest, LastError_set_for_chabu_NULL ){
+	setup();
 	EXPECT_EQ( Chabu_ErrorCode_CHABU_IS_NULL, Chabu_LastError( NULL ));
 }
 
-TEST_F( ChabuInitTest, LastError_set_for_chabu_uninitialized ){
+TEST( ChabuInitTest, LastError_set_for_chabu_uninitialized ){
+	setup();
 	struct Chabu_Data chabu;
 	memset( &chabu, 0, sizeof(chabu));
 	EXPECT_EQ( Chabu_ErrorCode_CHABU_IS_NOT_INITIALIZED, Chabu_LastError( &chabu ));
 }
 
-TEST_F( ChabuInitTest, LastError_set_for_chabu_null_error_func ){
+TEST( ChabuInitTest, LastError_set_for_chabu_null_error_func ){
+	setup();
 	struct Chabu_Data chabu;
 	Chabu_Init(
 			&chabu,
@@ -44,7 +46,8 @@ TEST_F( ChabuInitTest, LastError_set_for_chabu_null_error_func ){
 	EXPECT_EQ( Chabu_ErrorCode_INIT_ERROR_FUNC_NULL, Chabu_LastError( &chabu ));
 }
 
-TEST_F( ChabuInitTest, on_error_lastError_is_set ){
+TEST( ChabuInitTest, on_error_lastError_is_set ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -58,7 +61,8 @@ TEST_F( ChabuInitTest, on_error_lastError_is_set ){
 
 }
 
-TEST_F( ChabuInitTest, on_error_error_func_is_called_once ){
+TEST( ChabuInitTest, on_error_error_func_is_called_once ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -78,7 +82,8 @@ TEST_F( ChabuInitTest, on_error_error_func_is_called_once ){
 		EXPECT_TRUE( strstr( errorFunction_fake.arg4_val, msg) != NULL ) << errorFunction_fake.arg4_val;\
 	}while(false)
 
-TEST_F( ChabuInitTest, application_protocol_name_is_null ){
+TEST( ChabuInitTest, application_protocol_name_is_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -92,7 +97,8 @@ TEST_F( ChabuInitTest, application_protocol_name_is_null ){
 
 }
 
-TEST_F( ChabuInitTest, application_protocol_name_is_too_long ){
+TEST( ChabuInitTest, application_protocol_name_is_too_long ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -106,7 +112,8 @@ TEST_F( ChabuInitTest, application_protocol_name_is_too_long ){
 
 }
 
-TEST_F( ChabuInitTest, rps_range_too_low ){
+TEST( ChabuInitTest, rps_range_too_low ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -121,7 +128,8 @@ TEST_F( ChabuInitTest, rps_range_too_low ){
 }
 #define ASSERT_NO_ERROR() ASSERT_EQ( Chabu_ErrorCode_OK_NOERROR, Chabu_LastError( &chabu )) << Chabu_LastErrorStr( &chabu )
 
-TEST_F( ChabuInitTest, rps_range_low ){
+TEST( ChabuInitTest, rps_range_low ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -136,7 +144,8 @@ TEST_F( ChabuInitTest, rps_range_low ){
 
 }
 
-TEST_F( ChabuInitTest, rps_range_too_high ){
+TEST( ChabuInitTest, rps_range_too_high ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -150,7 +159,8 @@ TEST_F( ChabuInitTest, rps_range_too_high ){
 
 }
 
-TEST_F( ChabuInitTest, rps_range_high ){
+TEST( ChabuInitTest, rps_range_high ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -165,7 +175,8 @@ TEST_F( ChabuInitTest, rps_range_high ){
 
 }
 
-TEST_F( ChabuInitTest, channels_null ){
+TEST( ChabuInitTest, channels_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	Chabu_Init(
@@ -181,7 +192,8 @@ TEST_F( ChabuInitTest, channels_null ){
 }
 
 
-TEST_F( ChabuInitTest, channels_count_zero ){
+TEST( ChabuInitTest, channels_count_zero ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -197,7 +209,8 @@ TEST_F( ChabuInitTest, channels_count_zero ){
 
 }
 
-TEST_F( ChabuInitTest, channels_count_too_high ){
+TEST( ChabuInitTest, channels_count_too_high ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -213,7 +226,8 @@ TEST_F( ChabuInitTest, channels_count_too_high ){
 
 }
 
-TEST_F( ChabuInitTest, priorities_null ){
+TEST( ChabuInitTest, priorities_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -229,7 +243,8 @@ TEST_F( ChabuInitTest, priorities_null ){
 
 }
 
-TEST_F( ChabuInitTest, priorities_count_zero ){
+TEST( ChabuInitTest, priorities_count_zero ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -246,7 +261,8 @@ TEST_F( ChabuInitTest, priorities_count_zero ){
 
 }
 
-TEST_F( ChabuInitTest, priorities_count_too_high ){
+TEST( ChabuInitTest, priorities_count_too_high ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -263,7 +279,8 @@ TEST_F( ChabuInitTest, priorities_count_too_high ){
 
 }
 
-TEST_F( ChabuInitTest, func_accept_null ){
+TEST( ChabuInitTest, func_accept_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -284,7 +301,8 @@ TEST_F( ChabuInitTest, func_accept_null ){
 
 }
 
-TEST_F( ChabuInitTest, func_write_req_null ){
+TEST( ChabuInitTest, func_write_req_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -305,7 +323,8 @@ TEST_F( ChabuInitTest, func_write_req_null ){
 
 }
 
-TEST_F( ChabuInitTest, func_read_null ){
+TEST( ChabuInitTest, func_read_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -326,7 +345,8 @@ TEST_F( ChabuInitTest, func_read_null ){
 
 }
 
-TEST_F( ChabuInitTest, func_write_null ){
+TEST( ChabuInitTest, func_write_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -347,7 +367,8 @@ TEST_F( ChabuInitTest, func_write_null ){
 
 }
 
-TEST_F( ChabuInitTest, func_configure_called ){
+TEST( ChabuInitTest, func_configure_called ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -369,7 +390,8 @@ TEST_F( ChabuInitTest, func_configure_called ){
 
 }
 
-TEST_F( ChabuInitTest, channels_not_configured ){
+TEST( ChabuInitTest, channels_not_configured ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -415,7 +437,8 @@ static void eventNotification_Cfg1( void* userData, enum Chabu_Event event ){
 	}
 }
 
-TEST_F( ChabuInitTest, channels_funcs_null ){
+TEST( ChabuInitTest, channels_funcs_null ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -443,7 +466,8 @@ TEST_F( ChabuInitTest, channels_funcs_null ){
 
 }
 
-TEST_F( ChabuInitTest, channels_configured ){
+TEST( ChabuInitTest, channels_configured ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -473,7 +497,8 @@ TEST_F( ChabuInitTest, channels_configured ){
 
 }
 
-TEST_F( ChabuInitTest, channel_config_invalid_channel_id_low ){
+TEST( ChabuInitTest, channel_config_invalid_channel_id_low ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];
@@ -503,7 +528,8 @@ TEST_F( ChabuInitTest, channel_config_invalid_channel_id_low ){
 
 }
 
-TEST_F( ChabuInitTest, channel_config_invalid_channel_id_high ){
+TEST( ChabuInitTest, channel_config_invalid_channel_id_high ){
+	setup();
 
 	struct Chabu_Data chabu;
 	struct Chabu_Channel_Data channels[1];

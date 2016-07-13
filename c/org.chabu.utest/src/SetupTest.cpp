@@ -169,7 +169,7 @@ TEST( SetupXmitTest, sendsSetup_thenWaitsRemoteSetup ){
 
 	setup1Ch();
 	Chabu_HandleNetwork( &chabu );
-	EXPECT_EQ( Chabu_State_Setup, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Setup, chabu.xmit.state );
 
 }
 
@@ -203,7 +203,7 @@ TEST( SetupRecvTest, receiveGood_byFirstSendingThenRecv_ChangedToAcceptState ){
 
 	prepareRecvSetup();
 	Chabu_HandleNetwork( &chabu );
-	EXPECT_EQ( Chabu_State_Accept, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Accept, chabu.xmit.state );
 
 }
 
@@ -228,7 +228,7 @@ TEST( SetupRecvTest, receiveGood_byFirstRecvThenSending_ChangedToAcceptState ){
 	allowToXmit( 50 );
 	Chabu_HandleNetwork( &chabu );
 
-	EXPECT_EQ( Chabu_State_Accept, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Accept, chabu.xmit.state );
 
 }
 
@@ -249,7 +249,7 @@ TEST( SetupRecvTest, recvSetupAndAskUserToAccept_UserRejects_AbortIsSend ){
 	prepareRecvSetup();
 	Chabu_HandleNetwork( &chabu );
 
-	EXPECT_EQ( Chabu_State_Abort, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Abort, chabu.xmit.state );
 }
 
 // DISABLED_
@@ -265,7 +265,7 @@ TEST( AbortXmitTest, abortOnUserReject_AbortHasRightFormat ){
 	prepareRecvSetup();
 	Chabu_HandleNetwork( &chabu );
 
-	EXPECT_EQ( Chabu_State_Abort, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Abort, chabu.xmit.state );
 	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
 	int packetLength = Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer );
 	EXPECT_TRUE( packetLength >= 16 ) << "packetLength: " << packetLength;

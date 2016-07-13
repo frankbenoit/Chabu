@@ -132,7 +132,7 @@ LIBRARY_API void Chabu_Init(
 	Chabu_ByteBuffer_putString( &chabu->xmit.buffer, applicationName );
 	Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
-	chabu->xmit.state = Chabu_State_Setup;
+	chabu->xmit.state = Chabu_XmitState_Setup;
 	chabu->connectionInfoRemote.hasContent = false;
 	chabu->connectionInfoLocal.hasContent = false;
 }

@@ -95,7 +95,7 @@ static void createAbortPacket(struct Chabu_Data* chabu, enum Chabu_ErrorCode err
 	Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 }
 static bool prepareNextXmitState(struct Chabu_Data* chabu){
-	if( chabu->xmit.state == Chabu_State_Setup ){
+	if( chabu->xmit.state == Chabu_XmitState_Setup ){
 		if( chabu->connectionInfoRemote.hasContent ){
 
 			uint8 msgMemory[Chabu_ABORT_MSG_SIZE_MAX];
@@ -110,14 +110,14 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_Accept );
 				Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
-				chabu->xmit.state = Chabu_State_Accept;
+				chabu->xmit.state = Chabu_XmitState_Accept;
 			}
 			else {
 				Chabu_ByteBuffer_flip( &msgBuffer );
 
 				Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
 				createAbortPacket( chabu, error, &msgBuffer );
-				chabu->xmit.state = Chabu_State_Abort;
+				chabu->xmit.state = Chabu_XmitState_Abort;
 			}
 			return true;
 		}

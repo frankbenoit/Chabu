@@ -60,6 +60,7 @@ LIBRARY_API const char*  Chabu_ErrorCodeStr( enum Chabu_ErrorCode e ){
 	case Chabu_ErrorCode_SETUP_REMOTE_CHABU_VERSION     : return "Chabu_ErrorCode_SETUP_REMOTE_CHABU_VERSION";
 	case Chabu_ErrorCode_SETUP_REMOTE_CHABU_NAME        : return "Chabu_ErrorCode_SETUP_REMOTE_CHABU_NAME";
 	case Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE       : return "Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE";
+	case Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH   : return "Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH";
 	case Chabu_ErrorCode_PROTOCOL_LENGTH                : return "Chabu_ErrorCode_PROTOCOL_LENGTH";
 	case Chabu_ErrorCode_PROTOCOL_PCK_TYPE              : return "Chabu_ErrorCode_PROTOCOL_PCK_TYPE";
 	case Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH      : return "Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH";
@@ -68,6 +69,8 @@ LIBRARY_API const char*  Chabu_ErrorCodeStr( enum Chabu_ErrorCode e ){
 	case Chabu_ErrorCode_PROTOCOL_EXPECTED_SETUP        : return "Chabu_ErrorCode_PROTOCOL_EXPECTED_SETUP";
 	case Chabu_ErrorCode_PROTOCOL_CHANNEL_RECV_OVERFLOW : return "Chabu_ErrorCode_PROTOCOL_CHANNEL_RECV_OVERFLOW";
 	case Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW         : return "Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW";
+	case Chabu_ErrorCode_PROTOCOL_SEQ_VALUE             : return "Chabu_ErrorCode_PROTOCOL_SEQ_VALUE";
+	case Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING  : return "Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING";
 	case Chabu_ErrorCode_REMOTE_ABORT                   : return "Chabu_ErrorCode_REMOTE_ABORT";
 	case Chabu_ErrorCode_APPLICATION_VALIDATOR          : return "Chabu_ErrorCode_APPLICATION_VALIDATOR";
 	default: return "<unknown>";

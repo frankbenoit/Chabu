@@ -147,6 +147,9 @@ LIBRARY_API void Chabu_Init(
 
 	chabu->recv.state = Chabu_RecvState_Setup;
 	chabu->recv.buffer.limit = 8;
+	chabu->recv.seqChannel = NULL;
+	chabu->recv.seqRemainingPayload = 0;
+	chabu->recv.seqRemainingPadding = 0;
 
 }
 

@@ -30,8 +30,10 @@ struct TestData {
 
 	uint8 memRx[1000];
 	struct Chabu_ByteBuffer_Data recvBuffer;
+	int recvTestNumber;
 	uint8 memTx[1000];
 	struct Chabu_ByteBuffer_Data xmitBuffer;
+	int xmitTestNumber;
 	uint8 memTst[1000];
 	struct Chabu_ByteBuffer_Data testBuffer;
 };
@@ -71,9 +73,11 @@ static void configureStdSetup(){
 
 	Chabu_ByteBuffer_Init( &tdata.xmitBuffer, tdata.memTx, sizeof(tdata.memTx) );
 	tdata.xmitBuffer.limit = tdata.xmitBuffer.capacity;
+	tdata.xmitTestNumber = 0;
 
 	Chabu_ByteBuffer_Init( &tdata.recvBuffer, tdata.memRx, sizeof(tdata.memRx) );
 	tdata.recvBuffer.limit = tdata.recvBuffer.capacity;
+	tdata.recvTestNumber = 0;
 
 	Chabu_ByteBuffer_Init( &tdata.testBuffer, tdata.memTst, sizeof(tdata.memTst) );
 	tdata.recvBuffer.limit = 0;
@@ -200,21 +204,167 @@ TEST( XferTest, readyForRecv_writeRequestIsFired ){
 
 }
 
-static void prepareSeqPacket(){
+static void prepareSeqPacket( int channelId, int seq, int size){
+	int alignedSize = Common_AlignUp4( size );
+	int packetSize = alignedSize + 20;
 	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
-	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 28 77 77 00 B4 "));
-	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 00 00 00 00 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "));
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, packetSize );
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("77 77 00 B4 "));
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, channelId );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, seq );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, size );
+	for( int i = 0; i < alignedSize; i += 4 ){
+		Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, -1 );
+	}
 	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
 }
 
-TEST( XferTest, DISABLED_readyForRecv_recvData ){
-	setup1Ch();
-
-	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
+static void channelAddRecv( int channel, int amount ){
+	Chabu_Channel_AddRecvLimit( &chabu, channel, amount );
 	xmitAllowAll();
 	doIo();
-	prepareSeqPacket();
+}
+
+TEST( XferTest, recvSeq_singleBigUserBuffer ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 22);
+
+	EXPECT_EQ( 0u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0u, channelGetRecvBuffer_fake.call_count );
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
 	doIo();
+
+	EXPECT_EQ( 22, tdata.testBuffer.position );
+	EXPECT_EQ( 1u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0, channelEventNotification_fake.arg1_val );
+	EXPECT_EQ( Chabu_Channel_Event_RecvCompleted, channelEventNotification_fake.arg2_val );
+}
+
+TEST( XferTest, recvSeq_multipleUserBuffers ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 22);
+
+
+	struct Chabu_ByteBuffer_Data* recvBufferPtr[3];
+	struct Chabu_ByteBuffer_Data recvBuffer[3];
+	Chabu_ByteBuffer_Init( &recvBuffer[0], tdata.memRx, sizeof(tdata.memRx) );
+	Chabu_ByteBuffer_Init( &recvBuffer[1], tdata.memRx, sizeof(tdata.memRx) );
+	Chabu_ByteBuffer_Init( &recvBuffer[2], tdata.memRx, sizeof(tdata.memRx) );
+
+	recvBufferPtr[0] = &recvBuffer[0];
+	recvBufferPtr[1] = &recvBuffer[1];
+	recvBufferPtr[2] = &recvBuffer[2];
+	channelGetRecvBuffer_fake.return_val_seq = recvBufferPtr;
+
+	recvBuffer[0].position =  0; recvBuffer[0].limit =  8;
+	recvBuffer[1].position =  8; recvBuffer[1].limit = 16;
+	recvBuffer[2].position = 16; recvBuffer[2].limit = 22;
+
+	channelGetRecvBuffer_fake.return_val_seq_len = 3;
+
+
+	doIo();
+
+	EXPECT_EQ(  8, recvBuffer[0].position );
+	EXPECT_EQ( 16, recvBuffer[1].position );
+	EXPECT_EQ( 22, recvBuffer[2].position );
+	EXPECT_EQ( 3u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0, channelEventNotification_fake.arg1_val );
+	EXPECT_EQ( Chabu_Channel_Event_RecvCompleted, channelEventNotification_fake.arg2_val );
+}
+
+#define VERIFY_ERROR_INFO( code, msg ) \
+	do{\
+		ASSERT_EQ( 1u, errorFunction_fake.call_count );\
+		EXPECT_EQ( code, errorFunction_fake.arg1_val ) <<  Chabu_LastErrorStr( &chabu );\
+		EXPECT_TRUE( strstr( errorFunction_fake.arg4_val, msg) != NULL ) << errorFunction_fake.arg4_val;\
+	}while(false)
+
+
+TEST( XferTest, recvSeq_userBufferSizeZero_errorUserBufferZeroLength ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 22);
+
+	EXPECT_EQ( 0u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0u, channelGetRecvBuffer_fake.call_count );
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = 0;
+
+	doIo();
+	VERIFY_ERROR_INFO( Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH, "zero length");
+
+}
+
+TEST( XferTest, recvSeqWithWrongSeq_errorGenerated ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 4);
+	prepareSeqPacket(0, 11, 4);
+
+	EXPECT_EQ( 0u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0u, channelGetRecvBuffer_fake.call_count );
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	doIo();
+
+	VERIFY_ERROR_INFO( Chabu_ErrorCode_PROTOCOL_SEQ_VALUE, "wrong SEQ");
+}
+
+TEST( XferTest, recvSeqWithNotExistingChannel_errorGenerated ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(1, 0, 4);
+
+	EXPECT_EQ( 0u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0u, channelGetRecvBuffer_fake.call_count );
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	doIo();
+
+	VERIFY_ERROR_INFO( Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING, "ch[1] does not exist");
+}
+
+TEST( XferTest, recvMultipleSeq_assembleCorrectly ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 2);
+	prepareSeqPacket(0, 0, 12);
+	prepareSeqPacket(0, 0, 2);
+	prepareSeqPacket(0, 0, 1);
+	prepareSeqPacket(0, 0, 3);
+	prepareSeqPacket(0, 0, 2);
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	doIo();
+
+	EXPECT_EQ( 22, tdata.testBuffer.position );
+	EXPECT_EQ(6u, channelEventNotification_fake.call_count );
+	EXPECT_EQ( 0, channelEventNotification_fake.arg1_val );
+	EXPECT_EQ( Chabu_Channel_Event_RecvCompleted, channelEventNotification_fake.arg2_val );
 }
 
 

@@ -105,6 +105,7 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_SETUP_REMOTE_CHABU_VERSION,
     Chabu_ErrorCode_SETUP_REMOTE_CHABU_NAME,
     Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE,
+    Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH,
     Chabu_ErrorCode_PROTOCOL_LENGTH,
     Chabu_ErrorCode_PROTOCOL_PCK_TYPE,
     Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH,
@@ -113,6 +114,8 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_PROTOCOL_EXPECTED_SETUP,
     Chabu_ErrorCode_PROTOCOL_CHANNEL_RECV_OVERFLOW,
     Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW,
+    Chabu_ErrorCode_PROTOCOL_SEQ_VALUE,
+    Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING,
     Chabu_ErrorCode_REMOTE_ABORT,
     Chabu_ErrorCode_APPLICATION_VALIDATOR = 256,
 };
@@ -221,6 +224,7 @@ enum Chabu_RecvState {
 	Chabu_RecvState_Setup,
 	Chabu_RecvState_Accept,
 	Chabu_RecvState_Ready,
+	Chabu_RecvState_SeqPayload,
 };
 
 struct Chabu_Data {
@@ -260,6 +264,11 @@ struct Chabu_Data {
 		uint8                        memory[0x100];
 		struct Chabu_ByteBuffer_Data buffer;
 
+		struct Chabu_Channel_Data*    seqChannel;
+		int                           seqRemainingPayload;
+		int                           seqRemainingPadding;
+		struct Chabu_ByteBuffer_Data* seqBufferUser;
+		struct Chabu_ByteBuffer_Data  seqBuffer;
 	} recv;
 
 	int                          receivePacketSize;

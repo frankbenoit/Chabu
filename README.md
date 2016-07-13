@@ -9,12 +9,21 @@ Each channel has a pair of bidirectional streams.
 
 Each stream has an own flow control mechanism. This means, the sender is paused when the receiver is not yet ready. The protocol is implemented in a way, no data is copied more then needed. So the payload is passed directly from the network API to the application, no internal buffering is needed.  
 
+Why not use multiple TCP connections?  
+Why not use multiple USB endpoints?  
+
+ 1. The USB standard only allowed a very limitted amount of endpoints. For embedded devices, the available resources might be too limitted to have many TCP connections.
+ 1. The transmition chain may go over different stages, TCP, USB, PCI. And all those stages need to know how to handle those mutliple connections in parallel. With Chabu, this is only a single connection and the underlaying stages don't know about the individual streams. The application on the higher level can easily change the channels configuration without changes on the lower levels.
+ 1. The transport can be implemented more efficiently. When many connection have only small data packets, each must be packed xmitted and confirmed individually. With Chabu, those small packets are composed to bigger packets and transferred together.
+ 
 The protocol is is implemented different languages.
 
- 1. Java is the first implementation. The library has no external dependencies. It can be integrated in OSGI.
- 1. C# in progress 
- 1. C for embedded devices in progress 
- 1. VHDL for embedded devices having an FPGA connected to a USB device. Implementation is pending.
+| Language | Status |
+|----------|--------|
+| Java     | Basics implemented. Not yet: DAVAIL, RESET |
+| C        | In progress                |
+| C#       | Not yet done. Help welcome! |
+| VHDL+C   | Not yet done. Help welcome! |
 
 ## License
 

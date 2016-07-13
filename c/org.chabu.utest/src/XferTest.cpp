@@ -219,6 +219,15 @@ static void prepareSeqPacket( int channelId, int seq, int size){
 	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
 }
 
+static void prepareArmPacket( int channelId, int arm){
+	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, 16 );
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("77 77 00 C3 "));
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, channelId );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, arm );
+	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
+}
+
 static void channelAddRecv( int channel, int amount ){
 	Chabu_Channel_AddRecvLimit( &chabu, channel, amount );
 	xmitAllowAll();
@@ -367,5 +376,41 @@ TEST( XferTest, recvMultipleSeq_assembleCorrectly ){
 	EXPECT_EQ( Chabu_Channel_Event_RecvCompleted, channelEventNotification_fake.arg2_val );
 }
 
+TEST( XferTest, receiveArm_valueIsStored ){
+
+	setup1Ch();
+
+	prepareArmPacket(0, 22);
+
+	doIo();
+
+	EXPECT_EQ( 22u, tdata.chabu->channels[0].xmitArm );
+}
+
+TEST( XferTest, startXmit_callsChannelGetXmitBuffer ){
+	setup1Ch();
+
+	prepareArmPacket( 0, 200 );
+	doIo();
+
+	RESET_FAKE(eventNotification);
+	Chabu_Channel_AddXmitLimit( tdata.chabu, 0, 22 );
+
+	EXPECT_EQ( 1u, eventNotification_fake.call_count );
+	EXPECT_EQ( Chabu_Event_NetworkRegisterWriteRequest, eventNotification_fake.arg1_val );
+
+	channelGetXmitBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	doIo();
+
+	EXPECT_EQ( 1u, channelGetXmitBuffer_fake.call_count );
+}
+
+
+TEST( XferTest, DISABLED_receiveArm_wrongChannel_generatedError ){
+
+}
 
 

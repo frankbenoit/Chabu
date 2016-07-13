@@ -20,6 +20,7 @@ extern const struct Chabu_StructInfo structInfo_channel;
 #define RPS_MAX             0x10000000UL
 #define PACKET_MAGIC        0x77770000UL
 #define PROTOCOL_NAME       "CHABU"
+#define SEQ_HEADER_SZ       20
 
 #define REPORT_ERROR_IF( cond, c, e, f, ... ) do { if( (cond) ) { Chabu_ReportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ ); } } while(false)
 #define REPORT_ERROR( c, e, f, ... ) reportError( (c), (e), __FILE__, __LINE__, (f), ##__VA_ARGS__ )

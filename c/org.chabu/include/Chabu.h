@@ -106,6 +106,7 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_SETUP_REMOTE_CHABU_NAME,
     Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE,
     Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH,
+    Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH,
     Chabu_ErrorCode_PROTOCOL_LENGTH,
     Chabu_ErrorCode_PROTOCOL_PCK_TYPE,
     Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH,
@@ -116,6 +117,7 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW,
     Chabu_ErrorCode_PROTOCOL_SEQ_VALUE,
     Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING,
+    Chabu_ErrorCode_PARAMETER,
     Chabu_ErrorCode_REMOTE_ABORT,
     Chabu_ErrorCode_APPLICATION_VALIDATOR = 256,
 };
@@ -190,8 +192,9 @@ struct Chabu_Channel_Data {
 	void                       * userData;
 
 	///struct QueueVar* xmitQueue;
-	uint32           xmitSeq;
-	uint32           xmitArm;
+	uint64           xmitSeq;
+	uint64           xmitArm;
+	uint64           xmitLimit;
 
 	bool             xmitRequestArm;
 	bool             xmitRequestData;
@@ -213,6 +216,7 @@ enum Chabu_XmitState {
 	Chabu_XmitState_Accept,
 	Chabu_XmitState_Abort,
 	Chabu_XmitState_Seq,
+	Chabu_XmitState_SeqPayload,
 	Chabu_XmitState_Arm,
 	Chabu_XmitState_Idle,
 };
@@ -257,6 +261,11 @@ struct Chabu_Data {
 		enum Chabu_XmitState         state;
 		uint8                        memory[0x100];
 		struct Chabu_ByteBuffer_Data buffer;
+		struct Chabu_Channel_Data*    seqChannel;
+		int                           seqRemainingPayload;
+		int                           seqRemainingPadding;
+		struct Chabu_ByteBuffer_Data* seqBufferUser;
+		struct Chabu_ByteBuffer_Data  seqBuffer;
 	} xmit;
 
 	struct {

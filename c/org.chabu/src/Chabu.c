@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <assert.h>
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 struct Chabu_StructInfo {
 	const char* name;
 };
@@ -24,6 +27,8 @@ static bool writePendingXmitData( struct Chabu_Data* chabu );
 static bool prepareNextXmitState(struct Chabu_Data* chabu);
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer );
 static struct Chabu_Channel_Data* popNextArmRequest( struct Chabu_Data* chabu );
+static struct Chabu_Channel_Data* popNextDataRequest( struct Chabu_Data* chabu );
+static void xmitGetUserData(struct Chabu_Data* chabu);
 
 LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
 	handleReads( chabu );
@@ -77,9 +82,20 @@ static void handleReads( struct Chabu_Data* chabu ){
 			else if( packetType == PacketType_Accept ){
 				chabu->recv.state = Chabu_RecvState_Ready;
 			}
-//			else if( packetType == PacketType_ARM ){
-//				chabu->recv.state = Chabu_RecvState_Ready;
-//			}
+			else if( packetType == PacketType_ARM ){
+				chabu->recv.state = Chabu_RecvState_Ready;
+				int channelId   = Chabu_ByteBuffer_getInt_BE( rb );
+				int arm         = Chabu_ByteBuffer_getInt_BE( rb );
+
+				if( channelId < 0 || channelId >= chabu->channelCount ){
+					Chabu_ReportError( chabu, Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING, __FILE__, __LINE__,
+							"ch[%d] does not exist. %d available channels", channelId, chabu->channelCount );
+					return;
+				}
+
+				struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
+				ch->xmitArm = arm;
+			}
 			else if( packetType == PacketType_SEQ ){
 
 				int channelId   = Chabu_ByteBuffer_getInt_BE( rb );
@@ -108,6 +124,10 @@ static void handleReads( struct Chabu_Data* chabu ){
 
 				assert( chabu->recv.seqRemainingPayload >= 0 );
 
+			}
+			else {
+				Chabu_ReportError( chabu, Chabu_ErrorCode_PROTOCOL_PCK_TYPE, __FILE__, __LINE__, "unknown packet type: 0x%X", packetId );
+				return;
 			}
 			rb->position = 0;
 			rb->limit = 8;
@@ -176,15 +196,56 @@ static bool hasPendingXmitData( struct Chabu_Data* chabu ){
 	return Chabu_ByteBuffer_hasRemaining( &chabu->xmit.buffer );
 }
 static bool writePendingXmitData( struct Chabu_Data* chabu ){
+
 	if( Chabu_ByteBuffer_hasRemaining( &chabu->xmit.buffer )){
 
 		chabu->userCallback_NetworkXmitBuffer( chabu->userData, &chabu->xmit.buffer );
 
 		if( hasPendingXmitData( chabu )){
-			chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
 			return false;
 		}
 	}
+
+	if( chabu->xmit.state == Chabu_XmitState_SeqPayload ){
+		struct Chabu_Channel_Data* ch = chabu->xmit.seqChannel;
+		assert( ch );
+		while( chabu->xmit.seqRemainingPayload ){
+
+			xmitGetUserData(chabu);
+
+			struct Chabu_ByteBuffer_Data* buf = &chabu->xmit.seqBuffer;
+			int availBefore = Chabu_ByteBuffer_remaining( buf );
+			chabu->userCallback_NetworkXmitBuffer( chabu->userData, buf );
+			int availAfter = Chabu_ByteBuffer_remaining( buf );
+			int written = availBefore - availAfter;
+			if( written == 0 ){
+				break;
+			}
+			chabu->xmit.seqRemainingPayload -= written;
+			assert( chabu->xmit.seqRemainingPayload >= 0 );
+
+			if( !Chabu_ByteBuffer_hasRemaining( buf ) ){
+				ch->userCallback_ChannelEventNotification( ch->userData, ch->channelId, Chabu_Channel_Event_XmitCompleted, 0 );
+			}
+
+		}
+		if(( chabu->xmit.seqRemainingPayload == 0 ) && ( chabu->xmit.seqRemainingPadding > 0)){
+			struct Chabu_ByteBuffer_Data* buf = &chabu->xmit.buffer;
+			buf->position = 0;
+			buf->limit = chabu->xmit.seqRemainingPadding;
+			chabu->userCallback_NetworkXmitBuffer( chabu->userData, buf );
+			chabu->xmit.seqRemainingPadding -= buf->position;
+		}
+		if(( chabu->xmit.seqRemainingPayload == 0 ) && ( chabu->xmit.seqRemainingPadding == 0)){
+			chabu->xmit.state = Chabu_XmitState_Idle;
+		}
+
+		if( chabu->xmit.seqRemainingPayload ){
+			return false;
+		}
+	}
+
+
 	return true;
 }
 static void createAbortPacket(struct Chabu_Data* chabu, enum Chabu_ErrorCode error, struct Chabu_ByteBuffer_Data * msgBuffer ){
@@ -204,6 +265,30 @@ static void createAbortPacket(struct Chabu_Data* chabu, enum Chabu_ErrorCode err
 	Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, error );
 	Chabu_ByteBuffer_putStringFromBuffer( &chabu->xmit.buffer, msgBuffer );
 	Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+}
+
+static void xmitGetUserData(struct Chabu_Data* chabu){
+
+	struct Chabu_Channel_Data* ch = chabu->xmit.seqChannel;
+	if( chabu->xmit.seqBufferUser == NULL ){
+		chabu->xmit.seqBufferUser =
+				ch->userCallback_ChannelGetXmitBuffer(
+						ch->userData,
+						ch->channelId,
+						chabu->xmit.seqRemainingPayload );
+
+		int userBufferAvailable = Chabu_ByteBuffer_remaining( chabu->xmit.seqBufferUser );
+		if(( chabu->xmit.seqBufferUser == NULL ) || ( userBufferAvailable == 0 )) {
+			Chabu_ReportError( chabu, Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH, __FILE__, __LINE__, "xmit buffer is NULL or has no data" );
+			return;
+		}
+		assert( chabu->xmit.seqBufferUser );
+		chabu->xmit.seqBuffer = *chabu->xmit.seqBufferUser;
+		int bufferTooLong = userBufferAvailable - chabu->xmit.seqRemainingPayload;
+		if( bufferTooLong > 0 ){
+			chabu->xmit.seqBuffer.limit -= bufferTooLong;
+		}
+	}
 }
 static bool prepareNextXmitState(struct Chabu_Data* chabu){
 	if( chabu->xmit.state == Chabu_XmitState_Setup ){
@@ -236,10 +321,18 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 	else if( chabu->xmit.state == Chabu_XmitState_Accept ){
 		chabu->xmit.state = Chabu_XmitState_Idle;
 	}
+	else if( chabu->xmit.state == Chabu_XmitState_Seq ){
+		chabu->xmit.state = Chabu_XmitState_SeqPayload;
+		return true;
+	}
+	else if( chabu->xmit.state == Chabu_XmitState_SeqPayload ){
+		chabu->xmit.state = Chabu_XmitState_Idle;
+	}
 
 
 	if( chabu->xmit.state == Chabu_XmitState_Idle ){
-		struct Chabu_Channel_Data* ch = popNextArmRequest( chabu );
+		struct Chabu_Channel_Data* ch = NULL;
+		ch = popNextArmRequest( chabu );
 		if( ch != NULL ){
 			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 16 );
@@ -249,6 +342,34 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
 			chabu->xmit.state = Chabu_XmitState_Arm;
+			return true;
+		}
+
+		ch = popNextDataRequest( chabu );
+		if( ch != NULL ){
+			int maxXmitSize = chabu->receivePacketSize - SEQ_HEADER_SZ;
+			uint64 xmitAvailable = ch->xmitLimit - ch->xmitSeq;
+			uint64 xmitArmed     = ch->xmitArm   - ch->xmitSeq;
+			uint64 xmitSize = maxXmitSize;
+			if( xmitSize > xmitAvailable ){
+				xmitSize = xmitAvailable;
+			}
+			if( xmitSize > xmitArmed ){
+				xmitSize = xmitArmed;
+			}
+			int xmitSizeAligned = Common_AlignUp4(xmitSize);
+			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, SEQ_HEADER_SZ+xmitSizeAligned );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_SEQ );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->xmitSeq );
+			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+
+			chabu->xmit.seqChannel = ch;
+			chabu->xmit.seqRemainingPayload = xmitSize;
+			chabu->xmit.seqRemainingPadding = xmitSizeAligned-xmitSize;
+			chabu->xmit.seqBufferUser = NULL;
+			chabu->xmit.state = Chabu_XmitState_Seq;
 			return true;
 		}
 	}
@@ -267,6 +388,18 @@ static struct Chabu_Channel_Data* popNextArmRequest( struct Chabu_Data* chabu ){
 	}
 	return NULL;
 }
+
+static struct Chabu_Channel_Data* popNextDataRequest( struct Chabu_Data* chabu ){
+	int chIdx = 0;
+	for( ; chIdx < chabu->channelCount; chIdx ++ ){
+		struct Chabu_Channel_Data* ch = &chabu->channels[chIdx];
+		if( ch->xmitRequestData ){
+			ch->xmitRequestData = false;
+			return ch;
+		}
+	}
+	return NULL;
+}
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer ){
 	return chabu->userCallback_AcceptConnection( chabu->userData, &chabu->connectionInfoLocal, &chabu->connectionInfoRemote, msgBuffer );
 }
@@ -276,6 +409,7 @@ static void handleWrites( struct Chabu_Data* chabu ){
 	while( true ){
 		bool allDataXmitted = writePendingXmitData( chabu );
 		if( !allDataXmitted ){
+			chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
 			return;
 		}
 

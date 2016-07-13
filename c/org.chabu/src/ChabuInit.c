@@ -114,8 +114,9 @@ LIBRARY_API void Chabu_Init(
 		ch->recvSeq = 0;
 		ch->recvRequest = false;
 
-		ch->xmitArm = 0;
-		ch->xmitSeq = 0;
+		ch->xmitArm   = 0;
+		ch->xmitSeq   = 0;
+		ch->xmitLimit = 0;
 		ch->xmitRequestArm  = false;
 		ch->xmitRequestData = false;
 	}

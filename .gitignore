@@ -26,3 +26,4 @@ hs_err_pid*
 /c/org.chabu.utest/*.stackdump
 /c/org.chabu/.settings/language.settings.xml
 /c/org.chabu.utest/.settings/language.settings.xml
+/c/org.chabu.node/.settings/language.settings.xml

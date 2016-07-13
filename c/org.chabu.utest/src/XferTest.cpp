@@ -42,20 +42,22 @@ static struct Chabu_Channel_Data channels[1];
 static struct Chabu_Priority_Data priorities[1];
 
 static void eventNotification_Cfg1( void* userData, enum Chabu_Event event ){
-	struct TestData* data = (struct TestData*)userData;
-	struct Chabu_Data* chabu = data->chabu;
-	Chabu_ConfigureChannel(chabu, data->channelId, 0,
-			data->userCallback_ChannelEventNotification,
-			data->userCallback_ChannelGetXmitBuffer,
-			data->userCallback_ChannelGetRecvBuffer, NULL );
+	if( event == Chabu_Event_InitChannels ){
+		struct TestData* data = (struct TestData*)userData;
+		struct Chabu_Data* chabu = data->chabu;
+		Chabu_ConfigureChannel(chabu, data->channelId, 0,
+				data->userCallback_ChannelEventNotification,
+				data->userCallback_ChannelGetXmitBuffer,
+				data->userCallback_ChannelGetRecvBuffer, NULL );
+	}
 
 }
 
-static int networkRecvBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
-	return Chabu_ByteBuffer_xferAllPossible( buffer, &tdata.recvBuffer );
+static void networkRecvBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
+	Chabu_ByteBuffer_xferAllPossible( buffer, &tdata.recvBuffer );
 }
-static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
-	return Chabu_ByteBuffer_xferAllPossible( &tdata.xmitBuffer, buffer );
+static void networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
+	Chabu_ByteBuffer_xferAllPossible( &tdata.xmitBuffer, buffer );
 }
 
 static void configureStdSetup(){
@@ -136,15 +138,83 @@ static void setup1Ch(){
 
 }
 
+TEST( XferTest, startup_statesAreGood ){
+	setup1Ch();
+
+	EXPECT_EQ( Chabu_XmitState_Idle, chabu.xmit.state ) << ":: " << Chabu_XmitStateStr(chabu.xmit.state);
+	EXPECT_EQ( Chabu_RecvState_Ready, chabu.recv.state ) << ":: " << Chabu_RecvStateStr(chabu.recv.state);
+}
+
+static void xmitAllowAll(){
+	Chabu_ByteBuffer_clear( &tdata.xmitBuffer );
+}
+static void doIo(){
+	Chabu_HandleNetwork( &chabu );
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
+}
+static int xmitSize(){
+	return Chabu_ByteBuffer_remaining( &tdata.xmitBuffer );
+}
+
 TEST( XferTest, notReadyForRecv_noArmXmitted ){
 	setup1Ch();
 
-	Chabu_ByteBuffer_clear( &tdata.xmitBuffer );
-	Chabu_HandleNetwork( &chabu );
-	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
-	EXPECT_EQ( 0, Chabu_ByteBuffer_remaining( &tdata.xmitBuffer ) );
-	EXPECT_EQ( Chabu_XmitState_Idle, chabu.xmit.state );
-	EXPECT_EQ( Chabu_RecvState_Ready, chabu.recv.state );
+	xmitAllowAll();
+	doIo();
+	EXPECT_EQ( 0, xmitSize() );
+}
+
+TEST( XferTest, readyForRecv_armXmitted ){
+	setup1Ch();
+
+	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
+	xmitAllowAll();
+	doIo();
+	EXPECT_EQ( 16, xmitSize() );
+	EXPECT_EQ( 16, xmitSize() );
+}
+
+TEST( XferTest, readyForRecv_armXmittedWithRightFormat ){
+	setup1Ch();
+
+	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
+	xmitAllowAll();
+	doIo();
+	EXPECT_EQ( 16, xmitSize() );
+	EXPECT_EQ( 16, Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer) );
+	EXPECT_EQ( 0x777700C3, Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer) );
+	EXPECT_EQ( 0, Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer) ) << "--  channel ID";
+	EXPECT_EQ( 22, Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer) ) << "--  ARM";
+}
+
+
+TEST( XferTest, readyForRecv_writeRequestIsFired ){
+	setup1Ch();
+
+	RESET_FAKE(eventNotification);
+
+	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
+
+	EXPECT_EQ( 1u, eventNotification_fake.call_count );
+	EXPECT_EQ( Chabu_Event_NetworkRegisterWriteRequest, eventNotification_fake.arg1_val );
+
+}
+
+static void prepareSeqPacket(){
+	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 28 77 77 00 B4 "));
+	Chabu_ByteBuffer_AppendHex( &tdata.recvBuffer, string("00 00 00 00 00 00 00 16 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 "));
+	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
+}
+
+TEST( XferTest, DISABLED_readyForRecv_recvData ){
+	setup1Ch();
+
+	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
+	xmitAllowAll();
+	doIo();
+	prepareSeqPacket();
+	doIo();
 }
 
 

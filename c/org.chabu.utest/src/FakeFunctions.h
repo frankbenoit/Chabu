@@ -16,10 +16,10 @@ DECLARE_FAKE_VALUE_FUNC4(enum Chabu_ErrorCode, acceptConnection,  void*, struct 
 DECLARE_FAKE_VOID_FUNC5(errorFunction, void*, enum Chabu_ErrorCode, const char* , int , const char*  );
 DECLARE_FAKE_VOID_FUNC2(eventNotification, void*, enum Chabu_Event  );
 DECLARE_FAKE_VOID_FUNC4(channelEventNotification, void*, int, enum Chabu_Channel_Event, int32  );
-DECLARE_FAKE_VALUE_FUNC2(struct Chabu_ByteBuffer_Data*, channelGetXmitBuffer, void*, int  );
-DECLARE_FAKE_VALUE_FUNC2(struct Chabu_ByteBuffer_Data*, channelGetRecvBuffer, void*, int  );
-DECLARE_FAKE_VALUE_FUNC2(int, networkRecvBuffer, void*, struct Chabu_ByteBuffer_Data* );
-DECLARE_FAKE_VALUE_FUNC2(int, networkXmitBuffer, void*, struct Chabu_ByteBuffer_Data* );
+DECLARE_FAKE_VALUE_FUNC3(struct Chabu_ByteBuffer_Data*, channelGetXmitBuffer, void*, int, int  );
+DECLARE_FAKE_VALUE_FUNC3(struct Chabu_ByteBuffer_Data*, channelGetRecvBuffer, void*, int, int  );
+DECLARE_FAKE_VOID_FUNC2(networkRecvBuffer, void*, struct Chabu_ByteBuffer_Data* );
+DECLARE_FAKE_VOID_FUNC2(networkXmitBuffer, void*, struct Chabu_ByteBuffer_Data* );
 
 
 void FakeFunctions_ResetAll();

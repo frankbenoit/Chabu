@@ -22,6 +22,7 @@ static void handleWrites( struct Chabu_Data* chabu );
 static bool writePendingXmitData( struct Chabu_Data* chabu );
 static bool prepareNextXmitState(struct Chabu_Data* chabu);
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer );
+static struct Chabu_Channel_Data* popNextArmRequest( struct Chabu_Data* chabu );
 
 LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
 	handleReads( chabu );
@@ -30,21 +31,32 @@ LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
 
 static void handleReads( struct Chabu_Data* chabu ){
 
-	chabu->userCallback_NetworkRecvBuffer( chabu->userData, &chabu->recv.buffer );
-	struct Chabu_ByteBuffer_Data * rb = &chabu->recv.buffer;
-	bool isPacketComplete = false;
-	if( rb->position >= 8 ){
-		int packetLength = Chabu_ByteBuffer_getIntAt_BE( rb, 0 );
-		if( packetLength <= rb->position ){
-			isPacketComplete = true;
+	while( true ){
+		struct Chabu_ByteBuffer_Data * rb = &chabu->recv.buffer;
+		if( rb->position < 8 ){
+			rb->limit = 8;
+			chabu->userCallback_NetworkRecvBuffer( chabu->userData, &chabu->recv.buffer );
+		}
+		if( rb->position < 8 ){
+			break;
 		}
 
-	}
-	if( isPacketComplete ){
+		int packetLength = Chabu_ByteBuffer_getIntAt_BE( rb, 0 );
+		if( rb->position == 8 ){
+			rb->limit = packetLength;
+		}
+		bool isPacketComplete = ( packetLength == rb->position );
+		if( !isPacketComplete ){
+			chabu->userCallback_NetworkRecvBuffer( chabu->userData, &chabu->recv.buffer );
+			isPacketComplete = ( packetLength == rb->position );
+			if( !isPacketComplete ){
+				break;
+			}
+		}
+
 		Chabu_ByteBuffer_flip( rb );
-		/*int packetLength = */Chabu_ByteBuffer_getInt_BE( rb );
+		rb->position = 4; // skip packetLength
 		int packetId = Chabu_ByteBuffer_getInt_BE( rb );
-		//int magic = packetId & UINT32_HI_MASK;
 		uint8 packetType = UINT32_B0( packetId );
 		if( packetType == PacketType_Setup ){
 			char protocolName[10];
@@ -56,8 +68,14 @@ static void handleReads( struct Chabu_Data* chabu ){
 			ci->applicationVersion    = Chabu_ByteBuffer_getInt_BE( rb );
 			ci->applicationNameLength = Chabu_ByteBuffer_getString( rb, ci->applicationName, sizeof(ci->applicationName));
 			ci->hasContent = true;
+
+			chabu->recv.state = Chabu_RecvState_Accept;
 		}
-		Chabu_ByteBuffer_compact( rb );
+		else if( packetType == PacketType_Accept ){
+			chabu->recv.state = Chabu_RecvState_Ready;
+		}
+		rb->position = 0;
+		rb->limit = 8;
 	}
 }
 
@@ -122,9 +140,40 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			return true;
 		}
 	}
+	else if( chabu->xmit.state == Chabu_XmitState_Accept ){
+		chabu->xmit.state = Chabu_XmitState_Idle;
+	}
+
+
+	if( chabu->xmit.state == Chabu_XmitState_Idle ){
+		struct Chabu_Channel_Data* ch = popNextArmRequest( chabu );
+		if( ch != NULL ){
+			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 16 );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_ARM );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->recvArm );
+			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+
+			chabu->xmit.state = Chabu_XmitState_Arm;
+			return true;
+		}
+	}
+
 	return false;
 }
 
+static struct Chabu_Channel_Data* popNextArmRequest( struct Chabu_Data* chabu ){
+	int chIdx = 0;
+	for( ; chIdx < chabu->channelCount; chIdx ++ ){
+		struct Chabu_Channel_Data* ch = &chabu->channels[chIdx];
+		if( ch->xmitRequestArm ){
+			ch->xmitRequestArm = false;
+			return ch;
+		}
+	}
+	return NULL;
+}
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer ){
 	return chabu->userCallback_AcceptConnection( chabu->userData, &chabu->connectionInfoLocal, &chabu->connectionInfoRemote, msgBuffer );
 }

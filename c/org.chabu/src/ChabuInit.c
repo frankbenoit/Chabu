@@ -109,6 +109,15 @@ LIBRARY_API void Chabu_Init(
 		ch->channelId = i;
 		ch->priority = -1;
 		ch->chabu = chabu;
+
+		ch->recvArm = 0;
+		ch->recvSeq = 0;
+		ch->recvRequest = false;
+
+		ch->xmitArm = 0;
+		ch->xmitSeq = 0;
+		ch->xmitRequestArm  = false;
+		ch->xmitRequestData = false;
 	}
 
 	// <-- Call the user to configure the channels -->
@@ -135,6 +144,10 @@ LIBRARY_API void Chabu_Init(
 	chabu->xmit.state = Chabu_XmitState_Setup;
 	chabu->connectionInfoRemote.hasContent = false;
 	chabu->connectionInfoLocal.hasContent = false;
+
+	chabu->recv.state = Chabu_RecvState_Setup;
+	chabu->recv.buffer.limit = 8;
+
 }
 
 /**

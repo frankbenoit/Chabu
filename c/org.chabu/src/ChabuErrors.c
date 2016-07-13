@@ -20,8 +20,11 @@ LIBRARY_API enum Chabu_ErrorCode  Chabu_LastError( struct Chabu_Data* chabu ){
 	return chabu->lastError;
 }
 
-LIBRARY_API extern const char*  Chabu_LastErrorStr( struct Chabu_Data* chabu ){
-	switch( Chabu_LastError( chabu )){
+LIBRARY_API const char*  Chabu_LastErrorStr( struct Chabu_Data* chabu ){
+	return Chabu_ErrorCodeStr( Chabu_LastError( chabu ) );
+}
+LIBRARY_API const char*  Chabu_ErrorCodeStr( enum Chabu_ErrorCode e ){
+	switch( e ){
 	case Chabu_ErrorCode_OK_NOERROR                      : return "Chabu_ErrorCode_OK_NOERROR";
 	case Chabu_ErrorCode_UNKNOWN                        : return "Chabu_ErrorCode_UNKNOWN";
 	case Chabu_ErrorCode_ASSERT                         : return "Chabu_ErrorCode_ASSERT";
@@ -70,4 +73,40 @@ LIBRARY_API extern const char*  Chabu_LastErrorStr( struct Chabu_Data* chabu ){
 	default: return "<unknown>";
 	}
 }
+
+LIBRARY_API const char*  Chabu_XmitStateStr( enum Chabu_XmitState v ){
+	switch( v ){
+	case Chabu_XmitState_Setup  : return "Chabu_XmitState_Setup";
+	case Chabu_XmitState_Accept : return "Chabu_XmitState_Accept";
+	case Chabu_XmitState_Abort  : return "Chabu_XmitState_Abort";
+	case Chabu_XmitState_Seq    : return "Chabu_XmitState_Seq";
+	case Chabu_XmitState_Arm    : return "Chabu_XmitState_Arm";
+	case Chabu_XmitState_Idle   : return "Chabu_XmitState_Idle";
+	default: return "<unknown>";
+	}
+}
+
+LIBRARY_API const char*  Chabu_RecvStateStr( enum Chabu_RecvState v ){
+	switch( v ){
+	case Chabu_RecvState_Setup  : return "Chabu_RecvState_Setup";
+	case Chabu_RecvState_Accept : return "Chabu_RecvState_Accept";
+	case Chabu_RecvState_Ready  : return "Chabu_RecvState_Ready";
+	default: return "<unknown>";
+	}
+}
+
+LIBRARY_API const char*  Chabu_Channel_EventStr( enum Chabu_Channel_Event v ){
+	switch( v ){
+	case Chabu_Channel_Event_XmitCompleted  : return "Chabu_Channel_Event_XmitCompleted";
+	case Chabu_Channel_Event_RecvCompleted  : return "Chabu_Channel_Event_RecvCompleted";
+	case Chabu_Channel_Event_RemoteArm      : return "Chabu_Channel_Event_RemoteArm";
+	case Chabu_Channel_Event_RemoteDavail   : return "Chabu_Channel_Event_RemoteDavail";
+	case Chabu_Channel_Event_RemoteReset    : return "Chabu_Channel_Event_RemoteReset";
+	case Chabu_Channel_Event_ResetCompleted : return "Chabu_Channel_Event_ResetCompleted";
+	default: return "<unknown>";
+	}
+}
+
+
+
 

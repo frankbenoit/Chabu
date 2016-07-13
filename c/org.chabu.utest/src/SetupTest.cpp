@@ -51,11 +51,11 @@ static void eventNotification_Cfg1( void* userData, enum Chabu_Event event ){
 
 }
 
-static int networkRecvBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
-	return Chabu_ByteBuffer_xferAllPossible( buffer, &tdata.recvBuffer );
+static void networkRecvBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
+	Chabu_ByteBuffer_xferAllPossible( buffer, &tdata.recvBuffer );
 }
-static int networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
-	return Chabu_ByteBuffer_xferAllPossible( &tdata.xmitBuffer, buffer );
+static void networkXmitBufferImpl( void* userData, struct Chabu_ByteBuffer_Data* buffer ){
+	Chabu_ByteBuffer_xferAllPossible( &tdata.xmitBuffer, buffer );
 }
 
 static void configureStdSetup(){
@@ -197,13 +197,13 @@ TEST( SetupRecvTest, receiveGood_byFirstSendingThenRecv_ConsumedAllSetup ){
 
 }
 
-TEST( SetupRecvTest, receiveGood_byFirstSendingThenRecv_ChangedToAcceptState ){
+TEST( SetupRecvTest, receiveGood_byFirstSendingThenRecv_ChangedToIdleState ){
 	setup1Ch();
 	Chabu_HandleNetwork( &chabu );
 
 	prepareRecvSetup();
 	Chabu_HandleNetwork( &chabu );
-	EXPECT_EQ( Chabu_XmitState_Accept, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Idle, chabu.xmit.state ) << ":: " << Chabu_XmitStateStr( chabu.xmit.state );
 
 }
 
@@ -215,7 +215,7 @@ static void allowToXmit( int size ){
 	tdata.xmitBuffer.limit += size;
 }
 
-TEST( SetupRecvTest, receiveGood_byFirstRecvThenSending_ChangedToAcceptState ){
+TEST( SetupRecvTest, receiveGood_byFirstRecvThenSending_ChangedToIdleState ){
 	setup1Ch();
 
 	allowNoXmit();
@@ -228,7 +228,7 @@ TEST( SetupRecvTest, receiveGood_byFirstRecvThenSending_ChangedToAcceptState ){
 	allowToXmit( 50 );
 	Chabu_HandleNetwork( &chabu );
 
-	EXPECT_EQ( Chabu_XmitState_Accept, chabu.xmit.state );
+	EXPECT_EQ( Chabu_XmitState_Idle, chabu.xmit.state );
 
 }
 

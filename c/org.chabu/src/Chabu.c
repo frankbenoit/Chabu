@@ -26,8 +26,9 @@ static void handleWrites( struct Chabu_Data* chabu );
 static bool writePendingXmitData( struct Chabu_Data* chabu );
 static bool prepareNextXmitState(struct Chabu_Data* chabu);
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer );
-static struct Chabu_Channel_Data* popNextArmRequest( struct Chabu_Data* chabu );
-static struct Chabu_Channel_Data* popNextDataRequest( struct Chabu_Data* chabu );
+static struct Chabu_Channel_Data* popNextRequest( struct Chabu_Data* chabu, bool (*getAndReset)(struct Chabu_Channel_Data* ch) );
+static bool getAndReset_xmitRequestArm(struct Chabu_Channel_Data* ch);
+static bool getAndReset_xmitRequestData(struct Chabu_Channel_Data* ch);
 static void xmitGetUserData(struct Chabu_Data* chabu);
 
 LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
@@ -332,7 +333,7 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 
 	if( chabu->xmit.state == Chabu_XmitState_Idle ){
 		struct Chabu_Channel_Data* ch = NULL;
-		ch = popNextArmRequest( chabu );
+		ch = popNextRequest( chabu, getAndReset_xmitRequestArm );
 		if( ch != NULL ){
 			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 16 );
@@ -345,7 +346,7 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			return true;
 		}
 
-		ch = popNextDataRequest( chabu );
+		ch = popNextRequest( chabu, getAndReset_xmitRequestData );
 		if( ch != NULL ){
 			int maxXmitSize = chabu->receivePacketSize - SEQ_HEADER_SZ;
 			uint64 xmitAvailable = ch->xmitLimit - ch->xmitSeq;
@@ -377,29 +378,31 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 	return false;
 }
 
-static struct Chabu_Channel_Data* popNextArmRequest( struct Chabu_Data* chabu ){
+static bool getAndReset_xmitRequestArm(struct Chabu_Channel_Data* ch){
+	bool res = ch->xmitRequestArm;
+	if( res ){
+		ch->xmitRequestArm = false;
+	}
+	return res;
+}
+static bool getAndReset_xmitRequestData(struct Chabu_Channel_Data* ch){
+	bool res = ch->xmitRequestData;
+	if( res ){
+		ch->xmitRequestData = false;
+	}
+	return res;
+}
+static struct Chabu_Channel_Data* popNextRequest( struct Chabu_Data* chabu, bool (*getAndReset)(struct Chabu_Channel_Data* ch) ){
 	int chIdx = 0;
 	for( ; chIdx < chabu->channelCount; chIdx ++ ){
 		struct Chabu_Channel_Data* ch = &chabu->channels[chIdx];
-		if( ch->xmitRequestArm ){
-			ch->xmitRequestArm = false;
+		if( getAndReset(ch) ){
 			return ch;
 		}
 	}
 	return NULL;
 }
 
-static struct Chabu_Channel_Data* popNextDataRequest( struct Chabu_Data* chabu ){
-	int chIdx = 0;
-	for( ; chIdx < chabu->channelCount; chIdx ++ ){
-		struct Chabu_Channel_Data* ch = &chabu->channels[chIdx];
-		if( ch->xmitRequestData ){
-			ch->xmitRequestData = false;
-			return ch;
-		}
-	}
-	return NULL;
-}
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer ){
 	return chabu->userCallback_AcceptConnection( chabu->userData, &chabu->connectionInfoLocal, &chabu->connectionInfoRemote, msgBuffer );
 }

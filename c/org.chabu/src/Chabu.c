@@ -30,12 +30,16 @@ static struct Chabu_Channel_Data* popNextRequest( struct Chabu_Data* chabu, bool
 static bool getAndReset_xmitRequestArm(struct Chabu_Channel_Data* ch);
 static bool getAndReset_xmitRequestData(struct Chabu_Channel_Data* ch);
 static void xmitGetUserData(struct Chabu_Data* chabu);
+static void ensureNetworkWriteRequest(struct Chabu_Data* chabu);
 
 LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
 	handleReads( chabu );
 	handleWrites( chabu );
 }
 
+static void ensureNetworkWriteRequest(struct Chabu_Data* chabu){
+	chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
+}
 static void handleReads( struct Chabu_Data* chabu ){
 
 	while( true ){
@@ -99,7 +103,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 					ch->xmitArm = arm;
 					if( !ch->xmitRequestData && ( ch->xmitLimit != ch->xmitSeq )){
 						ch->xmitRequestData = true;
-						chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
+						ensureNetworkWriteRequest(chabu);
 					}
 				}
 			}
@@ -171,7 +175,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 					int remainingNew = Chabu_ByteBuffer_remaining(&chabu->recv.seqBuffer);
 					int readSize = remaining - remainingNew;
 					if( readSize == 0 ){
-						break;
+						break; // could not read
 					}
 					chabu->recv.seqRemainingPayload -= readSize;
 					assert( chabu->recv.seqRemainingPayload >= 0 );
@@ -191,7 +195,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 				chabu->userCallback_NetworkRecvBuffer( chabu->userData, &chabu->recv.buffer );
 				chabu->recv.seqRemainingPadding -= rb->position;
 				if( rb->position == 0 ){
-					break;
+					break; // could not read
 				}
 			}
 			if(( chabu->recv.seqRemainingPayload == 0 ) && ( chabu->recv.seqRemainingPadding == 0 )){
@@ -301,7 +305,9 @@ static void xmitGetUserData(struct Chabu_Data* chabu){
 	}
 }
 static bool prepareNextXmitState(struct Chabu_Data* chabu){
-	if( chabu->xmit.state == Chabu_XmitState_Setup ){
+
+	switch( chabu->xmit.state ){
+	case Chabu_XmitState_Setup:
 		if( chabu->connectionInfoRemote.hasContent ){
 
 			uint8 msgMemory[Chabu_ABORT_MSG_SIZE_MAX];
@@ -327,20 +333,46 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			}
 			return true;
 		}
-	}
-	else if( chabu->xmit.state == Chabu_XmitState_Accept ){
+		break;
+	case Chabu_XmitState_Accept:
+	case Chabu_XmitState_SeqPayload:
+	case Chabu_XmitState_Ping:
 		chabu->xmit.state = Chabu_XmitState_Idle;
-	}
-	else if( chabu->xmit.state == Chabu_XmitState_Seq ){
+		break;
+	case Chabu_XmitState_Seq:
 		chabu->xmit.state = Chabu_XmitState_SeqPayload;
 		return true;
-	}
-	else if( chabu->xmit.state == Chabu_XmitState_SeqPayload ){
-		chabu->xmit.state = Chabu_XmitState_Idle;
+	default:
+		break;
 	}
 
 
 	if( chabu->xmit.state == Chabu_XmitState_Idle ){
+
+		if( chabu->ping.request ){
+			chabu->ping.request = false;
+			int xmitSize = 0;
+			if( chabu->ping.pingData ){
+				xmitSize = Chabu_ByteBuffer_remaining(chabu->ping.pingData);
+			}
+			if( xmitSize > Chabu_PingPayloadMax ){
+				xmitSize = Chabu_PingPayloadMax;
+			}
+			int xmitSizeAligned = Common_AlignUp4(xmitSize);
+			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 12+xmitSizeAligned );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_PING );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, xmitSize );
+			if( xmitSize ){
+				Chabu_ByteBuffer_xferWithMax( &chabu->xmit.buffer, chabu->ping.pingData, Chabu_PingPayloadMax );
+				Chabu_ByteBuffer_putPadding( &chabu->xmit.buffer, xmitSizeAligned-xmitSize);
+			}
+			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+
+			chabu->xmit.state = Chabu_XmitState_Ping;
+			return true;
+		}
+
 		struct Chabu_Channel_Data* ch = NULL;
 		ch = popNextRequest( chabu, getAndReset_xmitRequestArm );
 		if( ch != NULL ){
@@ -422,7 +454,7 @@ static void handleWrites( struct Chabu_Data* chabu ){
 	while( true ){
 		bool allDataXmitted = writePendingXmitData( chabu );
 		if( !allDataXmitted ){
-			chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
+			ensureNetworkWriteRequest(chabu);
 			return;
 		}
 
@@ -432,4 +464,18 @@ static void handleWrites( struct Chabu_Data* chabu ){
 		}
 	}
 
+}
+LIBRARY_API void Chabu_StartPing ( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pingData, struct Chabu_ByteBuffer_Data* pongData ){
+	if( chabu->ping.inProgress ){
+		Chabu_ReportError( chabu, Chabu_ErrorCode_ASSERT, __FILE__, __LINE__,
+				"ping in progress" );
+		return;
+
+	}
+	chabu->ping.pingData = pingData;
+	chabu->ping.pongData = pongData;
+	chabu->ping.request = true;
+	chabu->ping.inProgress = true;
+
+	ensureNetworkWriteRequest(chabu);
 }

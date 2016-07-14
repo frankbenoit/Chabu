@@ -252,8 +252,6 @@ TEST( SetupRecvTest, recvSetupAndAskUserToAccept_UserRejects_AbortIsSend ){
 	EXPECT_EQ( Chabu_XmitState_Abort, chabu.xmit.state );
 }
 
-// DISABLED_
-
 TEST( AbortXmitTest, abortOnUserReject_AbortHasRightFormat ){
 	setup1Ch();
 

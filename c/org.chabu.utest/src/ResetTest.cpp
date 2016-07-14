@@ -14,6 +14,6 @@
 #include "Utils.h"
 using std::string;
 
-TEST( ResetTest, DISABLED_receiveWrongApplName ){
-}
+//TEST( ResetTest, DIS ABLED_receiveWrongApplName ){
+//}
 

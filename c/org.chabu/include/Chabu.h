@@ -67,6 +67,7 @@ extern "C" {
 
 #define Chabu_ProtocolVersion 0x00010001UL
 
+#define Chabu_PingPayloadMax  64
 
 enum Chabu_ErrorCode {
     Chabu_ErrorCode_OK_NOERROR = 0,
@@ -125,6 +126,7 @@ enum Chabu_ErrorCode {
 enum Chabu_Event {
 	Chabu_Event_InitChannels,
 	Chabu_Event_NetworkRegisterWriteRequest,
+	Chabu_Event_PingCompleted,
 	Chabu_Event_RemotePing,
 };
 
@@ -218,6 +220,7 @@ enum Chabu_XmitState {
 	Chabu_XmitState_Seq,
 	Chabu_XmitState_SeqPayload,
 	Chabu_XmitState_Arm,
+	Chabu_XmitState_Ping,
 	Chabu_XmitState_Idle,
 };
 
@@ -256,6 +259,13 @@ struct Chabu_Data {
 	struct Chabu_Priority_Data*  priorities;
 	int                          priorityCount;
 	char                         errorMessage[200];
+
+	struct {
+		struct Chabu_ByteBuffer_Data* pingData;
+		struct Chabu_ByteBuffer_Data* pongData;
+		bool                          request;
+		bool                          inProgress;
+	} ping;
 
 	struct {
 		enum Chabu_XmitState         state;
@@ -333,6 +343,8 @@ LIBRARY_API void Chabu_HandleNetwork ( struct Chabu_Data* chabu );
 /////////////////////////////////////////////////////////
 // Chabu Channel <-> Application
 
+LIBRARY_API void  Chabu_StartPing (struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pingData, struct Chabu_ByteBuffer_Data* pongData );
+
 LIBRARY_API void  Chabu_Channel_StartReset( struct Chabu_Data* chabu, int channelId );
 
 LIBRARY_API void  Chabu_Channel_SetXmitLimit( struct Chabu_Data* chabu, int channelId, int64 limit );
@@ -380,11 +392,17 @@ int32 Chabu_ByteBuffer_getInt_BE(struct Chabu_ByteBuffer_Data* data );
 int32 Chabu_ByteBuffer_getString(struct Chabu_ByteBuffer_Data* data, char* buffer, int bufferSize );
 
 int  Chabu_ByteBuffer_xferAllPossible(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src);
+int  Chabu_ByteBuffer_xferWithMax(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src, int maxLength);
 
 static __inline__ int  Chabu_ByteBuffer_remaining(struct Chabu_ByteBuffer_Data* data){
 	return data->limit - data->position;
 }
 
+static __inline__ void Chabu_ByteBuffer_putPadding(struct Chabu_ByteBuffer_Data* data, int count){
+	while( count-- ){
+		data->data[ data->position++ ] = 0;
+	}
+}
 static __inline__ void Chabu_ByteBuffer_putByte(struct Chabu_ByteBuffer_Data* data, uint8 value){
 	data->data[ data->position ] = value;
 	data->position++;

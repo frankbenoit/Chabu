@@ -36,6 +36,11 @@ struct TestData {
 	int xmitTestNumber;
 	uint8 memTst[1000];
 	struct Chabu_ByteBuffer_Data testBuffer;
+
+	struct Chabu_ByteBuffer_Data pingBuffer;
+	uint8 memPing[70];
+	struct Chabu_ByteBuffer_Data pongBuffer;
+	uint8 memPong[70];
 };
 
 static struct TestData tdata;
@@ -81,6 +86,9 @@ static void configureStdSetup(){
 
 	Chabu_ByteBuffer_Init( &tdata.testBuffer, tdata.memTst, sizeof(tdata.memTst) );
 	tdata.recvBuffer.limit = 0;
+
+	Chabu_ByteBuffer_Init( &tdata.pingBuffer, tdata.memPing, sizeof(tdata.memPing) );
+	Chabu_ByteBuffer_Init( &tdata.pongBuffer, tdata.memPong, sizeof(tdata.memPong) );
 
 	networkRecvBuffer_fake.custom_fake = networkRecvBufferImpl;
 	networkXmitBuffer_fake.custom_fake = networkXmitBufferImpl;
@@ -632,6 +640,39 @@ TEST( XferTest, xmitSeq_splitInPadding ){
 
 }
 
+
+TEST( PingTest, xmitPing ){
+	setup1Ch();
+	tdata.pingBuffer.position = 0;
+	tdata.pingBuffer.limit    = 0;
+	Chabu_StartPing(tdata.chabu, NULL, NULL );
+	FAIL();
+}
+TEST( PingTest, DISABLED_xmitPingWhileInProgress_rejectWithError ){
+
+}
+TEST( PingTest, DISABLED_xmitPingWithPayload ){
+
+}
+TEST( PingTest, DISABLED_xmitPingWithTooMuchPayload_generateError ){
+
+}
+TEST( PingTest, DISABLED_xmitPingRecvPongWithoutPayload ){
+
+}
+TEST( PingTest, DISABLED_xmitPingRecvPongWithPayload ){
+
+}
+TEST( PingTest, DISABLED_recvPingXmitPong ){
+
+}
+TEST( PingTest, DISABLED_recvPingXmitPongWithPayload ){
+
+}
+
+TEST( PriotityTest, DISABLED_lowArmGoesBeforeHighData ){
+
+}
 
 TEST( PriotityTest, DISABLED_higherPrioGetsPrecedence ){
 

@@ -86,6 +86,7 @@ LIBRARY_API const char*  Chabu_XmitStateStr( enum Chabu_XmitState v ){
 	case Chabu_XmitState_Abort  : return "Chabu_XmitState_Abort";
 	case Chabu_XmitState_Seq    : return "Chabu_XmitState_Seq";
 	case Chabu_XmitState_Arm    : return "Chabu_XmitState_Arm";
+	case Chabu_XmitState_Ping   : return "Chabu_XmitState_Ping";
 	case Chabu_XmitState_Idle   : return "Chabu_XmitState_Idle";
 	default: return "<unknown>";
 	}

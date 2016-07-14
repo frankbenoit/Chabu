@@ -7,11 +7,18 @@
 
 #include "Chabu.h"
 #include <string.h>
+#include <limits.h>
 
 int  Chabu_ByteBuffer_xferAllPossible(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src){
+	return Chabu_ByteBuffer_xferWithMax( trg, src, INT_MAX );
+}
+int  Chabu_ByteBuffer_xferWithMax(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src, int maxLength){
 	int remTrg = trg->limit - trg->position;
 	int remSrc = src->limit - src->position;
 	int rem = ( remTrg < remSrc ) ? remTrg : remSrc;
+	if( rem > maxLength ){
+		rem = maxLength;
+	}
 	memcpy( trg->data + trg->position, src->data + src->position, rem );
 	src->position += rem;
 	trg->position += rem;

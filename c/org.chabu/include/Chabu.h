@@ -118,6 +118,7 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW,
     Chabu_ErrorCode_PROTOCOL_SEQ_VALUE,
     Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING,
+	Chabu_ErrorCode_PING_IN_PROGRESS,
     Chabu_ErrorCode_PARAMETER,
     Chabu_ErrorCode_REMOTE_ABORT,
     Chabu_ErrorCode_APPLICATION_VALIDATOR = 256,
@@ -128,6 +129,7 @@ enum Chabu_Event {
 	Chabu_Event_NetworkRegisterWriteRequest,
 	Chabu_Event_PingCompleted,
 	Chabu_Event_RemotePing,
+	Chabu_Event_RemotePing_DisposePongData,
 };
 
 enum Chabu_Channel_Event {
@@ -267,6 +269,11 @@ struct Chabu_Data {
 		bool                          inProgress;
 	} ping;
 
+	struct {
+		struct Chabu_ByteBuffer_Data  pingData;
+		struct Chabu_ByteBuffer_Data  pongData;
+		bool                          request;
+	} pong;
 	struct {
 		enum Chabu_XmitState         state;
 		uint8                        memory[0x100];

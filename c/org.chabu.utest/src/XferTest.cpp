@@ -643,27 +643,157 @@ TEST( XferTest, xmitSeq_splitInPadding ){
 
 TEST( PingTest, xmitPing ){
 	setup1Ch();
-	tdata.pingBuffer.position = 0;
-	tdata.pingBuffer.limit    = 0;
 	Chabu_StartPing(tdata.chabu, NULL, NULL );
-	FAIL();
-}
-TEST( PingTest, DISABLED_xmitPingWhileInProgress_rejectWithError ){
+
+	xmitAllowAll();
+
+	doIo();
+
+	EXPECT_EQ( 12, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
+
 
 }
-TEST( PingTest, DISABLED_xmitPingWithPayload ){
+TEST( PingTest, xmitPingWhileInProgress_rejectWithError ){
+	setup1Ch();
+	Chabu_StartPing(tdata.chabu, NULL, NULL );
+	Chabu_StartPing(tdata.chabu, NULL, NULL );
+
+	VERIFY_ERROR_INFO( Chabu_ErrorCode_PING_IN_PROGRESS, "" );
 
 }
-TEST( PingTest, DISABLED_xmitPingWithTooMuchPayload_generateError ){
+TEST( PingTest, xmitPingWithPayload ){
+
+	setup1Ch();
+	tdata.pingBuffer.position = 0;
+	tdata.pingBuffer.limit    = 11;
+	Chabu_StartPing(tdata.chabu, &tdata.pingBuffer, NULL );
+
+	xmitAllowAll();
+
+	doIo();
+
+	EXPECT_EQ( 24, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
 
 }
-TEST( PingTest, DISABLED_xmitPingRecvPongWithoutPayload ){
+TEST( PingTest, xmitPingWithTooMuchPayload_justConsumesAsMuchAsPossible ){
+
+	setup1Ch();
+	tdata.pingBuffer.position = 0;
+	tdata.pingBuffer.limit    = tdata.pingBuffer.capacity;
+	Chabu_StartPing(tdata.chabu, &tdata.pingBuffer, NULL );
+
+	xmitAllowAll();
+
+	doIo();
+
+	EXPECT_EQ( 76, tdata.xmitBuffer.position );
+
+	EXPECT_EQ( 64, tdata.pingBuffer.position );
+
+	ASSERT_NO_ERROR();
 
 }
-TEST( PingTest, DISABLED_xmitPingRecvPongWithPayload ){
+
+static void prepareRecvPong( struct Chabu_ByteBuffer_Data* pongData ){
+	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
+	int xmitSize = pongData ? Chabu_ByteBuffer_remaining( pongData ) : 0;
+	int xmitSizeAligned = Common_AlignUp4(xmitSize);
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, 12+xmitSizeAligned);
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, 0x77770069 );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, xmitSize);
+	if( xmitSize ){
+		Chabu_ByteBuffer_xferWithMax( &tdata.recvBuffer, pongData, xmitSize );
+		Chabu_ByteBuffer_putPadding( &tdata.recvBuffer, xmitSizeAligned - xmitSize );
+	}
+	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
+}
+
+TEST( PingTest, xmitPingRecvPong_applicationNotified ){
+	setup1Ch();
+	Chabu_StartPing(tdata.chabu, NULL, NULL );
+
+	xmitAllowAll();
+
+	doIo();
+	EXPECT_EQ( 12, tdata.xmitBuffer.position );
+
+	prepareRecvPong( NULL );
+	RESET_FAKE(eventNotification);
+	doIo();
+
+	EXPECT_EQ( 1u, eventNotification_fake.call_count );
+	EXPECT_EQ( Chabu_Event_PingCompleted, eventNotification_fake.arg1_val );
+
+	ASSERT_NO_ERROR();
+
+}
+TEST( PingTest, xmitPingRecvPongWithPayload ){
+	setup1Ch();
+	tdata.pongBuffer.limit = 33;
+	Chabu_StartPing(tdata.chabu, NULL, &tdata.pongBuffer );
+
+	xmitAllowAll();
+
+	doIo();
+	EXPECT_EQ( 12, tdata.xmitBuffer.position );
+
+	tdata.testBuffer.limit = 11;
+	prepareRecvPong( &tdata.testBuffer );
+
+	doIo();
+
+	EXPECT_EQ( 11, tdata.pongBuffer.position );
+
+	ASSERT_NO_ERROR();
+
+}
+
+static void prepareRecvPing( struct Chabu_ByteBuffer_Data* pingData ){
+	Chabu_ByteBuffer_compact( &tdata.recvBuffer );
+	int xmitSize = pingData ? Chabu_ByteBuffer_remaining( pingData ) : 0;
+	int xmitSizeAligned = Common_AlignUp4(xmitSize);
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, 12+xmitSizeAligned);
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, 0x77770078 );
+	Chabu_ByteBuffer_putIntBe( &tdata.recvBuffer, xmitSize);
+	if( xmitSize ){
+		Chabu_ByteBuffer_xferWithMax( &tdata.recvBuffer, pingData, xmitSize );
+		Chabu_ByteBuffer_putPadding( &tdata.recvBuffer, xmitSizeAligned - xmitSize );
+	}
+	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
+}
+
+
+TEST( PingTest, recvPing_notifyApplication ){
+	setup1Ch();
+	RESET_FAKE(eventNotification);
+
+	prepareRecvPing( NULL );
+	doIo();
+
+	EXPECT_EQ( 1u, eventNotification_fake.call_count );
+	EXPECT_EQ( Chabu_Event_RemotePing, eventNotification_fake.arg1_val );
 
 }
 TEST( PingTest, DISABLED_recvPingXmitPong ){
+	setup1Ch();
+	prepareRecvPing( NULL );
+
+	xmitAllowAll();
+
+	doIo();
+	EXPECT_EQ( 12, tdata.xmitBuffer.position );
+
+	tdata.testBuffer.limit = 11;
+	RESET_FAKE(eventNotification);
+	doIo();
+
+	EXPECT_EQ( 11, tdata.pongBuffer.position );
+
+	ASSERT_NO_ERROR();
 
 }
 TEST( PingTest, DISABLED_recvPingXmitPongWithPayload ){

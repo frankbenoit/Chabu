@@ -72,6 +72,7 @@ LIBRARY_API const char*  Chabu_ErrorCodeStr( enum Chabu_ErrorCode e ){
 	case Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW         : return "Chabu_ErrorCode_PROTOCOL_DATA_OVERFLOW";
 	case Chabu_ErrorCode_PROTOCOL_SEQ_VALUE             : return "Chabu_ErrorCode_PROTOCOL_SEQ_VALUE";
 	case Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING  : return "Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING";
+	case Chabu_ErrorCode_PING_IN_PROGRESS               : return "Chabu_ErrorCode_PING_IN_PROGRESS";
 	case Chabu_ErrorCode_PARAMETER                      : return "Chabu_ErrorCode_PARAMETER";
 	case Chabu_ErrorCode_REMOTE_ABORT                   : return "Chabu_ErrorCode_REMOTE_ABORT";
 	case Chabu_ErrorCode_APPLICATION_VALIDATOR          : return "Chabu_ErrorCode_APPLICATION_VALIDATOR";

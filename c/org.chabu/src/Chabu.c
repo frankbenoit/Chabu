@@ -107,6 +107,31 @@ static void handleReads( struct Chabu_Data* chabu ){
 					}
 				}
 			}
+			else if( packetType == PacketType_PING ){
+				int payloadSize = Chabu_ByteBuffer_getInt_BE( rb );
+
+				chabu->pong.pingData.position = 0;
+				chabu->pong.pingData.limit    = payloadSize;
+				chabu->pong.pingData.capacity = payloadSize;
+				chabu->pong.pingData.data = &rb->data[ rb->position ];
+
+				chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_RemotePing );
+
+				chabu->pong.pingData.position = 0;
+				chabu->pong.pingData.limit    = 0;
+				chabu->pong.pingData.capacity = 0;
+				chabu->pong.pingData.data = NULL;
+				chabu->pong.request = true;
+				chabu->recv.state = Chabu_RecvState_Ready;
+			}
+			else if( packetType == PacketType_PONG ){
+				int payloadSize = Chabu_ByteBuffer_getInt_BE( rb );
+				if( chabu->ping.pongData ){
+					Chabu_ByteBuffer_xferWithMax( rb, chabu->ping.pongData, payloadSize );
+				}
+				chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_PingCompleted );
+				chabu->recv.state = Chabu_RecvState_Ready;
+			}
 			else if( packetType == PacketType_SEQ ){
 
 				int channelId   = Chabu_ByteBuffer_getInt_BE( rb );
@@ -467,7 +492,7 @@ static void handleWrites( struct Chabu_Data* chabu ){
 }
 LIBRARY_API void Chabu_StartPing ( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pingData, struct Chabu_ByteBuffer_Data* pongData ){
 	if( chabu->ping.inProgress ){
-		Chabu_ReportError( chabu, Chabu_ErrorCode_ASSERT, __FILE__, __LINE__,
+		Chabu_ReportError( chabu, Chabu_ErrorCode_PING_IN_PROGRESS, __FILE__, __LINE__,
 				"ping in progress" );
 		return;
 

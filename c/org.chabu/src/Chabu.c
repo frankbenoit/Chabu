@@ -184,6 +184,9 @@ static void handleReads( struct Chabu_Data* chabu ){
 				rb->limit = chabu->recv.seqRemainingPadding;
 				chabu->userCallback_NetworkRecvBuffer( chabu->userData, &chabu->recv.buffer );
 				chabu->recv.seqRemainingPadding -= rb->position;
+				if( rb->position == 0 ){
+					break;
+				}
 			}
 			if(( chabu->recv.seqRemainingPayload == 0 ) && ( chabu->recv.seqRemainingPadding == 0 )){
 				chabu->recv.state = Chabu_RecvState_Ready;

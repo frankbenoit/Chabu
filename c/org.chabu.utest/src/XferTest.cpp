@@ -413,33 +413,115 @@ TEST( XferTest, DISABLED_receiveArm_wrongChannel_generatedError ){
 
 }
 
-TEST( XferTest, DISABLED_recvSeq_splitBetweenPayloadAndPadding ){
+
+TEST( XferTest, recvSeq_splitBetweenHeaderAndPayload ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 5);
+	// second packet, to ensure follow up is working
+	prepareSeqPacket(0, 0, 5);
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	ASSERT_EQ(  0, tdata.recvBuffer.position );
+	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
+
+	tdata.recvBuffer.limit = 20;
+	doIo();
+	tdata.recvBuffer.limit = 2*28;
+	doIo();
+
+	ASSERT_EQ( 10, tdata.testBuffer.position );
+	ASSERT_NO_ERROR();
 
 }
-TEST( XferTest, DISABLED_xmitSeq_splitBetweenPayloadAndPadding ){
+TEST( XferTest, recvSeq_splitInPayload ){
+	setup1Ch();
 
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 5);
+	// second packet, to ensure follow up is working
+	prepareSeqPacket(0, 0, 5);
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	ASSERT_EQ(  0, tdata.recvBuffer.position );
+	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
+
+	tdata.recvBuffer.limit = 22;
+	doIo();
+	tdata.recvBuffer.limit = 2*28;
+	doIo();
+
+	ASSERT_EQ( 10, tdata.testBuffer.position );
+	ASSERT_NO_ERROR();
+}
+TEST( XferTest, recvSeq_splitBetweenPayloadAndPadding ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 5);
+	// second packet, to ensure follow up is working
+	prepareSeqPacket(0, 0, 5);
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	ASSERT_EQ(  0, tdata.recvBuffer.position );
+	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
+
+	tdata.recvBuffer.limit = 25;
+	doIo();
+	tdata.recvBuffer.limit = 2*28;
+	doIo();
+
+	ASSERT_EQ( 10, tdata.testBuffer.position );
+	ASSERT_NO_ERROR();
+}
+TEST( XferTest, recvSeq_splitInPadding ){
+	setup1Ch();
+
+	channelAddRecv( 0, 22 );
+	prepareSeqPacket(0, 0, 5);
+	// second packet, to ensure follow up is working
+	prepareSeqPacket(0, 0, 5);
+
+	channelGetRecvBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = tdata.testBuffer.capacity;
+
+	ASSERT_EQ(  0, tdata.recvBuffer.position );
+	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
+
+	tdata.recvBuffer.limit = 26;
+	doIo();
+	tdata.recvBuffer.limit = 2*28;
+	doIo();
+
+	ASSERT_EQ( 10, tdata.testBuffer.position );
+	ASSERT_NO_ERROR();
 }
 
-TEST( XferTest, DISABLED_recvSeq_splitBetweenHeaderAndPayload ){
 
-}
 TEST( XferTest, DISABLED_xmitSeq_splitBetweenHeaderAndPayload ){
 
 }
+TEST( XferTest, DISABLED_xmitSeq_splitInPayload ){
 
-TEST( XferTest, DISABLED_recvSeq_splitInPadding ){
+}
+TEST( XferTest, DISABLED_xmitSeq_splitBetweenPayloadAndPadding ){
 
 }
 TEST( XferTest, DISABLED_xmitSeq_splitInPadding ){
 
 }
 
-TEST( XferTest, DISABLED_recvSeq_splitInPayload ){
-
-}
-TEST( XferTest, DISABLED_xmitSeq_splitInPayload ){
-
-}
 
 TEST( PriotityTest, DISABLED_higherPrioGetsPrecedence ){
 

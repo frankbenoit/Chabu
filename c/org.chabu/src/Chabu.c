@@ -95,7 +95,13 @@ static void handleReads( struct Chabu_Data* chabu ){
 				}
 
 				struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
-				ch->xmitArm = arm;
+				if( ch->xmitArm != arm ){
+					ch->xmitArm = arm;
+					if( !ch->xmitRequestData && ( ch->xmitLimit != ch->xmitSeq )){
+						ch->xmitRequestData = true;
+						chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
+					}
+				}
 			}
 			else if( packetType == PacketType_SEQ ){
 
@@ -367,6 +373,7 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_SEQ );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->xmitSeq );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, xmitSize );
 			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
 			chabu->xmit.seqChannel = ch;

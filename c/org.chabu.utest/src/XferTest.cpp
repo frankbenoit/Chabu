@@ -154,7 +154,7 @@ static void xmitAllowAll(){
 }
 static void doIo(){
 	Chabu_HandleNetwork( &chabu );
-	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
+	//Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
 }
 static int xmitSize(){
 	return Chabu_ByteBuffer_remaining( &tdata.xmitBuffer );
@@ -165,6 +165,7 @@ TEST( XferTest, notReadyForRecv_noArmXmitted ){
 
 	xmitAllowAll();
 	doIo();
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
 	EXPECT_EQ( 0, xmitSize() );
 }
 
@@ -174,6 +175,7 @@ TEST( XferTest, readyForRecv_armXmitted ){
 	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
 	xmitAllowAll();
 	doIo();
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
 	EXPECT_EQ( 16, xmitSize() );
 	EXPECT_EQ( 16, xmitSize() );
 }
@@ -184,6 +186,7 @@ TEST( XferTest, readyForRecv_armXmittedWithRightFormat ){
 	Chabu_Channel_AddRecvLimit( &chabu, 0, 22 );
 	xmitAllowAll();
 	doIo();
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
 	EXPECT_EQ( 16, xmitSize() );
 	EXPECT_EQ( 16, Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer) );
 	EXPECT_EQ( 0x777700C3, Chabu_ByteBuffer_getInt_BE( &tdata.xmitBuffer) );
@@ -232,6 +235,10 @@ static void channelAddRecv( int channel, int amount ){
 	Chabu_Channel_AddRecvLimit( &chabu, channel, amount );
 	xmitAllowAll();
 	doIo();
+}
+
+static void channelAddXmit( int channel, int amount ){
+	Chabu_Channel_AddXmitLimit( &chabu, channel, amount );
 }
 
 TEST( XferTest, recvSeq_singleBigUserBuffer ){
@@ -392,6 +399,7 @@ TEST( XferTest, startXmit_callsChannelGetXmitBuffer ){
 
 	prepareArmPacket( 0, 200 );
 	doIo();
+	Chabu_ByteBuffer_clear( &tdata.xmitBuffer );
 
 	RESET_FAKE(eventNotification);
 	Chabu_Channel_AddXmitLimit( tdata.chabu, 0, 22 );
@@ -404,6 +412,7 @@ TEST( XferTest, startXmit_callsChannelGetXmitBuffer ){
 	tdata.testBuffer.limit = tdata.testBuffer.capacity;
 
 	doIo();
+	Chabu_ByteBuffer_flip( &tdata.xmitBuffer );
 
 	EXPECT_EQ( 1u, channelGetXmitBuffer_fake.call_count );
 }
@@ -429,7 +438,7 @@ TEST( XferTest, recvSeq_splitBetweenHeaderAndPayload ){
 	ASSERT_EQ(  0, tdata.recvBuffer.position );
 	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
 
-	tdata.recvBuffer.limit = 20;
+	tdata.recvBuffer.limit = 20; // <<--
 	doIo();
 	tdata.recvBuffer.limit = 2*28;
 	doIo();
@@ -453,7 +462,7 @@ TEST( XferTest, recvSeq_splitInPayload ){
 	ASSERT_EQ(  0, tdata.recvBuffer.position );
 	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
 
-	tdata.recvBuffer.limit = 22;
+	tdata.recvBuffer.limit = 22; // <<--
 	doIo();
 	tdata.recvBuffer.limit = 2*28;
 	doIo();
@@ -476,7 +485,7 @@ TEST( XferTest, recvSeq_splitBetweenPayloadAndPadding ){
 	ASSERT_EQ(  0, tdata.recvBuffer.position );
 	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
 
-	tdata.recvBuffer.limit = 25;
+	tdata.recvBuffer.limit = 25; // <<--
 	doIo();
 	tdata.recvBuffer.limit = 2*28;
 	doIo();
@@ -499,7 +508,7 @@ TEST( XferTest, recvSeq_splitInPadding ){
 	ASSERT_EQ(  0, tdata.recvBuffer.position );
 	ASSERT_EQ( 2*28, tdata.recvBuffer.limit );
 
-	tdata.recvBuffer.limit = 26;
+	tdata.recvBuffer.limit = 26; // <<--
 	doIo();
 	tdata.recvBuffer.limit = 2*28;
 	doIo();
@@ -509,16 +518,117 @@ TEST( XferTest, recvSeq_splitInPadding ){
 }
 
 
-TEST( XferTest, DISABLED_xmitSeq_splitBetweenHeaderAndPayload ){
+TEST( XferTest, xmitSeq_simple ){
+	setup1Ch();
+	xmitAllowAll();
+	prepareArmPacket( 0, 100 );
+	channelAddXmit( 0, 22 );
+
+	channelGetXmitBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = 22;
+
+	tdata.xmitBuffer.position = 0;
+	tdata.xmitBuffer.limit    = 100;
+	doIo();
+
+	ASSERT_EQ( 44, tdata.xmitBuffer.position );
+	ASSERT_NO_ERROR();
 
 }
-TEST( XferTest, DISABLED_xmitSeq_splitInPayload ){
+TEST( XferTest, xmitSeq_splitBetweenHeaderAndPayload ){
+
+	setup1Ch();
+	xmitAllowAll();
+	prepareArmPacket( 0, 100 );
+	channelAddXmit( 0, 22 );
+
+	channelGetXmitBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = 22;
+
+	tdata.xmitBuffer.position = 0;
+	tdata.xmitBuffer.limit    = 20;
+	doIo();
+	EXPECT_EQ( 20, tdata.xmitBuffer.position );
+
+	tdata.xmitBuffer.limit    = 100;
+	doIo();
+	EXPECT_EQ( 44, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
 
 }
-TEST( XferTest, DISABLED_xmitSeq_splitBetweenPayloadAndPadding ){
+TEST( XferTest, xmitSeq_splitInPayload ){
+
+	setup1Ch();
+	xmitAllowAll();
+	prepareArmPacket( 0, 100 );
+	channelAddXmit( 0, 22 );
+
+	channelGetXmitBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = 22;
+
+	tdata.xmitBuffer.position = 0;
+	tdata.xmitBuffer.limit    = 22; // <<---
+	doIo();
+	EXPECT_EQ( 22, tdata.xmitBuffer.position );
+
+	tdata.xmitBuffer.limit    = 100;
+	doIo();
+	EXPECT_EQ( 44, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
+
 
 }
-TEST( XferTest, DISABLED_xmitSeq_splitInPadding ){
+TEST( XferTest, xmitSeq_splitBetweenPayloadAndPadding ){
+
+	setup1Ch();
+	xmitAllowAll();
+	prepareArmPacket( 0, 100 );
+	channelAddXmit( 0, 22 );
+
+	channelGetXmitBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = 22;
+
+	tdata.xmitBuffer.position = 0;
+	tdata.xmitBuffer.limit    = 42; // <<---
+	doIo();
+	EXPECT_EQ( 42, tdata.xmitBuffer.position );
+
+	tdata.xmitBuffer.limit    = 100;
+	doIo();
+	EXPECT_EQ( 44, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
+
+
+}
+TEST( XferTest, xmitSeq_splitInPadding ){
+
+	setup1Ch();
+	xmitAllowAll();
+	prepareArmPacket( 0, 100 );
+	channelAddXmit( 0, 22 );
+
+	channelGetXmitBuffer_fake.return_val = &tdata.testBuffer;
+	tdata.testBuffer.position = 0;
+	tdata.testBuffer.limit = 22;
+
+	tdata.xmitBuffer.position = 0;
+	tdata.xmitBuffer.limit    = 43; // <<---
+	doIo();
+	EXPECT_EQ( 43, tdata.xmitBuffer.position );
+
+	tdata.xmitBuffer.limit    = 100;
+	doIo();
+	EXPECT_EQ( 44, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
+
 
 }
 

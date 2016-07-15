@@ -152,10 +152,10 @@ LIBRARY_API void Chabu_Init(
 	chabu->recv.seqRemainingPayload = 0;
 	chabu->recv.seqRemainingPadding = 0;
 
-	chabu->ping.inProgress = false;
-	chabu->ping.request = false;
-	chabu->ping.pingData = NULL;
-	chabu->ping.pongData = NULL;
+	chabu->xmitPing.inProgress = false;
+	chabu->xmitPing.request = false;
+	chabu->xmitPing.pingData = NULL;
+	chabu->xmitPing.pongData = NULL;
 
 }
 

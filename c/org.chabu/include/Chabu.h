@@ -268,13 +268,13 @@ struct Chabu_Data {
 		struct Chabu_ByteBuffer_Data* pongData;
 		bool                          request;
 		bool                          inProgress;
-	} ping;
+	} xmitPing;
 
 	struct {
 		struct Chabu_ByteBuffer_Data  pingData;
 		struct Chabu_ByteBuffer_Data  pongData;
 		bool                          request;
-	} pong;
+	} recvPing;
 	struct {
 		enum Chabu_XmitState         state;
 		uint8                        memory[0x100];

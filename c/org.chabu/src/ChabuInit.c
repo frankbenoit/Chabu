@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+static void buildPriorityChannelList( struct Chabu_Data* chabu );
 
 void Chabu_ReportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, const char* file, int line, const char* fmt, ... ){
 	va_list arglist;
@@ -103,6 +104,16 @@ LIBRARY_API void Chabu_Init(
 
 	int i;
 
+	for( i = 0; i < priorityCount; i++ ){
+		struct Chabu_Priority_Data* prio = &priorities[i];
+		prio->info = &structInfo_priority;
+
+		prio->ctrl.lastSelectedChannelId = -1;
+		prio->ctrl.request = NULL;
+
+		prio->data.lastSelectedChannelId = -1;
+		prio->data.request = NULL;
+	}
 	for( i = 0; i < channelCount; i++ ){
 		struct Chabu_Channel_Data* ch = &channels[i];
 		ch->info = &structInfo_channel;
@@ -117,8 +128,11 @@ LIBRARY_API void Chabu_Init(
 		ch->xmitArm   = 0;
 		ch->xmitSeq   = 0;
 		ch->xmitLimit = 0;
-		ch->xmitRequestCtrl  = false;
-		ch->xmitRequestData = false;
+		ch->xmitRequestCtrl_Arm     = false;
+		ch->xmitRequestCtrl_Davail  = false;
+		ch->xmitRequestCtrl_Reset   = false;
+
+//		ch->prioListNextChannel = NULL;
 	}
 
 	// <-- Call the user to configure the channels -->
@@ -157,6 +171,30 @@ LIBRARY_API void Chabu_Init(
 	chabu->xmitPing.pingData = NULL;
 	chabu->xmitPing.pongData = NULL;
 
+	chabu->recvPing.request = false;
+
+	buildPriorityChannelList( chabu );
+}
+
+static void buildPriorityChannelList( struct Chabu_Data* chabu ){
+	int i;
+	for( i = 0; i < chabu->channelCount; i++ ){
+		struct Chabu_Channel_Data* ch = &chabu->channels[i];
+		ch->xmitRequestCtrl.next = NULL;
+		ch->xmitRequestCtrl.ch   = ch;
+		ch->xmitRequestData.next = NULL;
+		ch->xmitRequestData.ch   = ch;
+//		if( chabu->priorities[ch->priority].channelList == NULL ){
+//			chabu->priorities[ch->priority].channelList = ch;
+//		}
+//		else {
+//			struct Chabu_Channel_Data* chPrevPrio = chabu->priorities[ch->priority].channelList;
+//			while( chPrevPrio->prioListNextChannel ){
+//				chPrevPrio++;
+//			}
+//			chPrevPrio->prioListNextChannel = ch;
+//		}
+	}
 }
 
 /**

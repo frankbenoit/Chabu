@@ -178,9 +178,20 @@ struct Chabu_ConnectionInfo_Data {
 
 struct Chabu_Channel_Data;
 
+struct Chabu_PriorityEntry_Data {
+	struct Chabu_PriorityEntry_Data* next;
+	struct Chabu_Channel_Data*       ch;
+};
+struct Chabu_PriorityList_Data {
+	struct Chabu_PriorityEntry_Data*  request;
+	int                               lastSelectedChannelId;
+};
+
 struct Chabu_Priority_Data {
-	struct Chabu_StructInfo* info;
-	struct Chabu_Channel_Data* firstChannelForPriority;
+	const struct Chabu_StructInfo* info;
+//	struct Chabu_Channel_Data*  channelList;
+	struct Chabu_PriorityList_Data ctrl;
+	struct Chabu_PriorityList_Data data;
 };
 
 struct Chabu_Channel_Data {
@@ -191,25 +202,27 @@ struct Chabu_Channel_Data {
 	int                priority;
 
 	Chabu_ChannelEventNotification * userCallback_ChannelEventNotification;
-	Chabu_ChannelGetXmitBuffer * userCallback_ChannelGetXmitBuffer;
-	Chabu_ChannelGetRecvBuffer * userCallback_ChannelGetRecvBuffer;
-	void                       * userData;
+	Chabu_ChannelGetXmitBuffer     * userCallback_ChannelGetXmitBuffer;
+	Chabu_ChannelGetRecvBuffer     * userCallback_ChannelGetRecvBuffer;
+	void                           * userData;
 
 	///struct QueueVar* xmitQueue;
 	uint64           xmitSeq;
 	uint64           xmitArm;
 	uint64           xmitLimit;
 
-	bool             xmitRequestCtrl;
-	bool             xmitRequestData;
+	bool             xmitRequestCtrl_Arm;
+	bool             xmitRequestCtrl_Reset;
+	bool             xmitRequestCtrl_Davail;
 
 	//struct QueueVar* recvQueue;
 	uint32           recvSeq;
 	uint32           recvArm;
 	bool             recvRequest;
 
-	struct Chabu_Channel_Data*  xmitRequestArmNext;
-	struct Chabu_Channel_Data*  xmitRequestDataNext;
+//	struct Chabu_Channel_Data*  prioListNextChannel;
+	struct Chabu_PriorityEntry_Data xmitRequestCtrl;
+	struct Chabu_PriorityEntry_Data xmitRequestData;
 };
 
 /**

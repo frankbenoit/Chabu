@@ -11,6 +11,7 @@
 
 extern const struct Chabu_StructInfo structInfo_chabu;
 extern const struct Chabu_StructInfo structInfo_channel;
+extern const struct Chabu_StructInfo structInfo_priority;
 
 
 #define CHANNEL_COUNT_MAX  100
@@ -39,5 +40,13 @@ enum PacketType {
 };
 
 void Chabu_ReportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, const char* file, int line, const char* fmt, ... );
+
+LIBRARY_API void Chabu_Priority_SetRequestCtrl_Arm( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch );
+LIBRARY_API void Chabu_Priority_SetRequestCtrl_Davail( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch );
+LIBRARY_API void Chabu_Priority_SetRequestCtrl_Reset( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch );
+//LIBRARY_API void Chabu_Priority_SetRequestCtrl( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch );
+LIBRARY_API void Chabu_Priority_SetRequestData( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch );
+LIBRARY_API struct Chabu_Channel_Data* Chabu_Priority_PopNextRequestCtrl( struct Chabu_Data* chabu );
+LIBRARY_API struct Chabu_Channel_Data* Chabu_Priority_PopNextRequestData( struct Chabu_Data* chabu );
 
 #endif /* CHABUINTERNAL_H_ */

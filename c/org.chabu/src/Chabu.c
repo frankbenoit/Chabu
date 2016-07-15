@@ -18,17 +18,15 @@ struct Chabu_StructInfo {
 	const char* name;
 };
 
-const struct Chabu_StructInfo structInfo_chabu   = { "chabu" };
-const struct Chabu_StructInfo structInfo_channel = { "channel" };
+const struct Chabu_StructInfo structInfo_chabu    = { "chabu" };
+const struct Chabu_StructInfo structInfo_channel  = { "channel" };
+const struct Chabu_StructInfo structInfo_priority = { "priority" };
 
 static void handleReads( struct Chabu_Data* chabu );
 static void handleWrites( struct Chabu_Data* chabu );
 static bool writePendingXmitData( struct Chabu_Data* chabu );
 static bool prepareNextXmitState(struct Chabu_Data* chabu);
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer );
-static struct Chabu_Channel_Data* popNextRequest( struct Chabu_Data* chabu, bool (*getAndReset)(struct Chabu_Channel_Data* ch) );
-static bool getAndReset_xmitRequestArm(struct Chabu_Channel_Data* ch);
-static bool getAndReset_xmitRequestData(struct Chabu_Channel_Data* ch);
 static void xmitGetUserData(struct Chabu_Data* chabu);
 static void ensureNetworkWriteRequest(struct Chabu_Data* chabu);
 
@@ -101,8 +99,8 @@ static void handleReads( struct Chabu_Data* chabu ){
 				struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
 				if( ch->xmitArm != arm ){
 					ch->xmitArm = arm;
-					if( !ch->xmitRequestData && ( ch->xmitLimit != ch->xmitSeq )){
-						ch->xmitRequestData = true;
+					if(  ch->xmitLimit != ch->xmitSeq ){
+						Chabu_Priority_SetRequestData( chabu, ch );
 						ensureNetworkWriteRequest(chabu);
 					}
 				}
@@ -421,20 +419,35 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 		}
 
 		struct Chabu_Channel_Data* ch = NULL;
-		ch = popNextRequest( chabu, getAndReset_xmitRequestArm );
+		ch = Chabu_Priority_PopNextRequestCtrl( chabu );
 		if( ch != NULL ){
-			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
-			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 16 );
-			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_ARM );
-			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
-			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->recvArm );
-			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+			if( ch->xmitRequestCtrl_Reset ){
+				ch->xmitRequestCtrl_Reset = false;
+				assert( false );
+			}
+			else if( ch->xmitRequestCtrl_Davail ){
+				ch->xmitRequestCtrl_Davail = false;
+				assert( false );
+			}
+			else if( ch->xmitRequestCtrl_Arm ){
+				ch->xmitRequestCtrl_Arm = false;
 
-			chabu->xmit.state = Chabu_XmitState_Arm;
-			return true;
+				Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
+				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 16 );
+				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_ARM );
+				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
+				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->recvArm );
+				Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+
+				chabu->xmit.state = Chabu_XmitState_Arm;
+				return true;
+			}
+			else {
+				assert( false );
+			}
 		}
 
-		ch = popNextRequest( chabu, getAndReset_xmitRequestData );
+		ch = Chabu_Priority_PopNextRequestData( chabu );
 		if( ch != NULL ){
 			int maxXmitSize = chabu->receivePacketSize - SEQ_HEADER_SZ;
 			uint64 xmitAvailable = ch->xmitLimit - ch->xmitSeq;
@@ -465,31 +478,6 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 	}
 
 	return false;
-}
-
-static bool getAndReset_xmitRequestArm(struct Chabu_Channel_Data* ch){
-	bool res = ch->xmitRequestCtrl;
-	if( res ){
-		ch->xmitRequestCtrl = false;
-	}
-	return res;
-}
-static bool getAndReset_xmitRequestData(struct Chabu_Channel_Data* ch){
-	bool res = ch->xmitRequestData;
-	if( res ){
-		ch->xmitRequestData = false;
-	}
-	return res;
-}
-static struct Chabu_Channel_Data* popNextRequest( struct Chabu_Data* chabu, bool (*getAndReset)(struct Chabu_Channel_Data* ch) ){
-	int chIdx = 0;
-	for( ; chIdx < chabu->channelCount; chIdx ++ ){
-		struct Chabu_Channel_Data* ch = &chabu->channels[chIdx];
-		if( getAndReset(ch) ){
-			return ch;
-		}
-	}
-	return NULL;
 }
 
 static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* msgBuffer ){

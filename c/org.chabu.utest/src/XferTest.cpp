@@ -873,20 +873,5 @@ TEST( PingTest, recvPingXmitPongWithPayload ){
 
 }
 
-TEST( PriotityTest, DISABLED_lowArmGoesBeforeHighData ){
-
-}
-
-TEST( PriotityTest, DISABLED_higherPrioGetsPrecedence ){
-
-}
-
-TEST( PriotityTest, DISABLED_samePrioIsRoundRobin ){
-
-}
-
-TEST( PriotityTest, DISABLED_lowerPrioGetsCalledWhenHigherLevelCompletedOneRound ){
-
-}
 
 

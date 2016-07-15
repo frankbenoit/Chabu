@@ -200,7 +200,7 @@ struct Chabu_Channel_Data {
 	uint64           xmitArm;
 	uint64           xmitLimit;
 
-	bool             xmitRequestArm;
+	bool             xmitRequestCtrl;
 	bool             xmitRequestData;
 
 	//struct QueueVar* recvQueue;

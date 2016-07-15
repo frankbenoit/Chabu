@@ -13,22 +13,22 @@ static void setRequest( struct Chabu_Data* chabu, struct Chabu_PriorityEntry_Dat
 LIBRARY_API void Chabu_Priority_SetRequestCtrl( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch );
 
 LIBRARY_API void Chabu_Priority_SetRequestCtrl_Arm( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch ){
-	ch->xmitRequestCtrl_Arm = true;
+	ch->xmit.requestCtrl_Arm = true;
 	Chabu_Priority_SetRequestCtrl( chabu, ch );
 }
 LIBRARY_API void Chabu_Priority_SetRequestCtrl_Davail( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch ){
-	ch->xmitRequestCtrl_Davail = true;
+	ch->xmit.requestCtrl_Davail = true;
 	Chabu_Priority_SetRequestCtrl( chabu, ch );
 }
 LIBRARY_API void Chabu_Priority_SetRequestCtrl_Reset( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch ){
-	ch->xmitRequestCtrl_Reset = true;
+	ch->xmit.requestCtrl_Reset = true;
 	Chabu_Priority_SetRequestCtrl( chabu, ch );
 }
 LIBRARY_API void Chabu_Priority_SetRequestCtrl( struct Chabu_Data* chabu, struct Chabu_Channel_Data* ch ){
 
 	struct Chabu_Priority_Data* prio = &chabu->priorities[ ch->priority ];
 
-	setRequest( chabu, &ch->xmitRequestCtrl, &prio->ctrl );
+	setRequest( chabu, &ch->xmit.requestCtrl, &prio->ctrl );
 
 
 }
@@ -36,7 +36,7 @@ LIBRARY_API void Chabu_Priority_SetRequestData( struct Chabu_Data* chabu, struct
 
 	struct Chabu_Priority_Data* prio = &chabu->priorities[ ch->priority ];
 
-	setRequest( chabu, &ch->xmitRequestData, &prio->data );
+	setRequest( chabu, &ch->xmit.requestData, &prio->data );
 
 }
 

@@ -30,10 +30,10 @@ LIBRARY_API extern void  Chabu_Channel_AddXmitLimit( struct Chabu_Data* chabu, i
 	}
 
 	struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
-	ch->xmitLimit += added;
-	if( ch->xmitArm != ch->xmitSeq ){
+	ch->xmit.limit += added;
+	if( ch->xmit.arm != ch->xmit.seq ){
 		Chabu_Priority_SetRequestData( chabu, ch );
-		chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
+		chabu->user.eventNotification( chabu->user.data, Chabu_Event_NetworkRegisterWriteRequest );
 	}
 }
 
@@ -52,9 +52,9 @@ LIBRARY_API extern void  Chabu_Channel_SetRecvLimit( struct Chabu_Data* chabu, i
 }
 LIBRARY_API extern void  Chabu_Channel_AddRecvLimit( struct Chabu_Data* chabu, int channelId, int added ){
 	struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
-	ch->recvArm += added;
+	ch->recv.arm += added;
 	Chabu_Priority_SetRequestCtrl_Arm( chabu, ch );
-	chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
+	chabu->user.eventNotification( chabu->user.data, Chabu_Event_NetworkRegisterWriteRequest );
 }
 LIBRARY_API extern int64 Chabu_Channel_GetRecvLimit( struct Chabu_Data* chabu, int channelId ){
 	return 0;

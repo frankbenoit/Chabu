@@ -446,7 +446,7 @@ TEST( XferTest, receiveArm_valueIsStored ){
 
 	doIo();
 
-	EXPECT_EQ( 22u, tdata.chabu->channels[0].xmitArm );
+	EXPECT_EQ( 22u, tdata.chabu->channels[0].xmit.arm );
 }
 
 TEST( XferTest, startXmit_callsChannelGetXmitBuffer ){

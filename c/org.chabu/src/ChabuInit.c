@@ -22,7 +22,7 @@ void Chabu_ReportError( struct Chabu_Data* chabu, enum Chabu_ErrorCode error, co
 	if( chabu->lastError == Chabu_ErrorCode_OK_NOERROR ){
 		chabu->lastError = error;
 		vsnprintf( chabu->errorMessage, sizeof( chabu->errorMessage), fmt, arglist );
-		chabu->userCallback_ErrorFunction( chabu->userData, error, file, line, chabu->errorMessage );
+		chabu->user.errorFunction( chabu->user.data, error, file, line, chabu->errorMessage );
 	}
 	va_end( arglist );
 }
@@ -58,7 +58,7 @@ LIBRARY_API void Chabu_Init(
 		chabu->lastError = Chabu_ErrorCode_INIT_ERROR_FUNC_NULL;
 		return;
 	}
-	chabu->userCallback_ErrorFunction = userCallback_ErrorFunction;
+	chabu->user.errorFunction = userCallback_ErrorFunction;
 
 	REPORT_ERROR_IF(( applicationName == NULL ),
 			chabu, Chabu_ErrorCode_INIT_PARAM_APNAME_NULL, "application protocol name must not be NULL" );
@@ -85,12 +85,12 @@ LIBRARY_API void Chabu_Init(
 
 	if( chabu->lastError != Chabu_ErrorCode_OK_NOERROR ) return;
 
-	chabu->userCallback_AcceptConnection = userCallback_AcceptConnection;
-	chabu->userCallback_NetworkRecvBuffer = userCallback_NetworkRecvBuffer;
-	chabu->userCallback_NetworkXmitBuffer = userCallback_NetworkXmitBuffer;
-	chabu->userCallback_EventNotification = userCallback_EventNotification;
+	chabu->user.acceptConnection = userCallback_AcceptConnection;
+	chabu->user.networkRecvBuffer = userCallback_NetworkRecvBuffer;
+	chabu->user.networkXmitBuffer = userCallback_NetworkXmitBuffer;
+	chabu->user.eventNotification = userCallback_EventNotification;
 
-	chabu->userData = userData;
+	chabu->user.data = userData;
 
 	chabu->channels     = channels;
 	chabu->channelCount = channelCount;
@@ -121,16 +121,16 @@ LIBRARY_API void Chabu_Init(
 		ch->priority = -1;
 		ch->chabu = chabu;
 
-		ch->recvArm = 0;
-		ch->recvSeq = 0;
-		ch->recvRequest = false;
+		ch->recv.arm = 0;
+		ch->recv.seq = 0;
+		ch->recv.request = false;
 
-		ch->xmitArm   = 0;
-		ch->xmitSeq   = 0;
-		ch->xmitLimit = 0;
-		ch->xmitRequestCtrl_Arm     = false;
-		ch->xmitRequestCtrl_Davail  = false;
-		ch->xmitRequestCtrl_Reset   = false;
+		ch->xmit.arm   = 0;
+		ch->xmit.seq   = 0;
+		ch->xmit.limit = 0;
+		ch->xmit.requestCtrl_Arm     = false;
+		ch->xmit.requestCtrl_Davail  = false;
+		ch->xmit.requestCtrl_Reset   = false;
 
 //		ch->prioListNextChannel = NULL;
 	}
@@ -180,10 +180,10 @@ static void buildPriorityChannelList( struct Chabu_Data* chabu ){
 	int i;
 	for( i = 0; i < chabu->channelCount; i++ ){
 		struct Chabu_Channel_Data* ch = &chabu->channels[i];
-		ch->xmitRequestCtrl.next = NULL;
-		ch->xmitRequestCtrl.ch   = ch;
-		ch->xmitRequestData.next = NULL;
-		ch->xmitRequestData.ch   = ch;
+		ch->xmit.requestCtrl.next = NULL;
+		ch->xmit.requestCtrl.ch   = ch;
+		ch->xmit.requestData.next = NULL;
+		ch->xmit.requestData.ch   = ch;
 //		if( chabu->priorities[ch->priority].channelList == NULL ){
 //			chabu->priorities[ch->priority].channelList = ch;
 //		}
@@ -224,10 +224,10 @@ LIBRARY_API void Chabu_ConfigureChannel (
 	if( chabu->lastError != Chabu_ErrorCode_OK_NOERROR ) return;
 
 	ch->priority = priority;
-	ch->userCallback_ChannelEventNotification = userCallback_ChannelEventNotification;
-	ch->userCallback_ChannelGetXmitBuffer     = userCallback_ChannelGetXmitBuffer;
-	ch->userCallback_ChannelGetRecvBuffer     = userCallback_ChannelGetRecvBuffer;
-	ch->userData = userData;
+	ch->user.channelEventNotification = userCallback_ChannelEventNotification;
+	ch->user.channelGetXmitBuffer     = userCallback_ChannelGetXmitBuffer;
+	ch->user.channelGetRecvBuffer     = userCallback_ChannelGetRecvBuffer;
+	ch->user.data = userData;
 }
 
 

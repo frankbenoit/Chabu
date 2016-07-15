@@ -51,23 +51,13 @@ extern "C" {
 
 #endif
 
-#ifndef Chabu_CHANNEL_COUNT_MAX
-#define Chabu_CHANNEL_COUNT_MAX 64
-#endif
-
-#ifndef Chabu_PRIORITY_COUNT_MAX
-#define Chabu_PRIORITY_COUNT_MAX 20
-#endif
-
 #define Chabu_ABORT_MSG_SIZE_MAX        56
 #define Chabu_APPLICATION_NAME_SIZE_MAX 56
-#define Chabu_HEADER_SIZE_MAX 10
-#define Chabu_HEADER_ARM_SIZE  8
-#define Chabu_HEADER_SEQ_SIZE 10
 
 #define Chabu_ProtocolVersion 0x00010001UL
 
 #define Chabu_PingPayloadMax  64
+#define Chabu_PongPayloadMax  64
 
 enum Chabu_ErrorCode {
     Chabu_ErrorCode_OK_NOERROR = 0,
@@ -158,11 +148,10 @@ typedef struct Chabu_ByteBuffer_Data* (CALL_SPEC Chabu_ChannelGetXmitBuffer)( vo
 typedef struct Chabu_ByteBuffer_Data* (CALL_SPEC Chabu_ChannelGetRecvBuffer)( void* userData, int channelId, int wantedSize );
 
 struct Chabu_ByteBuffer_Data {
-	int position;
-	int limit;
-	int capacity;
+	int     position;
+	int     limit;
+	int     capacity;
 	uint8 * data;
-	bool   byteOrderIsBigEndian;
 };
 
 struct Chabu_ConnectionInfo_Data {
@@ -176,8 +165,6 @@ struct Chabu_ConnectionInfo_Data {
 	char    applicationName[Chabu_APPLICATION_NAME_SIZE_MAX];
 };
 
-struct Chabu_Channel_Data;
-
 struct Chabu_PriorityEntry_Data {
 	struct Chabu_PriorityEntry_Data* next;
 	struct Chabu_Channel_Data*       ch;
@@ -189,40 +176,42 @@ struct Chabu_PriorityList_Data {
 
 struct Chabu_Priority_Data {
 	const struct Chabu_StructInfo* info;
-//	struct Chabu_Channel_Data*  channelList;
 	struct Chabu_PriorityList_Data ctrl;
 	struct Chabu_PriorityList_Data data;
 };
 
 struct Chabu_Channel_Data {
 	const struct Chabu_StructInfo* info;
+
 	struct Chabu_Data* chabu;
-	char*              instanceName;
 	int                channelId;
 	int                priority;
 
-	Chabu_ChannelEventNotification * userCallback_ChannelEventNotification;
-	Chabu_ChannelGetXmitBuffer     * userCallback_ChannelGetXmitBuffer;
-	Chabu_ChannelGetRecvBuffer     * userCallback_ChannelGetRecvBuffer;
-	void                           * userData;
+	struct {
+		Chabu_ChannelEventNotification * channelEventNotification;
+		Chabu_ChannelGetXmitBuffer     * channelGetXmitBuffer;
+		Chabu_ChannelGetRecvBuffer     * channelGetRecvBuffer;
+		void                           * data;
+	} user;
 
-	///struct QueueVar* xmitQueue;
-	uint64           xmitSeq;
-	uint64           xmitArm;
-	uint64           xmitLimit;
+	struct {
+		uint64           seq;
+		uint64           arm;
+		uint64           limit;
 
-	bool             xmitRequestCtrl_Arm;
-	bool             xmitRequestCtrl_Reset;
-	bool             xmitRequestCtrl_Davail;
+		bool             requestCtrl_Arm;
+		bool             requestCtrl_Reset;
+		bool             requestCtrl_Davail;
 
-	//struct QueueVar* recvQueue;
-	uint32           recvSeq;
-	uint32           recvArm;
-	bool             recvRequest;
+		struct Chabu_PriorityEntry_Data requestCtrl;
+		struct Chabu_PriorityEntry_Data requestData;
+	} xmit;
 
-//	struct Chabu_Channel_Data*  prioListNextChannel;
-	struct Chabu_PriorityEntry_Data xmitRequestCtrl;
-	struct Chabu_PriorityEntry_Data xmitRequestData;
+	struct {
+		uint32           seq;
+		uint32           arm;
+		bool             request;
+	} recv;
 };
 
 /**
@@ -256,17 +245,21 @@ struct Chabu_Data {
 
 	struct Chabu_ConnectionInfo_Data connectionInfoLocal;
 	struct Chabu_ConnectionInfo_Data connectionInfoRemote;
+	int                          receivePacketSize;
 
 #ifdef Chabu_USE_LOCK
 	Chabu_LOCK_TYPE    lock;
 #endif
 
-	Chabu_ErrorFunction               * userCallback_ErrorFunction;
-	Chabu_AcceptConnection            * userCallback_AcceptConnection;
-	Chabu_EventNotification           * userCallback_EventNotification;
-	Chabu_NetworkRecvBuffer           * userCallback_NetworkRecvBuffer;
-	Chabu_NetworkXmitBuffer           * userCallback_NetworkXmitBuffer;
-	void                              * userData;
+	struct {
+		Chabu_ErrorFunction               * errorFunction;
+		Chabu_AcceptConnection            * acceptConnection;
+		Chabu_EventNotification           * eventNotification;
+		Chabu_NetworkRecvBuffer           * networkRecvBuffer;
+		Chabu_NetworkXmitBuffer           * networkXmitBuffer;
+		void                              * data;
+	} user;
+
 	enum Chabu_ErrorCode         lastError;
 
 	struct Chabu_Channel_Data*   channels;
@@ -288,6 +281,7 @@ struct Chabu_Data {
 		struct Chabu_ByteBuffer_Data  pongData;
 		bool                          request;
 	} recvPing;
+
 	struct {
 		enum Chabu_XmitState         state;
 		uint8                        memory[0x100];
@@ -310,10 +304,6 @@ struct Chabu_Data {
 		struct Chabu_ByteBuffer_Data* seqBufferUser;
 		struct Chabu_ByteBuffer_Data  seqBuffer;
 	} recv;
-
-	int                          receivePacketSize;
-
-
 };
 
 LIBRARY_API void Chabu_Init(
@@ -392,7 +382,6 @@ static inline void Chabu_ByteBuffer_Init( struct Chabu_ByteBuffer_Data* data, ui
 	data->limit    = size;
 	data->position = 0;
 	data->data     = memory;
-	data->byteOrderIsBigEndian = true;
 }
 
 static inline void Chabu_ByteBuffer_clear(struct Chabu_ByteBuffer_Data* data){

@@ -40,11 +40,11 @@ static void setup(){
 
 		ch.channelId = i;
 
-		ch.xmitRequestCtrl.ch = &ch;
-		ch.xmitRequestCtrl.next = nullptr;
+		ch.xmit.requestCtrl.ch = &ch;
+		ch.xmit.requestCtrl.next = nullptr;
 
-		ch.xmitRequestData.ch = &ch;
-		ch.xmitRequestData.next = nullptr;
+		ch.xmit.requestData.ch = &ch;
+		ch.xmit.requestData.next = nullptr;
 		ch.priority = i / 5;
 	}
 

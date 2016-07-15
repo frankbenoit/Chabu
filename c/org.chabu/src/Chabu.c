@@ -468,9 +468,9 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 }
 
 static bool getAndReset_xmitRequestArm(struct Chabu_Channel_Data* ch){
-	bool res = ch->xmitRequestArm;
+	bool res = ch->xmitRequestCtrl;
 	if( res ){
-		ch->xmitRequestArm = false;
+		ch->xmitRequestCtrl = false;
 	}
 	return res;
 }

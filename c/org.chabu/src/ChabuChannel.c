@@ -55,7 +55,7 @@ LIBRARY_API extern void  Chabu_Channel_SetRecvLimit( struct Chabu_Data* chabu, i
 LIBRARY_API extern void  Chabu_Channel_AddRecvLimit( struct Chabu_Data* chabu, int channelId, int added ){
 	struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
 	ch->recvArm += added;
-	ch->xmitRequestArm = true;
+	ch->xmitRequestCtrl = true;
 	chabu->userCallback_EventNotification( chabu->userData, Chabu_Event_NetworkRegisterWriteRequest );
 }
 LIBRARY_API extern int64 Chabu_Channel_GetRecvLimit( struct Chabu_Data* chabu, int channelId ){

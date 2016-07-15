@@ -362,6 +362,7 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 	case Chabu_XmitState_Accept:
 	case Chabu_XmitState_SeqPayload:
 	case Chabu_XmitState_Ping:
+	case Chabu_XmitState_Pong:
 		chabu->xmit.state = Chabu_XmitState_Idle;
 		break;
 	case Chabu_XmitState_Seq:
@@ -373,6 +374,27 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 
 
 	if( chabu->xmit.state == Chabu_XmitState_Idle ){
+
+		if( chabu->pong.request ){
+			chabu->pong.request = false;
+			int xmitSize = Chabu_ByteBuffer_remaining(&chabu->pong.pongData);
+			if( xmitSize > Chabu_PingPayloadMax ){
+				xmitSize = Chabu_PingPayloadMax;
+			}
+			int xmitSizeAligned = Common_AlignUp4(xmitSize);
+			Chabu_ByteBuffer_clear( &chabu->xmit.buffer );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 12+xmitSizeAligned );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_PONG );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, xmitSize );
+			if( xmitSize ){
+				Chabu_ByteBuffer_xferWithMax( &chabu->xmit.buffer, &chabu->pong.pongData, Chabu_PingPayloadMax );
+				Chabu_ByteBuffer_putPadding( &chabu->xmit.buffer, xmitSizeAligned-xmitSize);
+			}
+			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
+
+			chabu->xmit.state = Chabu_XmitState_Pong;
+			return true;
+		}
 
 		if( chabu->ping.request ){
 			chabu->ping.request = false;
@@ -503,4 +525,8 @@ LIBRARY_API void Chabu_StartPing ( struct Chabu_Data* chabu, struct Chabu_ByteBu
 	chabu->ping.inProgress = true;
 
 	ensureNetworkWriteRequest(chabu);
+}
+
+void  Chabu_SetPongData (struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pongData ){
+	chabu->pong.pongData = *pongData;
 }

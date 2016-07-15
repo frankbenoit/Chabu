@@ -12,6 +12,45 @@
 #include "Utils.h"
 using std::string;
 
+
+class BBuffer {
+public:
+	struct Chabu_ByteBuffer_Data buffer;
+	BBuffer( size_t size ){
+		buffer.data = new uint8[ size ];
+		buffer.position = 0;
+		buffer.limit = size;
+		buffer.capacity = size;
+	}
+	BBuffer( const std::string& hexString ){
+		int size = (hexString.length() + 2) / 3;
+		buffer.data = new uint8[ size ];
+		buffer.position = 0;
+		buffer.limit = size;
+		buffer.capacity = size;
+		appendHex(hexString);
+	}
+	BBuffer( const BBuffer& o ){
+		int size = o.buffer.capacity;
+		BBuffer tmp(size);
+		std::copy( o.buffer.data, o.buffer.data + size, tmp.buffer.data );
+		std::swap( buffer, tmp.buffer );
+	}
+	~BBuffer(){
+		delete[] buffer.data;
+	}
+	void appendHex( const std::string& hexString ){
+		Chabu_ByteBuffer_AppendHex( &buffer, hexString );
+	}
+	void flip(){
+		Chabu_ByteBuffer_flip( &buffer );
+	}
+	void clear(){
+		Chabu_ByteBuffer_clear( &buffer );
+	}
+};
+
+
 void SetUp(){
 	FakeFunctions_ResetAll();
 }
@@ -19,6 +58,15 @@ void SetUp(){
 #define  RPS         0x200
 #define APPL_VERSION 0x1234
 #define APPL_NAME    "ABC"
+namespace {
+
+	BBuffer pingAppl{70};
+	BBuffer pongAppl{70};
+	BBuffer pingNetw{70};
+	BBuffer pongNetw{70};
+
+}
+
 
 struct TestData {
 	struct Chabu_Data* chabu;
@@ -37,10 +85,7 @@ struct TestData {
 	uint8 memTst[1000];
 	struct Chabu_ByteBuffer_Data testBuffer;
 
-	struct Chabu_ByteBuffer_Data pingBuffer;
-	uint8 memPing[70];
-	struct Chabu_ByteBuffer_Data pongBuffer;
-	uint8 memPong[70];
+
 };
 
 static struct TestData tdata;
@@ -87,11 +132,13 @@ static void configureStdSetup(){
 	Chabu_ByteBuffer_Init( &tdata.testBuffer, tdata.memTst, sizeof(tdata.memTst) );
 	tdata.recvBuffer.limit = 0;
 
-	Chabu_ByteBuffer_Init( &tdata.pingBuffer, tdata.memPing, sizeof(tdata.memPing) );
-	Chabu_ByteBuffer_Init( &tdata.pongBuffer, tdata.memPong, sizeof(tdata.memPong) );
-
 	networkRecvBuffer_fake.custom_fake = networkRecvBufferImpl;
 	networkXmitBuffer_fake.custom_fake = networkXmitBufferImpl;
+
+	pingAppl.clear();
+	pongAppl.clear();
+	pingNetw.clear();
+	pongNetw.clear();
 
 	acceptConnection_fake.return_val = Chabu_ErrorCode_OK_NOERROR;
 }
@@ -666,9 +713,9 @@ TEST( PingTest, xmitPingWhileInProgress_rejectWithError ){
 TEST( PingTest, xmitPingWithPayload ){
 
 	setup1Ch();
-	tdata.pingBuffer.position = 0;
-	tdata.pingBuffer.limit    = 11;
-	Chabu_StartPing(tdata.chabu, &tdata.pingBuffer, NULL );
+	pingAppl.appendHex("00 00 00 00 00 00 00 00 00 00 00 ");
+	pingAppl.flip();
+	Chabu_StartPing(tdata.chabu, &pingAppl.buffer, NULL );
 
 	xmitAllowAll();
 
@@ -682,9 +729,8 @@ TEST( PingTest, xmitPingWithPayload ){
 TEST( PingTest, xmitPingWithTooMuchPayload_justConsumesAsMuchAsPossible ){
 
 	setup1Ch();
-	tdata.pingBuffer.position = 0;
-	tdata.pingBuffer.limit    = tdata.pingBuffer.capacity;
-	Chabu_StartPing(tdata.chabu, &tdata.pingBuffer, NULL );
+	pingAppl.buffer.limit = 70;
+	Chabu_StartPing(tdata.chabu, &pingAppl.buffer, NULL );
 
 	xmitAllowAll();
 
@@ -692,7 +738,7 @@ TEST( PingTest, xmitPingWithTooMuchPayload_justConsumesAsMuchAsPossible ){
 
 	EXPECT_EQ( 76, tdata.xmitBuffer.position );
 
-	EXPECT_EQ( 64, tdata.pingBuffer.position );
+	EXPECT_EQ( 64, pingAppl.buffer.position );
 
 	ASSERT_NO_ERROR();
 
@@ -733,8 +779,8 @@ TEST( PingTest, xmitPingRecvPong_applicationNotified ){
 }
 TEST( PingTest, xmitPingRecvPongWithPayload ){
 	setup1Ch();
-	tdata.pongBuffer.limit = 33;
-	Chabu_StartPing(tdata.chabu, NULL, &tdata.pongBuffer );
+	pongAppl.buffer.limit = 33;
+	Chabu_StartPing(tdata.chabu, NULL, &pongAppl.buffer );
 
 	xmitAllowAll();
 
@@ -746,7 +792,7 @@ TEST( PingTest, xmitPingRecvPongWithPayload ){
 
 	doIo();
 
-	EXPECT_EQ( 11, tdata.pongBuffer.position );
+	EXPECT_EQ( 11, pongAppl.buffer.position );
 
 	ASSERT_NO_ERROR();
 
@@ -765,6 +811,9 @@ static void prepareRecvPing( struct Chabu_ByteBuffer_Data* pingData ){
 	}
 	Chabu_ByteBuffer_flip( &tdata.recvBuffer );
 }
+static void prepareRecvPing( BBuffer pingData ){
+	prepareRecvPing( &pingData.buffer );
+}
 
 
 TEST( PingTest, recvPing_notifyApplication ){
@@ -774,10 +823,11 @@ TEST( PingTest, recvPing_notifyApplication ){
 	prepareRecvPing( NULL );
 	doIo();
 
-	EXPECT_EQ( 1u, eventNotification_fake.call_count );
-	EXPECT_EQ( Chabu_Event_RemotePing, eventNotification_fake.arg1_val );
+	EXPECT_LE( 1u, eventNotification_fake.call_count );
+	EXPECT_EQ( Chabu_Event_RemotePing, eventNotification_fake.arg1_history[0] );
 
 }
+
 TEST( PingTest, DISABLED_recvPingXmitPong ){
 	setup1Ch();
 	prepareRecvPing( NULL );
@@ -791,12 +841,35 @@ TEST( PingTest, DISABLED_recvPingXmitPong ){
 	RESET_FAKE(eventNotification);
 	doIo();
 
-	EXPECT_EQ( 11, tdata.pongBuffer.position );
+	EXPECT_EQ( 11, pongAppl.buffer.position );
 
 	ASSERT_NO_ERROR();
 
 }
-TEST( PingTest, DISABLED_recvPingXmitPongWithPayload ){
+
+
+static void pingPongEventHandler( void* userData, enum Chabu_Event event ){
+	(void)userData;
+	if( event == Chabu_Event_RemotePing ){
+		Chabu_SetPongData( &chabu, &pongAppl.buffer );
+	}
+}
+
+TEST( PingTest, recvPingXmitPongWithPayload ){
+	setup1Ch();
+
+	pongAppl.appendHex("10 11 12 13 14 15 16 00 01 02 03 04 05 06 ");
+	pongAppl.flip();
+
+	prepareRecvPing( BBuffer("00 01 02 03 04 05 06 ") );
+
+	eventNotification_fake.custom_fake = pingPongEventHandler;
+	xmitAllowAll();
+	doIo();
+	EXPECT_EQ( 0, Chabu_ByteBuffer_remaining( &tdata.recvBuffer ) );
+	EXPECT_EQ( 28, tdata.xmitBuffer.position );
+
+	ASSERT_NO_ERROR();
 
 }
 

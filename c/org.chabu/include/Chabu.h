@@ -223,6 +223,7 @@ enum Chabu_XmitState {
 	Chabu_XmitState_SeqPayload,
 	Chabu_XmitState_Arm,
 	Chabu_XmitState_Ping,
+	Chabu_XmitState_Pong,
 	Chabu_XmitState_Idle,
 };
 
@@ -351,6 +352,7 @@ LIBRARY_API void Chabu_HandleNetwork ( struct Chabu_Data* chabu );
 // Chabu Channel <-> Application
 
 LIBRARY_API void  Chabu_StartPing (struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pingData, struct Chabu_ByteBuffer_Data* pongData );
+LIBRARY_API void  Chabu_SetPongData (struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pongData );
 
 LIBRARY_API void  Chabu_Channel_StartReset( struct Chabu_Data* chabu, int channelId );
 

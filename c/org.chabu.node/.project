@@ -3,6 +3,7 @@
 	<name>org.chabu.node</name>
 	<comment></comment>
 	<projects>
+		<project>org.chabu</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

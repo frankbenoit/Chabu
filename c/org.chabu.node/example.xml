@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<XferItem xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <Category>REQ</Category>
+  <Name>Frank</Name>
+  <CallIndex>3</CallIndex>
+  <Parameters>
+    <Parameter xsi:type="ParameterValue">
+      <Name>MyCommand1</Name>
+      <Value>text</Value>
+    </Parameter>
+    <Parameter xsi:type="ParameterValue">
+      <Name>MyCommand</Name>
+      <Value>A Text
+with line break and &lt;&gt;  xml elements" </Value>
+    </Parameter>
+    <Parameter xsi:type="ParameterValue">
+      <Name>Par1</Name>
+      <Value>42</Value>
+    </Parameter>
+    <Parameter xsi:type="ParameterValue">
+      <Name>Version</Name>
+      <Value>68719476736</Value>
+    </Parameter>
+    <Parameter xsi:type="ParameterValue">
+      <Name>Ratio</Name>
+      <Value>1.34</Value>
+    </Parameter>
+    <Parameter xsi:type="ParameterWithChilds">
+      <Name>channel-0</Name>
+      <Childs>
+        <Parameter xsi:type="ParameterValue">
+          <Name>xmitIdx</Name>
+          <Value>1234</Value>
+        </Parameter>
+        <Parameter xsi:type="ParameterValue">
+          <Name>recvIdx</Name>
+          <Value>1234</Value>
+        </Parameter>
+      </Childs>
+    </Parameter>
+    <Parameter xsi:type="ParameterWithChilds">
+      <Name>channel-1</Name>
+      <Childs>
+        <Parameter xsi:type="ParameterValue">
+          <Name>xmitIdx</Name>
+          <Value>1234</Value>
+        </Parameter>
+        <Parameter xsi:type="ParameterValue">
+          <Name>recvIdx</Name>
+          <Value>1234</Value>
+        </Parameter>
+      </Childs>
+    </Parameter>
+  </Parameters>
+</XferItem>

@@ -14,78 +14,8 @@
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
 
-using boost::asio::ip::tcp;
-
-class Session : public std::enable_shared_from_this<Session>
-{
-	tcp::socket socket_;
-	enum { max_length = 1024 };
-	char data_[max_length];
-
-public:
-	Session(tcp::socket socket)
-	: socket_(std::move(socket))
-	{
-	}
-
-	void start() {
-		do_read();
-	}
-
-private:
-	void do_read() {
-
-		auto self(shared_from_this());
-
-		socket_.async_read_some(boost::asio::buffer(data_, max_length),
-				[this, self](boost::system::error_code ec, std::size_t length)
-				{
-			if (!ec) {
-				do_write(length);
-			}
-				});
-	}
-
-	void do_write(std::size_t length) {
-
-		auto self(shared_from_this());
-		boost::asio::async_write(socket_, boost::asio::buffer(data_, length),
-				[this, self](boost::system::error_code ec, std::size_t /*length*/) {
-			if (!ec)
-			{
-				do_read();
-			}
-		});
-	}
-
-};
-
-class Server {
-
-	tcp::acceptor acceptor_;
-	tcp::socket socket_;
-
-public:
-	Server(boost::asio::io_service& io_service, short port)
-	: acceptor_(io_service, tcp::endpoint(tcp::v4(), port)),
-	  socket_(io_service)
-	{
-		do_accept();
-	}
-
-private:
-	void do_accept() {
-		acceptor_.async_accept(socket_,
-				[this](boost::system::error_code ec) {
-			if (!ec) {
-				std::make_shared<Session>(std::move(socket_))->start();
-			}
-
-			do_accept();
-		});
-	}
-
-};
+#include "network/ServerCtrl.h"
+#include "network/ServerChabu.h"
 
 int main3(int argc, char* argv[]) {
 	try {
@@ -97,7 +27,9 @@ int main3(int argc, char* argv[]) {
 		boost::asio::io_service io_service;
 
 		int port = std::atoi(argv[1]);
-		Server s(io_service, port );
+
+		network::ServerCtrl  serverCtrl (io_service, port+0 );
+		network::ServerChabu serverChabu(io_service, port+1 );
 
 		std::cout << "server at " << port << std::endl;
 		io_service.run();

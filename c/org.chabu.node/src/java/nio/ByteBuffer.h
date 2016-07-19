@@ -39,11 +39,14 @@ public:
 
 	virtual ~ByteBuffer();
 
+	inline std::uint8_t * array(){ return data_; }
+	inline std::uint8_t * arrayPtrAtPosition(){ return data_+position_; }
 	inline std::size_t    position(){ return position_; }
+	inline ByteBuffer&    positionIncrease(std::size_t increment){ position_ += increment; return *this; }
 	inline std::size_t    limit   (){ return limit_; }
 	inline std::size_t    capacity(){ return capacity_; }
-	inline std::size_t    position(std::size_t newPosition){ return position_ = newPosition; }
-	inline std::size_t    limit   (std::size_t newLimit){ return limit_ = newLimit; }
+	inline ByteBuffer&    position(std::size_t newPosition){ position_ = newPosition; return *this; }
+	inline ByteBuffer&    limit   (std::size_t newLimit){ limit_ = newLimit; return *this; }
 	inline bool           hasRemaining(){ return position_ < limit_; }
 	inline std::size_t    remaining(){ return limit_ - position_; }
 

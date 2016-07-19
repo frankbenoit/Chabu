@@ -28,7 +28,6 @@ Parameter::~Parameter() {
 
 std::shared_ptr<Parameter> createParam( pugi::xml_node node ){
 	string type = node.attribute("xsi:type").value();
-	//std::cout << "type: " << type << std::endl;
 	if( type == "ParameterValue"){
 		auto res = new ParameterValue();
 		res->load(node);

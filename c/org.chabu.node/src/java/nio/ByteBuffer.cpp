@@ -23,7 +23,7 @@ ByteBuffer&    ByteBuffer::flip(){
 
 ByteBuffer&    ByteBuffer::compact(){
 	std::size_t sz = remaining();
-	if( sz ){
+	if( sz && position_ ){
 		std::memmove( data_, data_ + position_, sz );
 	}
 	limit_ = capacity_;

@@ -45,6 +45,7 @@ int main3(int argc, char* argv[]) {
 #include <fstream>
 #include "testprot/XferItem.h"
 
+#include <malloc.h>
 
 using std::string;
 using std::shared_ptr;
@@ -52,26 +53,53 @@ using std::vector;
 
 
 using namespace testprot;
+static struct mallinfo infoStartup;
+static void test(){
+	struct mallinfo info = mallinfo();
 
+	std::cout << boost::format("total allocated space:  %s bytes\n") % (int)( info.uordblks - infoStartup.uordblks);
+	std::cout << boost::format("total free space:       %s bytes\n") % (int)( info.fordblks - infoStartup.fordblks);
+
+}
 int main(int argc, char **argv) {
-	std::ifstream stream("example.xml");
-	pugi::xml_document doc;
-	pugi::xml_parse_result result = doc.load(stream);
-	try{
-		if( result ){
-			auto root = doc.root();
-			XferItem xferItem;
-			xferItem.load(root.child("XferItem"));
-			std::cout << "XferItem.toString: "  << xferItem.toString();
+	{
+		auto v = new int[12];
+		delete [] v;
+		auto m = new struct mallinfo;
+		delete m;
+		boost::format("total allocated space:  %s bytes\n") % (int)( infoStartup.uordblks);
+	}
+	infoStartup = mallinfo();
+	test();
+	auto v = new int[12];
+	test();
+	delete [] v;
+	test();
+	auto v2 = new int[12];
+	test();
+	delete [] v2;
+	test();
+	{
+		std::ifstream stream("example.xml");
+		pugi::xml_document doc;
+		pugi::xml_parse_result result = doc.load(stream);
+		try{
+			if( result ){
+				auto root = doc.root();
+				XferItem xferItem;
+				xferItem.load(root.child("XferItem"));
+				std::cout << "XferItem.toString: "  << xferItem.toString() << std::endl;
+			}
+			else {
+				std::cout << "error: " <<
+				result.description() << std::endl;
+			}
 		}
-		else {
-			std::cout << "error: " <<
-			result.description() << std::endl;
+		catch( std::exception& e ){
+			std::cout << "exception: " << e.what();
 		}
 	}
-	catch( std::exception& e ){
-		std::cout << "exception: " << e.what();
-	}
+	test();
 }
 
 

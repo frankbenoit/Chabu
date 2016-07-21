@@ -51,8 +51,8 @@ public:
 	inline std::size_t    remaining(){ return limit_ - position_; }
 
 
-	inline enum ByteOrder order(){ return orderBe_ ? ByteOrder::big_endian : ByteOrder::little_endian; }
-	inline ByteBuffer&    order(enum ByteOrder order){ orderBe_ = ( order == ByteOrder::big_endian ); return *this; }
+	inline ByteOrder      order(){ return orderBe_ ? ByteOrder::big_endian : ByteOrder::little_endian; }
+	inline ByteBuffer&    order(ByteOrder order){ orderBe_ = ( order == ByteOrder::big_endian ); return *this; }
 
 	inline ByteBuffer&    mark(){ mark_ = position_; return *this; }
 	ByteBuffer&           reset();

@@ -4,7 +4,9 @@
  *  Created on: 16.07.2016
  *      Author: Frank
  */
-
+#define _CRTDBG_MAP_ALLOC 
+#include <stdlib.h> 
+#include <crtdbg.h>
 
 #include <cstdlib>
 #include <iostream>
@@ -53,32 +55,27 @@ using std::vector;
 
 
 using namespace testprot;
-static struct mallinfo infoStartup;
-static void test(){
-	struct mallinfo info = mallinfo();
-
-	std::cout << boost::format("total allocated space:  %s bytes\n") % (int)( info.uordblks - infoStartup.uordblks);
-	std::cout << boost::format("total free space:       %s bytes\n") % (int)( info.fordblks - infoStartup.fordblks);
-
+//static struct mallinfo infoStartup;
+//static void test(){
+//	struct mallinfo info = mallinfo();
+//
+//	std::cout << boost::format("total allocated space:  %s bytes\n") % (int)( info.uordblks - infoStartup.uordblks);
+//	std::cout << boost::format("total free space:       %s bytes\n") % (int)( info.fordblks - infoStartup.fordblks);
+//
+//}
+static void test() {
 }
 int main(int argc, char **argv) {
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtMemState s1; 
+	//_CrtMemCheckpoint(&s1);
+	//_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	{
 		auto v = new int[12];
+		v[0] = 0x1234;
 		delete [] v;
-		auto m = new struct mallinfo;
-		delete m;
-		boost::format("total allocated space:  %s bytes\n") % (int)( infoStartup.uordblks);
 	}
-	infoStartup = mallinfo();
-	test();
-	auto v = new int[12];
-	test();
-	delete [] v;
-	test();
-	auto v2 = new int[12];
-	test();
-	delete [] v2;
-	test();
+	//_CrtMemDumpStatistics(&s1);
 	{
 		std::ifstream stream("example.xml");
 		pugi::xml_document doc;
@@ -99,7 +96,7 @@ int main(int argc, char **argv) {
 			std::cout << "exception: " << e.what();
 		}
 	}
-	test();
+	//_CrtDumpMemoryLeaks();
 }
 
 

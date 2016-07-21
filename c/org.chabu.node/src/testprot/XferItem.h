@@ -21,7 +21,7 @@ enum class Category { REQ, RES, EVT };
 
 class XferItem {
 public:
-	enum Category category = Category::EVT;
+	testprot::Category category = testprot::Category::EVT;
 	std::string name{""};
 	int callIndex = 0;
 	std::vector<std::shared_ptr<Parameter>> parameters;

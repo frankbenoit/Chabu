@@ -30,7 +30,7 @@ static enum Chabu_ErrorCode checkAcceptance( struct Chabu_Data* chabu, struct Ch
 static void xmitGetUserData(struct Chabu_Data* chabu);
 static void ensureNetworkWriteRequest(struct Chabu_Data* chabu);
 
-LIBRARY_API extern void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
+LIBRARY_API void Chabu_HandleNetwork ( struct Chabu_Data* chabu ){
 	handleReads( chabu );
 	handleWrites( chabu );
 }
@@ -77,7 +77,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 				ci->protocolVersion       = Chabu_ByteBuffer_getInt_BE( rb );
 				ci->receivePacketSize     = Chabu_ByteBuffer_getInt_BE( rb );
 				ci->applicationVersion    = Chabu_ByteBuffer_getInt_BE( rb );
-				ci->applicationNameLength = Chabu_ByteBuffer_getString( rb, ci->applicationName, sizeof(ci->applicationName));
+				ci->applicationNameLength = (uint8) Chabu_ByteBuffer_getString( rb, ci->applicationName, sizeof(ci->applicationName));
 				ci->hasContent = true;
 
 				chabu->recv.state = Chabu_RecvState_Accept;
@@ -464,13 +464,13 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, SEQ_HEADER_SZ+xmitSizeAligned );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_SEQ );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
-			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->xmit.seq );
-			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, xmitSize );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, (uint32)ch->xmit.seq );
+			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, (uint32)xmitSize );
 			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
 			chabu->xmit.seqChannel = ch;
-			chabu->xmit.seqRemainingPayload = xmitSize;
-			chabu->xmit.seqRemainingPadding = xmitSizeAligned-xmitSize;
+			chabu->xmit.seqRemainingPayload = (int) xmitSize;
+			chabu->xmit.seqRemainingPadding = (int)( xmitSizeAligned - xmitSize );
 			chabu->xmit.seqBufferUser = NULL;
 			chabu->xmit.state = Chabu_XmitState_Seq;
 			return true;
@@ -500,7 +500,7 @@ static void handleWrites( struct Chabu_Data* chabu ){
 	}
 
 }
-LIBRARY_API void Chabu_StartPing ( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pingData, struct Chabu_ByteBuffer_Data* pongData ){
+void LIBRARY_API Chabu_StartPing ( struct Chabu_Data* chabu, struct Chabu_ByteBuffer_Data* pingData, struct Chabu_ByteBuffer_Data* pongData ){
 	if( chabu->xmitPing.inProgress ){
 		Chabu_ReportError( chabu, Chabu_ErrorCode_PING_IN_PROGRESS, __FILE__, __LINE__,
 				"ping in progress" );

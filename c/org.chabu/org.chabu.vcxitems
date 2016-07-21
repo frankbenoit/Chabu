@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Globals">
+    <MSBuildAllProjects>$(MSBuildAllProjects);$(MSBuildThisFileFullPath)</MSBuildAllProjects>
+    <HasSharedItems>true</HasSharedItems>
+    <ItemsProjectGuid>{45d41acc-2c3c-43d2-bc10-02aa73ffc7c7}</ItemsProjectGuid>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(MSBuildThisFileDirectory)</AdditionalIncludeDirectories>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectCapability Include="SourceItemsFromImports" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\Chabu.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ChabuByteBuffer.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ChabuChannel.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ChabuErrors.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ChabuInit.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\ChabuPriorities.c" />
+    <ClCompile Include="$(MSBuildThisFileDirectory)src\Common.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\Chabu.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\ChabuOpts.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)include\Common.h" />
+    <ClInclude Include="$(MSBuildThisFileDirectory)src\ChabuInternal.h" />
+  </ItemGroup>
+</Project>

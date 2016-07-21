@@ -5,59 +5,45 @@
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.mingw.exe.debug.1938262198" moduleId="org.eclipse.cdt.core.settings" name="Debug">
 				<externalSettings/>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.Cygwin_PE" point="org.eclipse.cdt.core.BinaryParser"/>
-					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
-					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.PE" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.VCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.mingw.exe.debug.1938262198" name="Debug" parent="cdt.managedbuild.config.gnu.mingw.exe.debug">
 					<folderInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.1938262198." name="/" resourcePath="">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.cygwin.base.867330334" name="Cygwin GCC" superClass="cdt.managedbuild.toolchain.gnu.cygwin.base">
-							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.Cygwin_PE" id="cdt.managedbuild.target.gnu.platform.cygwin.base.1607671756" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.cygwin.base"/>
-							<builder buildPath="${workspace_loc:/org.chabu.node}/Debug" enableAutoBuild="true" id="cdt.managedbuild.target.gnu.builder.cygwin.base.424719094" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.cygwin.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.cygwin.base.706770864" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.cygwin.base">
-								<option id="gnu.both.asm.option.include.paths.2073923155" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+						<toolChain id="org.eclipse.cdt.msvc.toolchain.dll.debug.2120114821" name="Microsoft Visual C++" superClass="org.eclipse.cdt.msvc.toolchain.dll.debug">
+							<targetPlatform id="org.eclipse.cdt.msvc.targetPlatform.dll.debug.1816967867" superClass="org.eclipse.cdt.msvc.targetPlatform.dll.debug"/>
+							<builder buildPath="${workspace_loc:/org.chabu.node}/Debug" enableAutoBuild="true" id="org.eclipse.cdt.msvc.builder.540241982" name="CDT Internal Builder.Debug" superClass="org.eclipse.cdt.msvc.builder"/>
+							<tool id="org.eclipse.cdt.msvc.cl.c.dll.debug.1768091993" name="C Compiler (cl)" superClass="org.eclipse.cdt.msvc.cl.c.dll.debug">
+								<option id="org.eclipse.cdt.msvc.cl.option.includes.46413322" superClass="org.eclipse.cdt.msvc.cl.option.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/org.chabu/include}&quot;"/>
 								</option>
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1908184092" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+								<option id="org.eclipse.cdt.msvc.cl.option.optimization.1329273625" superClass="org.eclipse.cdt.msvc.cl.option.optimization" value="org.eclipse.cdt.msvc.cl.option.optimization.default" valueType="enumerated"/>
+								<option id="org.eclipse.cdt.msvc.cl.option.debugFormat.902771499" superClass="org.eclipse.cdt.msvc.cl.option.debugFormat" value="org.eclipse.cdt.msvc.cl.option.debugFormat.complete" valueType="enumerated"/>
+								<inputType id="org.eclipse.cdt.msvc.cl.inputType.c.830908736" superClass="org.eclipse.cdt.msvc.cl.inputType.c"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.cygwin.base.1417319485" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.cygwin.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base.483745517" name="Cygwin C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.cygwin.base">
-								<option id="gnu.cpp.compiler.option.include.paths.1133457555" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+							<tool id="org.eclipse.cdt.msvc.cl.dll.debug.1085443643" name="C++ Compiler (cl)" superClass="org.eclipse.cdt.msvc.cl.dll.debug">
+								<option id="org.eclipse.cdt.msvc.cl.option.includes.1830731817" superClass="org.eclipse.cdt.msvc.cl.option.includes" valueType="includePath">
 									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/org.chabu/include}&quot;"/>
 								</option>
-								<option id="gnu.cpp.compiler.option.optimization.level.1092171899" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.debugging.level.1058971207" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.debugging.level.max" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.dialect.std.765687701" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.default" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.dialect.flags.1903363748" name="Other dialect flags" superClass="gnu.cpp.compiler.option.dialect.flags" useByScannerDiscovery="true" value="-std=gnu++11" valueType="string"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin.1828226408" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input.cygwin"/>
+								<option id="org.eclipse.cdt.msvc.cl.option.optimization.1598457055" superClass="org.eclipse.cdt.msvc.cl.option.optimization" value="org.eclipse.cdt.msvc.cl.option.optimization.default" valueType="enumerated"/>
+								<option id="org.eclipse.cdt.msvc.cl.option.debugFormat.547204246" superClass="org.eclipse.cdt.msvc.cl.option.debugFormat" value="org.eclipse.cdt.msvc.cl.option.debugFormat.complete" valueType="enumerated"/>
+								<inputType id="org.eclipse.cdt.msvc.cl.inputType.740241516" superClass="org.eclipse.cdt.msvc.cl.inputType"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.cygwin.base.1918702907" name="Cygwin C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.cygwin.base">
-								<option id="gnu.c.compiler.option.include.paths.1020319548" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
-									<listOptionValue builtIn="false" value="&quot;${workspace_loc:/org.chabu/include}&quot;"/>
-								</option>
-								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.419308505" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.debugging.level.782125299" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" value="gnu.c.debugging.level.max" valueType="enumerated"/>
-								<option id="gnu.c.compiler.option.dialect.std.1069907239" name="Language standard" superClass="gnu.c.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.c.compiler.dialect.default" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.cygwin.416149127" superClass="cdt.managedbuild.tool.gnu.c.compiler.input.cygwin"/>
+							<tool id="org.eclipse.cdt.msvc.rc.dll.debug.1855880852" name="Resource Compiler (rc)" superClass="org.eclipse.cdt.msvc.rc.dll.debug">
+								<inputType id="org.eclipse.cdt.msvc.rc.inputType.1592785912" superClass="org.eclipse.cdt.msvc.rc.inputType"/>
 							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.cygwin.base.1373788031" name="Cygwin C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.cygwin.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base.293314412" name="Cygwin C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.cygwin.base">
-								<option id="gnu.cpp.link.option.libs.2099106832" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" useByScannerDiscovery="false" valueType="libs">
+							<tool id="org.eclipse.cdt.msvc.link.dll.debug.1454735394" name="Linker (link)" superClass="org.eclipse.cdt.msvc.link.dll.debug">
+								<option id="org.eclipse.cdt.msvc.link.option.libraries.2088912336" superClass="org.eclipse.cdt.msvc.link.option.libraries" valueType="libs">
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_system"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="boost_thread"/>
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="pugixml"/>
 								</option>
-								<option id="gnu.cpp.link.option.paths.1819614851" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.429614849" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
-									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
-									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
-								</inputType>
+								<option id="org.eclipse.cdt.msvc.link.option.debug.2034544378" superClass="org.eclipse.cdt.msvc.link.option.debug" value="true" valueType="boolean"/>
+								<inputType id="org.eclipse.cdt.msvc.link.inputType.2019266951" superClass="org.eclipse.cdt.msvc.link.inputType"/>
 							</tool>
+							<tool id="org.eclipse.cdt.msvc.lib.1948125541" name="Library Manager (lib)" superClass="org.eclipse.cdt.msvc.lib"/>
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>

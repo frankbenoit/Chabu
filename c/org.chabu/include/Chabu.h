@@ -398,45 +398,46 @@ static inline bool Chabu_ByteBuffer_hasRemaining(struct Chabu_ByteBuffer_Data* d
 	return data->position < data->limit;
 }
 
-int32 Chabu_ByteBuffer_getIntAt_BE(struct Chabu_ByteBuffer_Data* data, int pos );
-int32 Chabu_ByteBuffer_getInt_BE(struct Chabu_ByteBuffer_Data* data );
-int32 Chabu_ByteBuffer_getString(struct Chabu_ByteBuffer_Data* data, char* buffer, int bufferSize );
+LIBRARY_API int32 Chabu_ByteBuffer_getIntAt_BE(struct Chabu_ByteBuffer_Data* data, int pos );
+LIBRARY_API int32 Chabu_ByteBuffer_getInt_BE(struct Chabu_ByteBuffer_Data* data );
+LIBRARY_API int32 Chabu_ByteBuffer_getString(struct Chabu_ByteBuffer_Data* data, char* buffer, int bufferSize );
 
-int  Chabu_ByteBuffer_xferAllPossible(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src);
-int  Chabu_ByteBuffer_xferWithMax(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src, int maxLength);
+LIBRARY_API int  Chabu_ByteBuffer_xferAllPossible(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src);
+LIBRARY_API int  Chabu_ByteBuffer_xferWithMax(struct Chabu_ByteBuffer_Data* trg, struct Chabu_ByteBuffer_Data* src, int maxLength);
 
-static __inline__ int  Chabu_ByteBuffer_remaining(struct Chabu_ByteBuffer_Data* data){
+#define Chabu_STATIC_INLINE static inline
+Chabu_STATIC_INLINE int  Chabu_ByteBuffer_remaining(struct Chabu_ByteBuffer_Data* data){
 	return data->limit - data->position;
 }
 
-static __inline__ void Chabu_ByteBuffer_putPadding(struct Chabu_ByteBuffer_Data* data, int count){
+Chabu_STATIC_INLINE void Chabu_ByteBuffer_putPadding(struct Chabu_ByteBuffer_Data* data, int count){
 	while( count-- ){
 		data->data[ data->position++ ] = 0;
 	}
 }
-static __inline__ void Chabu_ByteBuffer_putByte(struct Chabu_ByteBuffer_Data* data, uint8 value){
+Chabu_STATIC_INLINE void Chabu_ByteBuffer_putByte(struct Chabu_ByteBuffer_Data* data, uint8 value){
 	data->data[ data->position ] = value;
 	data->position++;
 }
 
-void Chabu_ByteBuffer_putStringFromBuffer(struct Chabu_ByteBuffer_Data* data, struct Chabu_ByteBuffer_Data* stringBuffer);
+LIBRARY_API void Chabu_ByteBuffer_putStringFromBuffer(struct Chabu_ByteBuffer_Data* data, struct Chabu_ByteBuffer_Data* stringBuffer);
 
-static __inline__ void Chabu_ByteBuffer_putIntBe(struct Chabu_ByteBuffer_Data* data, int32 value){
-	data->data[ data->position++ ] = value >> 24;
-	data->data[ data->position++ ] = value >> 16;
-	data->data[ data->position++ ] = value >>  8;
-	data->data[ data->position++ ] = value >>  0;
+Chabu_STATIC_INLINE void Chabu_ByteBuffer_putIntBe(struct Chabu_ByteBuffer_Data* data, int32 value){
+	data->data[ data->position++ ] = (uint8)( value >> 24 );
+	data->data[ data->position++ ] = (uint8)( value >> 16 );
+	data->data[ data->position++ ] = (uint8)( value >>  8 );
+	data->data[ data->position++ ] = (uint8)( value >>  0 );
 }
 
-void Chabu_ByteBuffer_putString(struct Chabu_ByteBuffer_Data* data, const char* const value);
+LIBRARY_API void Chabu_ByteBuffer_putString(struct Chabu_ByteBuffer_Data* data, const char* const value);
 
-static __inline__ uint8 Chabu_ByteBuffer_get(struct Chabu_ByteBuffer_Data* data){
+Chabu_STATIC_INLINE uint8 Chabu_ByteBuffer_get(struct Chabu_ByteBuffer_Data* data){
 	uint8 res = data->data[ data->position ];
 	data->position++;
 	return res;
 }
 
-void Chabu_ByteBuffer_compact(struct Chabu_ByteBuffer_Data* data);
+LIBRARY_API void Chabu_ByteBuffer_compact(struct Chabu_ByteBuffer_Data* data);
 
 
 

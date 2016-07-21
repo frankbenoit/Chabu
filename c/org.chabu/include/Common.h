@@ -15,12 +15,20 @@
 #include <stddef.h>
 
 #ifdef _WIN32
-#    define CALL_SPEC __cdecl
-#    ifdef _LIB
-#        define LIBRARY_API __stdcall __declspec(dllexport)
-#    else
-#        define LIBRARY_API __stdcall __declspec(dllimport)
-#    endif
+# define CALL_SPEC __cdecl
+# if defined(_MSC_VER)
+#  if defined(ORGCHABU_EXPORTS)
+#   define LIBRARY_API __declspec(dllexport)
+#  else
+#   define LIBRARY_API __declspec(dllimport)
+#  endif
+# else
+#  ifdef _LIB
+#   define LIBRARY_API __stdcall __declspec(dllexport)
+#  else
+#   define LIBRARY_API __stdcall __declspec(dllimport)
+#  endif
+# endif
 #else
 #    define LIBRARY_API
 #    define CALL_SPEC

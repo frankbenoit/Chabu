@@ -12,6 +12,7 @@
 #include <pugixml.hpp>
 #include <memory>
 #include <vector>
+#include <utility>
 #include <iostream>
 
 namespace testprot {

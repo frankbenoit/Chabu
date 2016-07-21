@@ -4,9 +4,11 @@
  *  Created on: 16.07.2016
  *      Author: Frank
  */
+#ifdef  _MSC_VER
 #define _CRTDBG_MAP_ALLOC 
 #include <stdlib.h> 
 #include <crtdbg.h>
+#endif
 
 #include <cstdlib>
 #include <iostream>
@@ -66,7 +68,9 @@ using namespace testprot;
 static void test() {
 }
 int main(int argc, char **argv) {
+#ifdef  _MSC_VER
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 	//_CrtMemState s1; 
 	//_CrtMemCheckpoint(&s1);
 	//_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);

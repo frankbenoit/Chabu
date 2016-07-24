@@ -24,6 +24,11 @@ using std::string;
 Parameter::Parameter() {
 }
 
+Parameter::Parameter(std::string name)
+: name( name )
+{
+}
+
 Parameter::~Parameter() {
 }
 
@@ -54,5 +59,8 @@ string joinParameterListToString( const vector<shared_ptr<Parameter>>& list, str
 	}
 	return childsStr;
 }
+
+
+
 
 } /* namespace testprot */

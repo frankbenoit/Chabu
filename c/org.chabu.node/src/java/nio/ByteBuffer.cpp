@@ -38,7 +38,7 @@ ByteBuffer&    ByteBuffer::reset(){
 	return *this;
 }
 
-ByteBuffer&    ByteBuffer::put(void* value, std::size_t offset, std::size_t length){
+ByteBuffer&    ByteBuffer::put(const void* value, std::size_t offset, std::size_t length){
 	if( offset > length ) throw std::out_of_range("ByteBuffer");
 	std::size_t rem = remaining();
 	if( rem < length ) throw std::overflow_error("ByteBuffer");

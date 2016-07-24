@@ -13,13 +13,15 @@
 
 namespace network {
 ServerCtrl::ServerCtrl(boost::asio::io_service& io_service, short port)
-: acceptor_(io_service, tcp::endpoint(tcp::v4(), port)),
-  socket_(io_service)
+: acceptor_(io_service, tcp::endpoint(tcp::v4(), port))
+, socket_(io_service)
+, serverChabu_(io_service, port+1 )
 {
 	do_accept();
 }
 
 ServerCtrl::~ServerCtrl() {
+//	serverChabu_.acceptor_.close()
 }
 
 

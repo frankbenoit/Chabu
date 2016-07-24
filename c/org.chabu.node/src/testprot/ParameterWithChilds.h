@@ -16,12 +16,14 @@ namespace testprot {
 
 class ParameterWithChilds : public Parameter {
 public:
-	std::string name;
 	ParameterWithChilds();
 	virtual ~ParameterWithChilds();
 	std::vector<std::shared_ptr<Parameter>> childs;
 	void load( pugi::xml_node node );
 	virtual std::string toString();
+	virtual bool isParameterWithChilds() { return true; }
+	virtual ParameterWithChilds& asParameterWithChilds() { return *this; }
+	virtual void encodeInto( pugi::xml_node node );
 };
 
 } /* namespace testprot */

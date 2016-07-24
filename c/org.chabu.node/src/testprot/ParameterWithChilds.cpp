@@ -37,4 +37,16 @@ string ParameterWithChilds::toString(){
 	return (boost::format("ParameterWithChilds{name=%s childs={%s}}") % name % childsStr ).str();
 }
 
+void ParameterWithChilds::encodeInto( pugi::xml_node node ){
+	auto item = node.append_child("Parameter");
+	item.append_attribute("xsi:type").set_value("ParameterWithChilds");
+	item.append_child("Name").set_value(name.c_str());
+	auto childItem = item.append_child("Childs");
+	for( auto it = childs.begin(); it != childs.end(); it++ ){
+		auto c = *it;
+		c->encodeInto( childItem );
+	}
+}
+
+
 } /* namespace testprot */

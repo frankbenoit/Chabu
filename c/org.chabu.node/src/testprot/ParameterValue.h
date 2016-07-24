@@ -18,11 +18,14 @@ namespace testprot {
 class ParameterValue : public Parameter {
 public:
 	ParameterValue();
+	ParameterValue(std::string name, std::string value);
 	virtual ~ParameterValue();
-	std::string name{""};
 	std::string value{""};
 	void load( pugi::xml_node node );
 	virtual std::string toString();
+	virtual bool isParameterValue() { return true; }
+	virtual ParameterValue& asParameterValue() { return *this; }
+	virtual void encodeInto( pugi::xml_node node );
 };
 
 } /* namespace testprot */

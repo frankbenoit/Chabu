@@ -14,14 +14,18 @@ namespace testprot {
 using std::string;
 ParameterValue::ParameterValue()
 {
-	// TODO Auto-generated constructor stub
+}
 
+ParameterValue::ParameterValue(std::string name, std::string value)
+: Parameter( name )
+, value ( value )
+{
 }
 
 ParameterValue::~ParameterValue()
 {
-	// TODO Auto-generated destructor stub
 }
+
 void ParameterValue::load( pugi::xml_node node ){
 	name = node.child_value("Name");
 	value = node.child_value("Value");
@@ -30,4 +34,10 @@ string ParameterValue::toString(){
 	return (boost::format("ParameterValue{name=%s, value=%s}") % name % value ).str();
 }
 
+void ParameterValue::encodeInto( pugi::xml_node node ){
+	auto item = node.append_child("Parameter");
+	item.append_attribute("xsi:type").set_value("ParameterValue");
+	item.append_child("Name").set_value(name.c_str());
+	item.append_child("Value").set_value(value.c_str());
+}
 } /* namespace testprot */

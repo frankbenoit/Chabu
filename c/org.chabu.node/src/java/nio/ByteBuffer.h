@@ -62,7 +62,7 @@ public:
 	ByteBuffer&    flip();
 	ByteBuffer&    compact();
 
-	ByteBuffer&    put(void* value, std::size_t offset, std::size_t length);
+	ByteBuffer&    put(const void* value, std::size_t offset, std::size_t length);
 	ByteBuffer&    put(ByteBuffer& src);
 
 	ByteBuffer&    putU(uint8_t value);

@@ -17,11 +17,15 @@
 #include <utility>
 #include <boost/asio.hpp>
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "network/ServerCtrl.h"
 #include "network/ServerChabu.h"
 
-int main3(int argc, char* argv[]) {
+int main(int argc, char* argv[]) {
+#ifdef  _MSC_VER
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+#endif
 	try {
 		if (argc != 2) {
 			std::cerr << "Usage: async_tcp_echo_server <port>\n";
@@ -30,10 +34,9 @@ int main3(int argc, char* argv[]) {
 
 		boost::asio::io_service io_service;
 
-		int port = std::atoi(argv[1]);
+		int port = boost::lexical_cast<int>(argv[1]);
 
-		network::ServerCtrl  serverCtrl (io_service, port+0 );
-		network::ServerChabu serverChabu(io_service, port+1 );
+		network::ServerCtrl  serverCtrl (io_service, port );
 
 		std::cout << "server at " << port << std::endl;
 		io_service.run();
@@ -41,7 +44,7 @@ int main3(int argc, char* argv[]) {
 	catch (std::exception& e) {
 		std::cerr << "Exception: " << e.what() << "\n";
 	}
-
+	std::cout << std::endl;
 	return 0;
 }
 
@@ -57,29 +60,11 @@ using std::vector;
 
 
 using namespace testprot;
-//static struct mallinfo infoStartup;
-//static void test(){
-//	struct mallinfo info = mallinfo();
-//
-//	std::cout << boost::format("total allocated space:  %s bytes\n") % (int)( info.uordblks - infoStartup.uordblks);
-//	std::cout << boost::format("total free space:       %s bytes\n") % (int)( info.fordblks - infoStartup.fordblks);
-//
-//}
-static void test() {
-}
-int main(int argc, char **argv) {
+
+int main2(int argc, char **argv) {
 #ifdef  _MSC_VER
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
-	//_CrtMemState s1; 
-	//_CrtMemCheckpoint(&s1);
-	//_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-	{
-		auto v = new int[12];
-		v[0] = 0x1234;
-		delete [] v;
-	}
-	//_CrtMemDumpStatistics(&s1);
 	{
 		std::ifstream stream("example.xml");
 		pugi::xml_document doc;
@@ -101,6 +86,7 @@ int main(int argc, char **argv) {
 		}
 	}
 	//_CrtDumpMemoryLeaks();
+	return 0;
 }
 
 

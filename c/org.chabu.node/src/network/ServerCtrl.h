@@ -9,6 +9,7 @@
 #define SERVER_H_
 
 #include <boost/asio.hpp>
+#include "ServerChabu.h"
 
 using boost::asio::ip::tcp;
 namespace network {
@@ -17,6 +18,7 @@ class ServerCtrl {
 
 	tcp::acceptor acceptor_;
 	tcp::socket socket_;
+	ServerChabu serverChabu_;
 
 public:
 	ServerCtrl(boost::asio::io_service& io_service, short port);

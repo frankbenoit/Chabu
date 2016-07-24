@@ -112,7 +112,7 @@ public class XferItem {
 		parameters = Arrays.copyOf(parameters, parameters.length+1);
 		parameters[ parameters.length - 1 ] = new ParameterValue( name, value );
 	}
-	public void addParameter(String name, ParameterWithChilds value ) {
+	public void addParameter(ParameterWithChilds value ) {
 		parameters = Arrays.copyOf(parameters, parameters.length+1);
 		parameters[ parameters.length - 1 ] = value;
 	}

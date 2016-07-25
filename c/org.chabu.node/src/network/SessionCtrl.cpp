@@ -27,6 +27,9 @@ SessionCtrl::SessionCtrl(tcp::socket socket)
 	, rx( dataRx_, sizeof(dataRx_) )
 	, tx( dataTx_, sizeof(dataTx_) )
 {
+	rx.order(java::nio::ByteOrder::big_endian);
+	tx.order(java::nio::ByteOrder::big_endian);
+	tx.limit(0);
 }
 
 SessionCtrl::~SessionCtrl() {
@@ -61,7 +64,6 @@ void SessionCtrl::handleReceived(){
 		}
 		else {
 			rx.position(4);
-			new int[12];
 			std::string xml( reinterpret_cast<char*>(rx.arrayPtrAtPosition()), packetSize );
 			pugi::xml_document doc;
 			cout << format("Request: %s\n") % xml;
@@ -80,7 +82,7 @@ void SessionCtrl::handleReceived(){
 				cout << format("Response: %s") % str << std::endl;
 
 				tx.compact();
-				tx.put( str.length() );
+				tx.putInt( str.length() );
 				tx.put( static_cast<const void*>(str.c_str()), 0, str.length() );
 				tx.flip();
 			}
@@ -91,10 +93,10 @@ void SessionCtrl::handleReceived(){
 	}
 	rx.compact();
 
-	//do_write(length);
+	do_write();
 }
 
-void SessionCtrl::do_write(std::size_t length) {
+void SessionCtrl::do_write() {
 
 	auto self(shared_from_this());
 	boost::asio::async_write(socket_, boost::asio::buffer(tx.arrayPtrAtPosition(), tx.remaining() ),
@@ -102,7 +104,10 @@ void SessionCtrl::do_write(std::size_t length) {
 		if (!ec)
 		{
 			tx.positionIncrease(length);
-			do_read();
+			if( !tx.hasRemaining() ){
+				cout << "start reading" << std::endl;
+				do_read();
+			}
 		}
 	});
 }

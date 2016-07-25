@@ -43,7 +43,7 @@ private:
 	void do_read();
 
 	void handleReceived();
-	void do_write(std::size_t length);
+	void do_write();
 	shared_ptr<XferItem> process(XferItem& req);
 	shared_ptr<XferItem> setup(std::string directoryVersion, std::string hostLabel);
 	shared_ptr<XferItem> builderStart( int applicationVersion, std::string applicationProtocolName, int recvPacketSize, int priorityCount) ;

@@ -42,28 +42,31 @@ void XferItem::load( pugi::xml_node node ){
 
 void XferItem::encodeInto( pugi::xml_node node ){
 	auto item = node.append_child("XferItem");
-	item.append_child("Name").set_value(name.c_str());
+	item.append_child("Name").text().set(name.c_str());
+	item.append_attribute("xmlns:xsi").set_value("http://www.w3.org/2001/XMLSchema-instance");
+	item.append_attribute("xmlns:xsd").set_value("http://www.w3.org/2001/XMLSchema");
 
 	{
 		auto callIndexStr = boost::lexical_cast<std::string>(callIndex);
-		item.append_child("CallIndex").set_value( callIndexStr.c_str() );
+		item.append_child("CallIndex").text().set( callIndexStr.c_str() );
 	}
 
 	switch( this->category ){
 	case Category::REQ:
-		item.append_child("Category").set_value("REQ");
+		item.append_child("Category").text().set("REQ");
 		break;
 	case Category::RES:
-		item.append_child("Category").set_value("RES");
+		item.append_child("Category").text().set("RES");
 		break;
 	case Category::EVT:
-		item.append_child("Category").set_value("EVT");
+		item.append_child("Category").text().set("EVT");
 		break;
 	}
 
+	auto params = item.append_child("Parameters");
 	for( auto it = parameters.begin(); it != parameters.end(); it++ ){
 		auto p = *it;
-		p->encodeInto(item);
+		p->encodeInto(params);
 	}
 }
 

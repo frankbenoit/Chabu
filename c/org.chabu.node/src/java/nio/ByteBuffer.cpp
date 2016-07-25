@@ -81,12 +81,12 @@ ByteBuffer&    ByteBuffer::put(std::size_t index, int8_t value){
 ByteBuffer&    ByteBuffer::putUShort(uint16_t value){
 	if( position_+1 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ position_ + 0 ] = value; value >>= 8;
-		data_[ position_ + 1 ] = value;
-	}
-	else {
 		data_[ position_ + 1 ] = value; value >>= 8;
 		data_[ position_ + 0 ] = value;
+	}
+	else {
+		data_[ position_ + 0 ] = value; value >>= 8;
+		data_[ position_ + 1 ] = value;
 	}
 	position_ += 2;
 	return *this;
@@ -94,12 +94,12 @@ ByteBuffer&    ByteBuffer::putUShort(uint16_t value){
 ByteBuffer&    ByteBuffer::putShort(int16_t value){
 	if( position_+1 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ position_ + 0 ] = value; value >>= 8;
-		data_[ position_ + 1 ] = value;
-	}
-	else {
 		data_[ position_ + 1 ] = value; value >>= 8;
 		data_[ position_ + 0 ] = value;
+	}
+	else {
+		data_[ position_ + 1 ] = value;
+		data_[ position_ + 0 ] = value; value >>= 8;
 	}
 	position_ += 2;
 
@@ -108,24 +108,24 @@ ByteBuffer&    ByteBuffer::putShort(int16_t value){
 ByteBuffer&    ByteBuffer::putUShort(std::size_t index, uint16_t value){
 	if( index+1 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ index + 0 ] = value; value >>= 8;
-		data_[ index + 1 ] = value;
-	}
-	else {
 		data_[ index + 1 ] = value; value >>= 8;
 		data_[ index + 0 ] = value;
+	}
+	else {
+		data_[ index + 0 ] = value; value >>= 8;
+		data_[ index + 1 ] = value;
 	}
 	return *this;
 }
 ByteBuffer&    ByteBuffer::putShort(std::size_t index, int16_t value){
 	if( index+1 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ index + 0 ] = value; value >>= 8;
-		data_[ index + 1 ] = value;
-	}
-	else {
 		data_[ index + 1 ] = value; value >>= 8;
 		data_[ index + 0 ] = value;
+	}
+	else {
+		data_[ index + 0 ] = value; value >>= 8;
+		data_[ index + 1 ] = value;
 	}
 	return *this;
 }
@@ -133,16 +133,16 @@ ByteBuffer&    ByteBuffer::putShort(std::size_t index, int16_t value){
 ByteBuffer&    ByteBuffer::putUInt(uint32_t value){
 	if( position_+3 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ position_ + 0 ] = value; value >>= 8;
-		data_[ position_ + 1 ] = value; value >>= 8;
-		data_[ position_ + 2 ] = value; value >>= 8;
-		data_[ position_ + 3 ] = value;
-	}
-	else {
 		data_[ position_ + 3 ] = value;	value >>= 8;
 		data_[ position_ + 2 ] = value;	value >>= 8;
 		data_[ position_ + 1 ] = value;	value >>= 8;
 		data_[ position_ + 0 ] = value;
+	}
+	else {
+		data_[ position_ + 0 ] = value; value >>= 8;
+		data_[ position_ + 1 ] = value; value >>= 8;
+		data_[ position_ + 2 ] = value; value >>= 8;
+		data_[ position_ + 3 ] = value;
 	}
 	position_ += 4;
 
@@ -151,16 +151,16 @@ ByteBuffer&    ByteBuffer::putUInt(uint32_t value){
 ByteBuffer&    ByteBuffer::putInt(int32_t value){
 	if( position_+3 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ position_ + 0 ] = value; value >>= 8;
-		data_[ position_ + 1 ] = value; value >>= 8;
-		data_[ position_ + 2 ] = value; value >>= 8;
-		data_[ position_ + 3 ] = value;
-	}
-	else {
 		data_[ position_ + 3 ] = value;	value >>= 8;
 		data_[ position_ + 2 ] = value;	value >>= 8;
 		data_[ position_ + 1 ] = value;	value >>= 8;
 		data_[ position_ + 0 ] = value;
+	}
+	else {
+		data_[ position_ + 0 ] = value; value >>= 8;
+		data_[ position_ + 1 ] = value; value >>= 8;
+		data_[ position_ + 2 ] = value; value >>= 8;
+		data_[ position_ + 3 ] = value;
 	}
 	position_ += 4;
 
@@ -169,16 +169,16 @@ ByteBuffer&    ByteBuffer::putInt(int32_t value){
 ByteBuffer&    ByteBuffer::putUInt(std::size_t index, uint32_t value){
 	if( index+3 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ index + 0 ] = value; value >>= 8;
-		data_[ index + 1 ] = value; value >>= 8;
-		data_[ index + 2 ] = value; value >>= 8;
-		data_[ index + 3 ] = value;
-	}
-	else {
 		data_[ index + 3 ] = value;	value >>= 8;
 		data_[ index + 2 ] = value;	value >>= 8;
 		data_[ index + 1 ] = value;	value >>= 8;
 		data_[ index + 0 ] = value;
+	}
+	else {
+		data_[ index + 0 ] = value; value >>= 8;
+		data_[ index + 1 ] = value; value >>= 8;
+		data_[ index + 2 ] = value; value >>= 8;
+		data_[ index + 3 ] = value;
 	}
 
 	return *this;
@@ -186,16 +186,16 @@ ByteBuffer&    ByteBuffer::putUInt(std::size_t index, uint32_t value){
 ByteBuffer&    ByteBuffer::putInt(std::size_t index, int32_t value){
 	if( index+3 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ index + 0 ] = value; value >>= 8;
-		data_[ index + 1 ] = value; value >>= 8;
-		data_[ index + 2 ] = value; value >>= 8;
-		data_[ index + 3 ] = value;
-	}
-	else {
 		data_[ index + 3 ] = value;	value >>= 8;
 		data_[ index + 2 ] = value;	value >>= 8;
 		data_[ index + 1 ] = value;	value >>= 8;
 		data_[ index + 0 ] = value;
+	}
+	else {
+		data_[ index + 0 ] = value; value >>= 8;
+		data_[ index + 1 ] = value; value >>= 8;
+		data_[ index + 2 ] = value; value >>= 8;
+		data_[ index + 3 ] = value;
 	}
 
 	return *this;
@@ -204,16 +204,6 @@ ByteBuffer&    ByteBuffer::putInt(std::size_t index, int32_t value){
 ByteBuffer&    ByteBuffer::putULong(uint64_t value){
 	if( position_+7 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ position_ + 0 ] = value; value >>= 8;
-		data_[ position_ + 1 ] = value; value >>= 8;
-		data_[ position_ + 2 ] = value; value >>= 8;
-		data_[ position_ + 3 ] = value; value >>= 8;
-		data_[ position_ + 4 ] = value; value >>= 8;
-		data_[ position_ + 5 ] = value; value >>= 8;
-		data_[ position_ + 6 ] = value; value >>= 8;
-		data_[ position_ + 7 ] = value;
-	}
-	else {
 		data_[ position_ + 7 ] = value;	value >>= 8;
 		data_[ position_ + 6 ] = value;	value >>= 8;
 		data_[ position_ + 5 ] = value;	value >>= 8;
@@ -222,6 +212,16 @@ ByteBuffer&    ByteBuffer::putULong(uint64_t value){
 		data_[ position_ + 2 ] = value;	value >>= 8;
 		data_[ position_ + 1 ] = value;	value >>= 8;
 		data_[ position_ + 0 ] = value;
+	}
+	else {
+		data_[ position_ + 0 ] = value; value >>= 8;
+		data_[ position_ + 1 ] = value; value >>= 8;
+		data_[ position_ + 2 ] = value; value >>= 8;
+		data_[ position_ + 3 ] = value; value >>= 8;
+		data_[ position_ + 4 ] = value; value >>= 8;
+		data_[ position_ + 5 ] = value; value >>= 8;
+		data_[ position_ + 6 ] = value; value >>= 8;
+		data_[ position_ + 7 ] = value;
 	}
 	position_ += 8;
 
@@ -230,16 +230,6 @@ ByteBuffer&    ByteBuffer::putULong(uint64_t value){
 ByteBuffer&    ByteBuffer::putLong(int64_t value){
 	if( position_+7 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ position_ + 0 ] = value; value >>= 8;
-		data_[ position_ + 1 ] = value; value >>= 8;
-		data_[ position_ + 2 ] = value; value >>= 8;
-		data_[ position_ + 3 ] = value; value >>= 8;
-		data_[ position_ + 4 ] = value; value >>= 8;
-		data_[ position_ + 5 ] = value; value >>= 8;
-		data_[ position_ + 6 ] = value; value >>= 8;
-		data_[ position_ + 7 ] = value;
-	}
-	else {
 		data_[ position_ + 7 ] = value;	value >>= 8;
 		data_[ position_ + 6 ] = value;	value >>= 8;
 		data_[ position_ + 5 ] = value;	value >>= 8;
@@ -249,6 +239,16 @@ ByteBuffer&    ByteBuffer::putLong(int64_t value){
 		data_[ position_ + 1 ] = value;	value >>= 8;
 		data_[ position_ + 0 ] = value;
 	}
+	else {
+		data_[ position_ + 0 ] = value; value >>= 8;
+		data_[ position_ + 1 ] = value; value >>= 8;
+		data_[ position_ + 2 ] = value; value >>= 8;
+		data_[ position_ + 3 ] = value; value >>= 8;
+		data_[ position_ + 4 ] = value; value >>= 8;
+		data_[ position_ + 5 ] = value; value >>= 8;
+		data_[ position_ + 6 ] = value; value >>= 8;
+		data_[ position_ + 7 ] = value;
+	}
 	position_ += 8;
 
 	return *this;
@@ -256,16 +256,6 @@ ByteBuffer&    ByteBuffer::putLong(int64_t value){
 ByteBuffer&    ByteBuffer::putULong(std::size_t index, uint64_t value){
 	if( index+7 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ index + 0 ] = value; value >>= 8;
-		data_[ index + 1 ] = value; value >>= 8;
-		data_[ index + 2 ] = value; value >>= 8;
-		data_[ index + 3 ] = value; value >>= 8;
-		data_[ index + 4 ] = value; value >>= 8;
-		data_[ index + 5 ] = value; value >>= 8;
-		data_[ index + 6 ] = value; value >>= 8;
-		data_[ index + 7 ] = value;
-	}
-	else {
 		data_[ index + 7 ] = value;	value >>= 8;
 		data_[ index + 6 ] = value;	value >>= 8;
 		data_[ index + 5 ] = value;	value >>= 8;
@@ -274,6 +264,16 @@ ByteBuffer&    ByteBuffer::putULong(std::size_t index, uint64_t value){
 		data_[ index + 2 ] = value;	value >>= 8;
 		data_[ index + 1 ] = value;	value >>= 8;
 		data_[ index + 0 ] = value;
+	}
+	else {
+		data_[ index + 0 ] = value; value >>= 8;
+		data_[ index + 1 ] = value; value >>= 8;
+		data_[ index + 2 ] = value; value >>= 8;
+		data_[ index + 3 ] = value; value >>= 8;
+		data_[ index + 4 ] = value; value >>= 8;
+		data_[ index + 5 ] = value; value >>= 8;
+		data_[ index + 6 ] = value; value >>= 8;
+		data_[ index + 7 ] = value;
 	}
 
 	return *this;
@@ -281,16 +281,6 @@ ByteBuffer&    ByteBuffer::putULong(std::size_t index, uint64_t value){
 ByteBuffer&    ByteBuffer::putLong(std::size_t index, int64_t value){
 	if( index+7 >= limit_ ) throw std::overflow_error("ByteBuffer overflow");
 	if( orderBe_ ){
-		data_[ index + 0 ] = value; value >>= 8;
-		data_[ index + 1 ] = value; value >>= 8;
-		data_[ index + 2 ] = value; value >>= 8;
-		data_[ index + 3 ] = value; value >>= 8;
-		data_[ index + 4 ] = value; value >>= 8;
-		data_[ index + 5 ] = value; value >>= 8;
-		data_[ index + 6 ] = value; value >>= 8;
-		data_[ index + 7 ] = value;
-	}
-	else {
 		data_[ index + 7 ] = value;	value >>= 8;
 		data_[ index + 6 ] = value;	value >>= 8;
 		data_[ index + 5 ] = value;	value >>= 8;
@@ -299,6 +289,16 @@ ByteBuffer&    ByteBuffer::putLong(std::size_t index, int64_t value){
 		data_[ index + 2 ] = value;	value >>= 8;
 		data_[ index + 1 ] = value;	value >>= 8;
 		data_[ index + 0 ] = value;
+	}
+	else {
+		data_[ index + 0 ] = value; value >>= 8;
+		data_[ index + 1 ] = value; value >>= 8;
+		data_[ index + 2 ] = value; value >>= 8;
+		data_[ index + 3 ] = value; value >>= 8;
+		data_[ index + 4 ] = value; value >>= 8;
+		data_[ index + 5 ] = value; value >>= 8;
+		data_[ index + 6 ] = value; value >>= 8;
+		data_[ index + 7 ] = value;
 	}
 
 	return *this;

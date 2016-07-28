@@ -56,7 +56,7 @@ TEST( UtilsTest, compareBuffers_longerContent_showMismatchPosAfterShorter ){
 
 	VerifyContent( ostr, &expBuf, &curBuf );
 	string text = ostr.str();
-	EXPECT_EQ( 0, text.find("mismatch after position 4")) << "text was: " << text;
+	EXPECT_EQ( 0u, text.find("mismatch after position 4")) << "text was: " << text;
 }
 
 TEST( UtilsTest, DumpHex_hasSpace ){

@@ -45,8 +45,8 @@ public:
 	void addParameter(std::string name, std::string value) ;
 	void addParameter(std::string name, int64_t value) ;
 	void addParameter(std::string name, double value) ;
-	void setParameters(std::vector<std::shared_ptr<Parameter>> parameters);
-
+	void addParameter( std::shared_ptr<Parameter> child) ;
+	void addParameters(std::vector<std::shared_ptr<Parameter>> parameters);
 private:
 	ParameterValue& findParameterValue(std::string path) ;
 	Parameter* findParameterValue(std::vector<std::shared_ptr<Parameter>> par, std::vector<std::string> parts, int i) ;

@@ -8,10 +8,16 @@
 #include "SessionCtrl.h"
 #include <string>
 #include <pugixml.hpp>
+#include <boost/lexical_cast.hpp>
 #include <boost/format.hpp>
 #include <iostream>
 #include "../testprot/XferItem.h"
 #include "../testprot/ParameterValue.h"
+#include "../testprot/ParameterWithChilds.h"
+#include "Chabu.h"
+#include "../org/chabu/ChabuListener.hpp"
+#include "../org/chabu/ChabuBuilder.hpp"
+#include "../TestChabuListener.hpp"
 
 namespace network {
 
@@ -19,6 +25,8 @@ using namespace testprot;
 using namespace boost::asio;
 using std::string;
 using std::cout;
+using std::cerr;
+using std::endl;
 using boost::format;
 
 SessionCtrl::SessionCtrl(tcp::socket socket)
@@ -183,7 +191,7 @@ shared_ptr<XferItem> SessionCtrl::process(XferItem& req) {
 	}
 	else {
 		resp = std::make_shared<XferItem>();
-		resp->setParameters( std::vector<shared_ptr<Parameter>>{
+		resp->addParameters( std::vector<shared_ptr<Parameter>>{
 			shared_ptr<Parameter>{new ParameterValue("IsError", "1")},
 			shared_ptr<Parameter>{new ParameterValue("Message", "Unknown Command")}
 		});
@@ -199,56 +207,65 @@ shared_ptr<XferItem> SessionCtrl::setup(string directoryVersion, string hostLabe
 	//System.out.printf("setup( %s, %s)\n",  directoryVersion, hostLabel );
 	this->isHostA = ( "A" == hostLabel );
 	shared_ptr<XferItem> res{new XferItem()};
-	res->setParameters( std::vector<shared_ptr<Parameter>>{
-		shared_ptr<Parameter>{new ParameterValue("Implementation", "Java")},
-		shared_ptr<Parameter>{new ParameterValue("ChabuProtocolVersion", "0")}//ChabuBuilder.getChabuVersion() }
+	res->addParameters( std::vector<shared_ptr<Parameter>>{
+		shared_ptr<Parameter>{new ParameterValue("Implementation", "C")},
+		shared_ptr<Parameter>{new ParameterValue("ChabuProtocolVersion", boost::lexical_cast<string>(Chabu_ProtocolVersion))}
 	});
 	return res;
 }
 
 shared_ptr<XferItem> SessionCtrl::builderStart( int applicationVersion, std::string applicationProtocolName, int recvPacketSize, int priorityCount) {
 	//System.out.printf("builderStart( %s, %s, %s, %s)\n",  applicationVersion, applicationProtocolName, recvPacketSize, priorityCount );
-	//builder = ChabuBuilder.start( applicationVersion, applicationProtocolName, recvPacketSize, priorityCount, xmitRequestListener );
+	chabuBuilder = std::make_shared<ChabuBuilder>( applicationVersion, applicationProtocolName, testListener );
+	chabuBuilder->setRecvPacketSize(recvPacketSize);
 	return std::make_shared<XferItem>();
 }
 
-shared_ptr<XferItem> SessionCtrl::builderAddChannel(int channel, int priority) {
+shared_ptr<XferItem> SessionCtrl::builderAddChannel(int channelId, int priority) {
 	//System.out.printf("builderAddChannel( %s, %s)\n",  channel, priority );
-//	chabuChannelUsers.ensureCapacity(channel+1);
-//	while( chabuChannelUsers.size() < channel+1 ){
-//		chabuChannelUsers.add(null);
-//	}
-//	chabuChannelUsers.set( channel, new TestChannelUser( isHostA, this::errorReceiver ) );
-//	builder.addChannel( channel, priority, chabuChannelUsers.get(channel));
+
+	if( channelId != (int)testChannelListener.size() ){
+		cerr << format("SessionCtrl::builderAddChannel %s %s") % channelId % testChannelListener.size() << endl;
+	}
+
+	testChannelListener.push_back( TestChabuChannelListener{channelId} );
+	auto listener = testChannelListener.at( testChannelListener.size() - 1);
+
+	chabuBuilder->addChannel( channelId, priority, listener );
 	return std::make_shared<XferItem>();
 }
 
 shared_ptr<XferItem> SessionCtrl::builderBuild() {
 	//System.out.printf("builderBuild()\n");
-//	chabu = builder.build();
+	chabu = chabuBuilder->build();
 //	testServer.setChabu(chabu);
-//	builder = null;
+	chabuBuilder = shared_ptr<ChabuBuilder>{};
 	return std::make_shared<XferItem>();
 }
 
 shared_ptr<XferItem> SessionCtrl::chabuGetState() {
-//	int channelCount = chabu.getChannelCount();
-//	Parameter[] channelInfo = new Parameter[ channelCount ];
-//	for( int channelId = 0; channelId < chabu.getChannelCount(); channelId++ ){
-//		ChabuChannel channel = chabu.getChannel(channelId);
-//		channelInfo[channelId] = new ParameterWithChilds(Integer.toString(channelId), new Parameter[]{
-//				new ParameterValue("recvPosition", channel.getRecvPosition()),
-//				new ParameterValue("recvLimit", channel.getRecvLimit()),
-//				new ParameterValue("xmitPosition", channel.getXmitPosition()),
-//				new ParameterValue("xmitLimit", channel.getXmitLimit()),
-//		});
-//	}
+	Chabu& chabu = *this->chabu;
+	size_t channelCount = chabu.getChannelCount();
+
 	auto xi = std::make_shared<XferItem>();
-//	xi->setParameters(new Parameter[]{
-//			new ParameterValue("channelCount", channelCount),
-//			new ParameterWithChilds("channel", channelInfo),
-//			new ParameterValue("toString", chabu.toString())
-//	});
+	xi->addParameter("channelCount", static_cast<int64_t>(channelCount));
+	ParameterWithChilds * channels = new ParameterWithChilds("channel");
+	xi->addParameter(shared_ptr<Parameter>(channels));
+	xi->addParameter("toString", chabu.toString());
+
+	for( size_t channelId = 0; channelId < channelCount; channelId++ ){
+
+		ChabuChannel& channel = chabu.getChannel(channelId);
+
+		ParameterWithChilds * params = new ParameterWithChilds{ boost::lexical_cast<string>(channelId) };
+
+		params->addParameterValue( "recvPosition", channel.getRecvPosition());
+		params->addParameterValue( "recvLimit",    channel.getRecvLimit());
+		params->addParameterValue( "xmitPosition", channel.getXmitPosition());
+		params->addParameterValue( "xmitLimit",    channel.getXmitLimit());
+
+		channels->addParameter( shared_ptr<Parameter>( params ) );
+	}
 	return xi;
 }
 

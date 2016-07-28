@@ -9,15 +9,23 @@
 #define SESSION_H_
 
 #include <memory>
+#include <vector>
 #include <boost/asio.hpp>
 #include "../java/nio/ByteBuffer.h"
 #include "../testprot/XferItem.h"
+#include "../org/chabu/Chabu.hpp"
+#include "../org/chabu/ChabuBuilder.hpp"
+#include "../TestChabuChannelListener.hpp"
+#include "../TestChabuListener.hpp"
 
 using boost::asio::ip::tcp;
 using java::nio::ByteBuffer;
 using std::uint8_t;
 using std::shared_ptr;
+using std::vector;
 using testprot::XferItem;
+using org::chabu::Chabu;
+using org::chabu::ChabuBuilder;
 
 
 namespace network {
@@ -32,6 +40,14 @@ class SessionCtrl : public std::enable_shared_from_this<SessionCtrl>
 
 	ByteBuffer rx;
 	ByteBuffer tx;
+
+
+	shared_ptr<ChabuBuilder> chabuBuilder;
+	shared_ptr<Chabu> chabu;
+
+	TestChabuListener                testListener;
+	vector<TestChabuChannelListener> testChannelListener;
+
 
 public:
 	SessionCtrl(tcp::socket socket);

@@ -136,8 +136,13 @@ void XferItem::addParameter(std::string name, double value) {
 	auto p = std::shared_ptr<Parameter>{ new ParameterValue( name, boost::lexical_cast<std::string>(value) ) };
 	parameters.push_back( p );
 }
-void XferItem::setParameters(std::vector<std::shared_ptr<Parameter>> parameters){
-	this->parameters = parameters;
+void XferItem::addParameter( std::shared_ptr<Parameter> child) {
+	parameters.push_back( child );
+}
+void XferItem::addParameters(std::vector<std::shared_ptr<Parameter>> parameters){
+	for( auto it = parameters.begin(); it != parameters.end(); it++ ){
+		this->parameters.push_back( *it );
+	}
 }
 
 } /* namespace testprot */

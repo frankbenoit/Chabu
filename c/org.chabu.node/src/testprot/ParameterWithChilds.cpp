@@ -6,21 +6,29 @@
  */
 
 #include "ParameterWithChilds.h"
+#include "ParameterValue.h"
 #include <boost/format.hpp>
+#include <boost/lexical_cast.hpp>
 
 namespace testprot {
 
 using std::string;
+using std::shared_ptr;
+using boost::lexical_cast;
+
 ParameterWithChilds::ParameterWithChilds()
 {
-	// TODO Auto-generated constructor stub
+}
 
+ParameterWithChilds::ParameterWithChilds( std::string name)
+: Parameter( name )
+{
 }
 
 ParameterWithChilds::~ParameterWithChilds()
 {
-	// TODO Auto-generated destructor stub
 }
+
 void ParameterWithChilds::load( pugi::xml_node node ){
 	name = node.child_value("Name");
 	auto params = node.child("Childs");
@@ -46,6 +54,14 @@ void ParameterWithChilds::encodeInto( pugi::xml_node node ){
 		auto c = *it;
 		c->encodeInto( childItem );
 	}
+}
+
+void ParameterWithChilds::addParameterValue( string name, int64_t value ){
+	childs.push_back( shared_ptr<Parameter>( new ParameterValue( name, lexical_cast<string>(value))));
+}
+
+void ParameterWithChilds::addParameter( std::shared_ptr<Parameter> child) {
+	childs.push_back( child );
 }
 
 

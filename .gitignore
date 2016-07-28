@@ -1,15 +1,6 @@
 *.class
 build/
 bin/
-.gradle/
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.ear
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
@@ -19,6 +10,7 @@ hs_err_pid*
 /c-sharp/ChabuCSTest/bin
 /c-sharp/ChabuCSTest/obj
 /c-sharp/org.chabu.test.director/obj
+/c-sharp/obj
 /c-sharp/Debug
 /c-sharp/ipch
 /c-sharp/packages

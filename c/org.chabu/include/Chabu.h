@@ -98,6 +98,7 @@ enum Chabu_ErrorCode {
     Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE,
     Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH,
     Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH,
+    Chabu_ErrorCode_XMIT_USER_BUFFER_TOO_LONG,
     Chabu_ErrorCode_PROTOCOL_LENGTH,
     Chabu_ErrorCode_PROTOCOL_PCK_TYPE,
     Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH,
@@ -302,7 +303,6 @@ struct Chabu_Data {
 		int                           seqRemainingPayload;
 		int                           seqRemainingPadding;
 		struct Chabu_ByteBuffer_Data* seqBufferUser;
-		struct Chabu_ByteBuffer_Data  seqBuffer;
 	} recv;
 };
 

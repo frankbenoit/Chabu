@@ -62,6 +62,7 @@ LIBRARY_API const char*  Chabu_ErrorCodeStr( enum Chabu_ErrorCode e ){
 	case Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE       : return "Chabu_ErrorCode_SETUP_REMOTE_MAXRECVSIZE";
 	case Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH   : return "Chabu_ErrorCode_RECV_USER_BUFFER_ZERO_LENGTH";
 	case Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH   : return "Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH";
+	case Chabu_ErrorCode_XMIT_USER_BUFFER_TOO_LONG      : return "Chabu_ErrorCode_XMIT_USER_BUFFER_TOO_LONG";
 	case Chabu_ErrorCode_PROTOCOL_LENGTH                : return "Chabu_ErrorCode_PROTOCOL_LENGTH";
 	case Chabu_ErrorCode_PROTOCOL_PCK_TYPE              : return "Chabu_ErrorCode_PROTOCOL_PCK_TYPE";
 	case Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH      : return "Chabu_ErrorCode_PROTOCOL_ABORT_MSG_LENGTH";

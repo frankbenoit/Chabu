@@ -251,7 +251,7 @@ static bool writePendingXmitData( struct Chabu_Data* chabu ){
 
 			xmitGetUserData(chabu);
 
-			struct Chabu_ByteBuffer_Data* buf = &chabu->xmit.seqBuffer;
+			struct Chabu_ByteBuffer_Data* buf = chabu->xmit.seqBufferUser;
 			int availBefore = Chabu_ByteBuffer_remaining( buf );
 			chabu->user.networkXmitBuffer( chabu->user.data, buf );
 			int availAfter = Chabu_ByteBuffer_remaining( buf );
@@ -263,6 +263,7 @@ static bool writePendingXmitData( struct Chabu_Data* chabu ){
 			assert( chabu->xmit.seqRemainingPayload >= 0 );
 
 			if( !Chabu_ByteBuffer_hasRemaining( buf ) ){
+				chabu->xmit.seqBufferUser = NULL;
 				ch->user.channelEventNotification( ch->user.data, ch->channelId, Chabu_Channel_Event_XmitCompleted, 0 );
 			}
 
@@ -315,16 +316,20 @@ static void xmitGetUserData(struct Chabu_Data* chabu){
 						ch->channelId,
 						chabu->xmit.seqRemainingPayload );
 
+		if( chabu->xmit.seqBufferUser == NULL ) {
+			Chabu_ReportError( chabu, Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH, __FILE__, __LINE__, "xmit buffer is NULL or has no data" );
+			return;
+		}
 		int userBufferAvailable = Chabu_ByteBuffer_remaining( chabu->xmit.seqBufferUser );
-		if(( chabu->xmit.seqBufferUser == NULL ) || ( userBufferAvailable == 0 )) {
+		if( userBufferAvailable == 0 ) {
 			Chabu_ReportError( chabu, Chabu_ErrorCode_XMIT_USER_BUFFER_ZERO_LENGTH, __FILE__, __LINE__, "xmit buffer is NULL or has no data" );
 			return;
 		}
 		assert( chabu->xmit.seqBufferUser );
-		chabu->xmit.seqBuffer = *chabu->xmit.seqBufferUser;
 		int bufferTooLong = userBufferAvailable - chabu->xmit.seqRemainingPayload;
-		if( bufferTooLong > 0 ){
-			chabu->xmit.seqBuffer.limit -= bufferTooLong;
+		if( bufferTooLong > 0 ) {
+			Chabu_ReportError( chabu, Chabu_ErrorCode_XMIT_USER_BUFFER_TOO_LONG, __FILE__, __LINE__, "xmit buffer is too long" );
+			return;
 		}
 	}
 }

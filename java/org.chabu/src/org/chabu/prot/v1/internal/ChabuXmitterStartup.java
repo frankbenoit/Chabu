@@ -51,6 +51,7 @@ public class ChabuXmitterStartup extends ChabuXmitter {
 		return actionsSetupRun;
 	}
 	
+	@Override
 	protected void handleNonSeqCompletion() {
 		switch( packetType ){
 		case SETUP : 
@@ -116,9 +117,6 @@ public class ChabuXmitterStartup extends ChabuXmitter {
 	 * byte order, payloadsize, channel count
 	 * 
 	 * These values must be set previous to infoLocal
-	 * @param recvPacketSize 
-	 * @param applicationVersion 
-	 * @param applicationProtocolName 
 	 * 
 	 */
 	void processXmitSetup(){
@@ -128,6 +126,7 @@ public class ChabuXmitterStartup extends ChabuXmitter {
 		xmitStartupCompleted = XmitState.PREPARED;
 	}
 
+	@Override
 	protected void prepareXmitAccept(){
 		super.prepareXmitAccept();
 		xmitAccepted = XmitState.PREPARED;

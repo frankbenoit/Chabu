@@ -70,7 +70,10 @@ public class Setup {
 	private boolean callApplicationAcceptListener() {
 		boolean isOk = true;
 		if( !isValidatorWasChecked() ){
+			
+			@SuppressWarnings("hiding")
 			ChabuConnectionAcceptInfo acceptInfo = getAcceptInfo();
+			
 			if( acceptInfo != null && acceptInfo.code != 0 ){
 				isOk = false;
 				abortMessage.setPending(acceptInfo.code, acceptInfo.message );

@@ -12,6 +12,8 @@ package org.chabu.prot.v1;
 
 public class ChabuException extends RuntimeException {
 
+	private static final long serialVersionUID = -6937169956075144103L;
+	
 	private final int code;
 	private final int remoteCode;
 	

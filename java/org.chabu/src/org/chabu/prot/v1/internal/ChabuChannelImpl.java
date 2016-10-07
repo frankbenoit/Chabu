@@ -62,6 +62,7 @@ public class ChabuChannelImpl implements ChabuChannel {
 		this.priority = priority;
 	}
 	
+	@SuppressWarnings("hiding")
 	void activate(ChabuImpl chabu, int channelId ){
 
 		this.chabu      = chabu;
@@ -77,7 +78,9 @@ public class ChabuChannelImpl implements ChabuChannel {
 	}
 	
 	void verifySeq(int packetSeq ) {
-		Utils.ensure( this.recvSeq == packetSeq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq but expected (%s :: %s). Violation of the SEQ value.", channelId, packetSeq, this );
+		Utils.ensure( this.recvSeq == packetSeq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, 
+				"Channel[%s] received more seq but expected (%s :: %s). Violation of the SEQ value.%n >> %s", 
+				channelId, packetSeq, this.recvSeq, this );
 	}
 	
 	int handleRecvSeq(ByteChannel byteChannel, int recvByteCount ) throws IOException {
@@ -170,6 +173,7 @@ public class ChabuChannelImpl implements ChabuChannel {
 		return seqBuffer;
 	}
 
+	@Override
 	public String toString(){
 		return String.format("Channel[%s recvS:%s recvA:%s recvPostion:%s recvLimit:%s xmitS:%s xmitA:%s xmitPostion:%s xmitLimit:%s]", channelId, this.recvSeq, this.recvArm, this.recvPosition, this.recvLimit, this.xmitSeq, this.xmitArm, this.xmitPosition, this.xmitLimit );
 	}

@@ -79,14 +79,9 @@ public final class ChabuBuilder {
 	 * @param channelId must be given in correct sequence, starting with  zero for the first
 	 *                  channel. This is redundant, but helps to avoid wrong use.
 	 *
-	 * @param recvBufferSize the size of the buffer that shall be held within chabu for this
-	 *                       channel.
-	 *
 	 * @param priority gives the priority for xmit data. Channels with the same priority will send
 	 *                 in a round robin. The channel with the lower priority number is handled
 	 *                 first.
-	 *
-	 * @param user is the interface to the user code. Give an implementation of IChabuChannelUser.
 	 *
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 *

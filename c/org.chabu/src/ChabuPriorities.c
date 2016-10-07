@@ -41,6 +41,7 @@ LIBRARY_API void Chabu_Priority_SetRequestData( struct Chabu_Data* chabu, struct
 }
 
 static void setRequest( struct Chabu_Data* chabu, struct Chabu_PriorityEntry_Data* entry, struct Chabu_PriorityList_Data* prioList ){
+	UNUSED(chabu);
 
 	if( prioList->request == NULL ){
 		prioList->request = entry;
@@ -75,6 +76,7 @@ LIBRARY_API struct Chabu_Channel_Data* Chabu_Priority_PopNextRequestData( struct
 }
 
 static struct Chabu_Channel_Data* popNextRequestForLevel( struct Chabu_Data* chabu, struct Chabu_PriorityList_Data* prioList ){
+	UNUSED(chabu);
 
 	if( !prioList->request ){
 		return NULL;

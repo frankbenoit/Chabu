@@ -18,8 +18,8 @@ extern const struct Chabu_StructInfo structInfo_priority;
 #define PRIORITY_COUNT_MAX 100
 #define APN_MAX_LENGTH      56
 #define RPS_MIN             0x100LL
-#define RPS_MAX             0x10000000UL
-#define PACKET_MAGIC        0x77770000UL
+#define RPS_MAX             0x10000000LL
+#define PACKET_MAGIC        0x77770000ULL
 #define PROTOCOL_NAME       "CHABU"
 #define SEQ_HEADER_SZ       20
 

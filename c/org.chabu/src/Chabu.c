@@ -55,7 +55,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 
 			int packetLength = Chabu_ByteBuffer_getIntAt_BE( rb, 0 );
 			int packetId     = Chabu_ByteBuffer_getIntAt_BE( rb, 4 );
-			uint8 packetType = UINT32_B0( packetId );
+			uint8 packetType = packetId & 0xFF;
 			bool isSeq = ( packetType == PacketType_SEQ );
 			if( rb->position == 8 ){
 				rb->limit = isSeq ? 20 : packetLength;
@@ -88,7 +88,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 			else if( packetType == PacketType_ARM ){
 				chabu->recv.state = Chabu_RecvState_Ready;
 				int channelId   = Chabu_ByteBuffer_getInt_BE( rb );
-				int arm         = Chabu_ByteBuffer_getInt_BE( rb );
+				uint32 arm         = Chabu_ByteBuffer_getInt_BE( rb );
 
 				if( channelId < 0 || channelId >= chabu->channelCount ){
 					Chabu_ReportError( chabu, Chabu_ErrorCode_PROTOCOL_CHANNEL_NOT_EXISTING, __FILE__, __LINE__,
@@ -133,7 +133,7 @@ static void handleReads( struct Chabu_Data* chabu ){
 			else if( packetType == PacketType_SEQ ){
 
 				int channelId   = Chabu_ByteBuffer_getInt_BE( rb );
-				int seq         = Chabu_ByteBuffer_getInt_BE( rb );
+				uint32 seq      = Chabu_ByteBuffer_getInt_BE( rb );
 				int payloadSize = Chabu_ByteBuffer_getInt_BE( rb );
 
 				if( channelId < 0 || channelId >= chabu->channelCount ){
@@ -149,8 +149,9 @@ static void handleReads( struct Chabu_Data* chabu ){
 					return;
 				}
 
-				int payloadSizeAligned = Common_AlignUp4(payloadSize);
+				uint32 payloadSizeAligned = Common_AlignUp4(payloadSize);
 
+				ch->recv.seq = seq + payloadSize;
 				chabu->recv.seqChannel = ch;
 				chabu->recv.state = Chabu_RecvState_SeqPayload;
 				chabu->recv.seqRemainingPayload = payloadSize;
@@ -361,6 +362,7 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 	case Chabu_XmitState_SeqPayload:
 	case Chabu_XmitState_Ping:
 	case Chabu_XmitState_Pong:
+	case Chabu_XmitState_Arm:
 		chabu->xmit.state = Chabu_XmitState_Idle;
 		break;
 	case Chabu_XmitState_Seq:
@@ -468,6 +470,8 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, (uint32)xmitSize );
 			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
 
+			ch->xmit.seq += xmitSize;
+			
 			chabu->xmit.seqChannel = ch;
 			chabu->xmit.seqRemainingPayload = (int) xmitSize;
 			chabu->xmit.seqRemainingPadding = (int)( xmitSizeAligned - xmitSize );

@@ -21,8 +21,8 @@ The protocol is is implemented different languages.
 | Language | Status |
 |----------|--------|
 | Java     | Basics implemented. Not yet: DAVAIL, RESET |
-| C        | In progress                |
-| C#       | Not yet done. Help welcome! |
+| C        | Basics implemented. Not yet: DAVAIL, RESET                |
+| C#       | Basics implemented. Not yet: DAVAIL, RESET. Help welcome! |
 | VHDL+C   | Not yet done. Help welcome! |
 
 ## License

@@ -1,6 +1,6 @@
 # Chabu
 
-The CHAnnel BUndle.  
+The **CHA**nnel **BU**ndle.  
 Combine multiple channels/streams over a single TCP/IP or USB connection.
 
 ![](https://docs.google.com/drawings/d/15oxSz6B9SY3RSW1WfdeyTtsfdNgkCknp1TS090HhUGM/pub?w=803&h=277)
@@ -21,8 +21,8 @@ The protocol is is implemented different languages.
 | Language | Status |
 |----------|--------|
 | Java     | Basics implemented. Not yet: DAVAIL, RESET |
-| C        | In progress                |
-| C#       | Not yet done. Help welcome! |
+| C        | Basics implemented. Not yet: DAVAIL, RESET                |
+| C#       | Basics implemented. Not yet: DAVAIL, RESET. Help welcome! |
 | VHDL+C   | Not yet done. Help welcome! |
 
 ## License

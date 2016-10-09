@@ -16,36 +16,7 @@ namespace Org.Chabu.Prot.V1
      * 
      * @author Frank Benoit
      */
-    public interface ChabuChannel
+    public interface ChabuChannel : ChabuChannelRecver, ChabuChannelXmitter
     {
-
-        /**
-         * Schedule a call to {@link ChabuChannelUser#xmitEvent(java.nio.ByteBuffer)}
-         * when it is possible in future.
-         * The priority of the channel is important and if the receiver 
-         * has notified about available space for receive.
-         */
-        void xmitRegisterRequest();
-
-        /**
-         * Schedule a call to {@link ChabuChannelUser#evRecv(java.nio.ByteBuffer)}. 
-         * This can happen within this method call.
-         */
-        void recvRegisterRequest();
-
-        /**
-         * Retrieve the associated user object.
-         */
-        ChabuChannelUser getUser();
-
-        /**
-         * Get the number index of this channel.
-         */
-        int getChannelId();
-
-        /**
-         * Get the priority number configured for this channel.
-         */
-        int getPriority();
     }
 }

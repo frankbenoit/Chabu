@@ -10,54 +10,54 @@
  *******************************************************************************/
 using System;
 using System.Diagnostics;
+using Org.Chabu.Prot.V1;
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-
-    using System;
-    using org.chabu;
-    using org.chabu.container;
-    using ByteBuffer = System.IO.MemoryStream;
-    using PrintWriter = System.IO.TextWriter;
+    using global::System;
+    using ByteBuffer = global::System.IO.MemoryStream;
+    using PrintWriter = global::System.IO.TextWriter;
 
     /**
      *
      * @author Frank Benoit
      */
-    public sealed class ChabuChannelImpl : ChabuChannel {
+    internal sealed class ChabuChannelImpl : ChabuChannel {
 
 	    private int     channelId    = -1;
 	
 	    private ChabuImpl                   chabu;
-	    private readonly ChabuChannelUser user;
+	    private readonly ChabuRecvByteTarget recvTarget;
+	    private readonly ChabuXmitByteSource xmitSource;
 	
 	    private int        xmitSeq = 0;
 	    private int        xmitArm = 0;
 	
 	    private bool    recvArmShouldBeXmit  = false;
 	
-	    private readonly ByteQueue recvBuffer;
 	    private int        recvSeq = 0;
 	    private int        recvArm = 0;
 	
 	    private int        priority = 0;
-	
-	    public ChabuChannelImpl(int recvBufferSize, int priority, ChabuChannelUser user ) {
-		
-		    Utils.ensure( recvBufferSize > 0, ChabuErrorCode.CONFIGURATION_CH_RECVSZ, "recvBufferSize must be > 0, but is {0}", recvBufferSize );
-		    Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is {0}", priority );
-		    Utils.ensure( user != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 
-		    this.recvBuffer  = ByteQueueBuilder.create( "ChabuChannel", recvBufferSize);
-		    this.recvArm = recvBufferSize;
+	    private ByteBuffer recvTargetBuffer;
+
+	    private long xmitLimit;
+	    private long xmitPosition;
+	    private long recvLimit;
+	    private long recvPosition;
+
+	
+	    public ChabuChannelImpl(int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ) {
+		    this.recvTarget = recvTarget;
+		    this.xmitSource = xmitSource;
+		    Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is %s", priority );
+		    Utils.ensure( recvTarget != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
+		    Utils.ensure( xmitSource != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
+
 		    this.recvArmShouldBeXmit = true;
 
 		    this.priority = priority;
-
-		    this.user = user;
-        
-            callUserToGiveXmit = new ConsumerByteBufferImpl(this);
-		
 	    }
 	
 	    public void activate(ChabuImpl chabu, int channelId ){
@@ -65,161 +65,183 @@ namespace Org.Chabu.Prot.V1.Internal
 		    this.chabu      = chabu;
 		    this.channelId  = channelId;
 
-		    user.setChannel(this);
 		    chabu.channelXmitRequestArm(channelId);
 		
+		    recvTarget.setChannel(this);
+		    if( recvTarget != xmitSource ){
+			    xmitSource.setChannel(this);
+		    }
+
 	    }
 	
-	    //@Override
-	    public void xmitRegisterRequest(){
-		    chabu.channelXmitRequestData(channelId);
+	    internal void verifySeq(int packetSeq ) {
+		    Utils.ensure( this.recvSeq == packetSeq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, 
+				    "Channel[%s] received more seq but expected (%s :: %s). Violation of the SEQ value.%n >> %s", 
+				    channelId, packetSeq, this.recvSeq, this );
 	    }
-
-	    //@Override
-	    public void recvRegisterRequest() {
-		    callUserToTakeRecvData();
-	    }
-
-	    private void callUserToTakeRecvData() {
-		    int consumed = 0;
-		    lock(this){
-			    ByteQueueInputPort inport = recvBuffer.getInport();
-			    int avail = inport.free();
-			
-    //			// prepare trace
-    //			PrintWriter trc = chabu.getTraceWriter();
-    //			int trcStartPos = recvBuffer.position();
-			
-			    user.recvEvent( recvBuffer.getOutport() );
-			
-			    consumed = inport.free() - avail;
-			    recvBuffer.getOutport().ensureCommitted();
-			
-    //			// write out trace info
-    //			if( trc != null && consumed > 0 ){
-    //				trc.printf( "CHANNEL_TO_APPL: { \"ID\" : %s }%n", channelId );
-    //				Utils.printTraceHexData(trc, recvBuffer, trcStartPos, recvBuffer.position());
-    //			}
-			
-			    this.recvArm += consumed;
-		    }
-		    if( consumed > 0 ){
-			    this.recvArmShouldBeXmit = true;
-			    chabu.channelXmitRequestArm(channelId);
-		    }
-	    }
-
-	    public void handleRecvSeq(int seq, ByteBuffer buf, int pls ) {
+	
+	    internal int handleRecvSeq(ByteChannel byteChannel, int recvByteCount ) {
 		
-			    int allowedRecv = this.recvArm - this.recvSeq;
+		    int allowedRecv = this.recvArm - this.recvSeq;
+		    int remainingBytes = recvByteCount;
+		    Utils.ensure( remainingBytes <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, 
+				    "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, remainingBytes, allowedRecv );
 			
-			
-			    Utils.ensure( this.recvSeq == seq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more seq (%s) but expected (%s). Violation of the SEQ value.", channelId, this.recvSeq, seq );
-			    Utils.ensure( pls <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, buf.remaining(), allowedRecv );
-			
-			    ByteQueueInputPort qin = recvBuffer.getInport();
-			    Utils.ensure( buf.remaining() <= qin.free(), ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
-					    "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value. (this.recvArm=0x%X, this.recvSeq=0x%X, seq=0x%X)", 
-					    channelId, buf.remaining(), qin.free(),
-					    this.recvArm, this.recvSeq, seq );
-			
-			
-			    lock(this){
-				    int taken = qin.write( buf, pls );
-				    qin.commit();
-				    //int taken = Utils.transferUpTo( buf, recvBuffer, pls );
+		    int summedReadBytes = 0;
+		    while( remainingBytes > 0 ){
+	
+			    if( recvTargetBuffer == null ){
 				
-				    Utils.ensure( taken == pls, ChabuErrorCode.PROTOCOL_CHANNEL_RECV_OVERFLOW, 
-						    "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value. %s %s", 
-						    channelId, buf.remaining(), qin.free(), taken, pls );
-				    //recvBuffer.put( buf );
-				    this.recvSeq += pls;
-			
+				    recvTargetBuffer = recvTarget.getRecvBuffer(remainingBytes);
+				
+				    Utils.ensure( recvTargetBuffer != null, ChabuErrorCode.ASSERT, 
+						    "Channel[%s] recvTargetBuffer is null.", channelId );
+				
+				    Utils.ensure( recvTargetBuffer.remaining() <= remainingBytes, ChabuErrorCode.ASSERT, 
+						    "Channel[%s] recvTargetBuffer has more remaining (%d) as requested (%d).", 
+						    channelId, recvTargetBuffer.remaining(), remainingBytes );
+				
+				    Utils.ensure( recvTargetBuffer.remaining() > 0, ChabuErrorCode.ASSERT, 
+						    "Channel[%s] recvTargetBuffer cannot take data.", 
+						    channelId );
 			    }
 			
-			    int align = pls;
-			    while( (align&3) != 0 ){
-				    align++;
-				    buf.get();
+			    int readBytes = byteChannel.read(recvTargetBuffer);
+			    summedReadBytes += readBytes;
+			    remainingBytes -= readBytes;
+			
+			    recvSeq += readBytes;
+			    recvPosition += readBytes;
+			
+			    if( !recvTargetBuffer.hasRemaining() ){
+				    recvTargetBuffer = null;
+				    recvTarget.recvCompleted();
 			    }
 			
-		    callUserToTakeRecvData();
-		
+			    if( readBytes == 0 ){
+				    // could not read => try next time
+				    break;
+			    }
+		    }	
+		    return summedReadBytes;
 	    }
 	
 	    /**
 	     * Receive the ARM from the partner. This may make the channel to prepare new data to send.
 	     * @param arm the value to update this.xmitArm to.
 	     */
-	    public void handleRecvArm(int arm) {
+	    internal void handleRecvArm(int arm) {
 		    if( this.xmitArm != arm ){
 			    // was blocked by receiver
 			    // now the arm is updated
 			    // --> try to send new data
-			    chabu.channelXmitRequestData(channelId);
+			    if( getXmitRemaining() > 0 ){
+				    chabu.channelXmitRequestData(channelId);
+			    }
 		    }
 		    this.xmitArm = arm;
 	    }
 
-	    public void handleXmitArm() {
-		
-		    if( !recvArmShouldBeXmit ) {
-                Console.Error.WriteLine("handleXmitArm()");
-		    }
-		
-		    recvArmShouldBeXmit = false;
-		    chabu.processXmitArm(channelId, recvArm);
-		    chabu.channelXmitRequestData(channelId);
-
-	    }
-	    public void handleXmitData() {
-		    int armSize = xmitArm - xmitSeq;
-		    Utils.ensure( armSize >= 0, ChabuErrorCode.ASSERT, "arm size must not be negative: {0} {1} {2}", xmitArm, xmitSeq, armSize );
-		    if( armSize > 0 ){
-			    chabu.processXmitSeq( channelId, xmitSeq, armSize, callUserToGiveXmit );
+	    public void handleXmitCtrl(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf) {
+		    if( recvArmShouldBeXmit ) {
+			    recvArmShouldBeXmit = false;
+			    xmitter.processXmitArm(channelId, recvArm );
 		    }
 	    }
 
-	    private readonly ConsumerByteBufferImpl callUserToGiveXmit;
-
-        class ConsumerByteBufferImpl : ConsumerByteBuffer {
-            ChabuChannelImpl o;
-            public ConsumerByteBufferImpl(ChabuChannelImpl o) { this.o = o; }
-		    public void accept(ByteBuffer buf) {
-			    PrintWriter trc = o.chabu.getTraceWriter();
-			    int startPos = buf.position();
-
-			    o.user.xmitEvent(buf);
-
-			    int added = buf.position() - startPos;
-			    o.xmitSeq += added;
-
-			    // write out trace info
-			    if( trc != null && buf.position() != startPos ){
-                    trc.WriteLine("APPL_TO_CHANNEL: { \"ID\" : {0} }", o.channelId);
-				    Utils.printTraceHexData(trc, buf, startPos, buf.position());
-			    }
+	    public ByteBuffer handleXmitData(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf, int maxSize) {
+		    int davail = Math.Min( getXmitRemainingByRemote(), getXmitRemaining() );
+		    if( davail == 0 ){
+			    //System.out.println("ChabuChannelImpl.handleXmitData() : called by no data available");
+			    return null;
 		    }
-	    };
+		    int pls = Math.Min( davail, maxSize );
+	
+		    ByteBuffer seqBuffer = xmitSource.getXmitBuffer(pls);
+		
+		    int realPls = seqBuffer.remaining();
+		    Utils.ensure( realPls > 0, ChabuErrorCode.ASSERT, "XmitSource gave buffer with no space" );
+		    Utils.ensure( realPls <= pls, ChabuErrorCode.ASSERT, "XmitSource gave buffer with more data than was requested" );
+		
+		    xmitter.processXmitSeq(channelId, xmitSeq, realPls );
+		    xmitSeq += realPls;
+		    xmitPosition += realPls;
+		
+		    return seqBuffer;
+	    }
 
 	    public String toString(){
-		    return String.Format("Channel[{0} recvS:{1} recvA:{2} xmitS:{3} xmitA:{4}]", channelId, this.recvSeq, this.recvArm, this.xmitSeq, this.xmitArm );
+		    return String.Format("Channel[%s recvS:%s recvA:%s recvPostion:%s recvLimit:%s xmitS:%s xmitA:%s xmitPostion:%s xmitLimit:%s]", channelId, this.recvSeq, this.recvArm, this.recvPosition, this.recvLimit, this.xmitSeq, this.xmitArm, this.xmitPosition, this.xmitLimit );
 	    }
 
-	    //@Override
 	    public int getChannelId() {
 		    return channelId;
 	    }
 
-	    //@Override
 	    public int getPriority() {
 		    return priority;
 	    }
 
-	    //@Override
-	    public ChabuChannelUser getUser() {
-		    return user;
+	    public void setXmitLimit(long xmitLimit) {
+		    int added = Utils.safePosInt( xmitLimit - this.xmitLimit );
+		    addXmitLimit(added);
 	    }
 
+	    public long getXmitLimit() {
+		    return xmitLimit;
+	    }
+
+	    public long addXmitLimit(int added) {
+		    if( added > 0 ){
+			    this.xmitLimit += added;
+			    chabu.channelXmitRequestData(channelId);
+		    }
+		    return xmitLimit;
+	    }
+
+	    public int getXmitRemaining() {
+		    return Utils.safePosInt( xmitLimit - xmitPosition );
+	    }
+	
+	    public int getXmitRemainingByRemote() {
+		    return xmitArm - xmitSeq;
+	    }
+
+
+	    public long getXmitPosition() {
+		    return xmitPosition;
+	    }
+
+	    /**
+	     * Called from Chabu, when the SEQ packet was transmitted.
+	     */
+	    public void seqPacketCompleted() {
+		    xmitSource.xmitCompleted();
+	    }
+
+	    public void setRecvLimit(long recvLimit) {
+		    int added = Utils.safePosInt( recvLimit - this.recvLimit );
+		    addRecvLimit(added);
+	    }
+
+	    public long addRecvLimit(int added) {
+		    recvLimit += added;
+		    recvArm += added;
+		    recvArmShouldBeXmit = true;
+		    chabu.channelXmitRequestArm(channelId);
+		    return recvLimit;
+	    }
+
+	    public long getRecvLimit() {
+		    return recvLimit;
+	    }
+
+	    public long getRecvPosition() {
+		    return recvPosition;
+	    }
+
+	    public long getRecvRemaining() {
+		    return Utils.safePosInt(recvLimit - recvPosition);
+	    }
     }
 }

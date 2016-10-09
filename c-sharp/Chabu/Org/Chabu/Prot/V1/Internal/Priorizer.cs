@@ -17,31 +17,31 @@ namespace Org.Chabu.Prot.V1.Internal
     public class Priorizer
     {
 
-        private readonly BitSet[] requests;
+        private readonly global::System.Collections.BitArray[] requests;
         private int lastChannel;
         private readonly int channelCount;
 
         public Priorizer(int priorityCount, int channelCount)
         {
             this.channelCount = channelCount;
-            requests = new BitSet[priorityCount];
+            requests = new global::System.Collections.BitArray[priorityCount];
             for (int i = 0; i < priorityCount; i++)
             {
-                requests[i] = new BitSet(channelCount);
+                requests[i] = new global::System.Collections.BitArray(channelCount);
             }
             lastChannel = channelCount - 1;
         }
 
         public void request(int priority, int channelId)
         {
-            Utils.ensure(priority < requests.length, ChabuErrorCode.ASSERT,
-                    "priority:%s < xmitChannelRequestData.length:%s", priority, requests.length);
+            Utils.ensure(priority < requests.Length, ChabuErrorCode.ASSERT,
+                    "priority:%s < xmitChannelRequestData.length:%s", priority, requests.Length);
             requests[priority].set(channelId);
         }
 
         public int popNextRequest()
         {
-            for (int prio = requests.length - 1; prio >= 0; prio--)
+            for (int prio = requests.Length - 1; prio >= 0; prio--)
             {
 
                 int res = calcNextXmitChannelForPrio(prio);
@@ -57,7 +57,7 @@ namespace Org.Chabu.Prot.V1.Internal
         private int calcNextXmitChannelForPrio(int prio)
         {
             int idxCandidate = -1;
-            BitSet prioBitSet = requests[prio];
+            var prioBitSet = requests[prio];
 
             // search from last channel pos on
             if (lastChannel + 1 < channelCount)

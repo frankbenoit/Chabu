@@ -11,8 +11,8 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-
-    public abstract class ChabuReceiver {
+    using ByteBuffer = global::System.IO.MemoryStream;
+    internal abstract class ChabuReceiver {
 
 	    private static readonly int HEADER_RECV_SZ = ChabuImpl.SEQ_MIN_SZ;
 	
@@ -21,13 +21,13 @@ namespace Org.Chabu.Prot.V1.Internal
 	
 	    protected PacketType packetType = PacketType.NONE;
 	    protected int        packetSize = 0;
-	    protected boolean cancelCurrentReceive = false;
+	    protected bool cancelCurrentReceive = false;
 
 	
 	    public ChabuReceiver(ChabuReceiver receiver, AbortMessage localAbortMessage) {
 		    this.localAbortMessage = localAbortMessage;
 		    if( receiver == null ){
-			    recvBuf = ByteBuffer.allocate( Constants.MAX_RECV_LIMIT_LOW );
+			    recvBuf = new ByteBuffer( Constants.MAX_RECV_LIMIT_LOW );
 			    recvBuf.order(ByteOrder.BIG_ENDIAN );
 			    recvBuf.clear();
 			    recvBuf.limit(HEADER_RECV_SZ);
@@ -37,7 +37,7 @@ namespace Org.Chabu.Prot.V1.Internal
 			    packetSize = receiver.packetSize;
 		    }
 	    }
-	    public void recv(ByteChannel channel) throws IOException {
+	    public void recv(ByteChannel channel) {
 		    cancelCurrentReceive = false;
 		    while( !cancelCurrentReceive ){
 			    if( packetType == PacketType.NONE ){
@@ -48,10 +48,10 @@ namespace Org.Chabu.Prot.V1.Internal
 				    }
 
 				    packetSize = recvBuf.getInt(0);
-				    readonly int packetTypeId = recvBuf.getInt(4) & 0xFF;
-				    packetType = PacketType.findPacketType(packetTypeId);
+				    int packetTypeId = recvBuf.getInt(4) & 0xFF;
+				    packetType = PacketTypeExtension.findPacketType(packetTypeId);
 				    if( packetType == PacketType.NONE ){
-					    throw new ChabuException("Packet type 0x%02X unexpected: packetSize %s", packetTypeId, packetSize );
+					    throw new ChabuException(string.Format("Packet type 0x%02X unexpected: packetSize %s", packetTypeId, packetSize ));
 				    }
 			    }
 			
@@ -84,14 +84,14 @@ namespace Org.Chabu.Prot.V1.Internal
 			    if( packetType != PacketType.SEQ ){
 				    Utils.ensure( packetSize <= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.UNKNOWN, "unknown header size");
 				    switch( packetType ){
-				    case SETUP   : processRecvSetup();    break;
-				    case ACCEPT  : processRecvAccept();   break; 
-				    case ABORT   : processRecvAbort();    break; 
-				    case ARM     : processRecvArm();      break; 
-				    case DAVAIL  : processRecvDavail();   break; 
-				    case NOP     : processRecvNop();      break; 
-				    case RST_REQ : processRecvResetReq(); break; 
-				    case RST_ACK : processRecvResetAck(); break; 
+				    case PacketType.SETUP   : processRecvSetup();    break;
+				    case PacketType.ACCEPT  : processRecvAccept();   break; 
+				    case PacketType.ABORT   : processRecvAbort();    break; 
+				    case PacketType.ARM     : processRecvArm();      break; 
+				    case PacketType.DAVAIL  : processRecvDavail();   break; 
+				    case PacketType.NOP     : processRecvNop();      break; 
+				    case PacketType.RST_REQ : processRecvResetReq(); break; 
+				    case PacketType.RST_ACK : processRecvResetAck(); break; 
 				    default      : break;
 				    }
 				    Utils.ensure( recvBuf.remaining() < HEADER_RECV_SZ, ChabuErrorCode.ASSERT, "After normal command, the remaining bytes must be below the HEADER_RECV_SZ limit, but is %d", recvBuf.limit());
@@ -104,7 +104,7 @@ namespace Org.Chabu.Prot.V1.Internal
 			    else {
 				    processSeq(channel);
 				
-				    boolean isContinuingSeq = packetType == PacketType.SEQ; 
+				    bool isContinuingSeq = packetType == PacketType.SEQ; 
 				    if( isContinuingSeq ){
 					    break;
 				    }
@@ -113,32 +113,32 @@ namespace Org.Chabu.Prot.V1.Internal
 			    }
 		    }
 	    }
-	    protected void processSeq(ByteChannel channel) throws IOException {
-		    throw new RuntimeException("unexpected packet SEQ");
+        protected virtual void processSeq(ByteChannel channel) {
+		    throw new global::System.SystemException("unexpected packet SEQ");
 	    }
-	    protected void processRecvNop(){
-		    throw new RuntimeException("unexpected packet NOP");
+        protected virtual void processRecvNop(){
+		    throw new global::System.SystemException("unexpected packet NOP");
 	    }
-	    protected void processRecvResetAck(){
-		    throw new RuntimeException("unexpected packet Reset-Ack");
+        protected virtual void processRecvResetAck(){
+		    throw new global::System.SystemException("unexpected packet Reset-Ack");
 	    }
-	    protected void processRecvResetReq(){
-		    throw new RuntimeException("unexpected packet Reset-Req");
+        protected virtual void processRecvResetReq(){
+		    throw new global::System.SystemException("unexpected packet Reset-Req");
 	    }
-	    protected void processRecvDavail(){
-		    throw new RuntimeException("unexpected packet DAVail");
+        protected virtual void processRecvDavail(){
+		    throw new global::System.SystemException("unexpected packet DAVail");
 	    }
-	    protected void processRecvArm(){
-		    throw new RuntimeException("unexpected packet ARM");
+        protected virtual void processRecvArm(){
+		    throw new global::System.SystemException("unexpected packet ARM");
 	    }
-	    protected void processRecvAbort(){
-		    throw new RuntimeException("unexpected packet Abort");
+        protected virtual void processRecvAbort(){
+		    throw new global::System.SystemException("unexpected packet Abort");
 	    }
-	    protected void processRecvAccept(){
-		    throw new RuntimeException("unexpected packet Accept");
+        protected virtual void processRecvAccept(){
+		    throw new global::System.SystemException("unexpected packet Accept");
 	    }
-	    protected void processRecvSetup(){
-		    throw new RuntimeException("unexpected packet Setup");
+	    protected virtual void processRecvSetup(){
+		    throw new global::System.SystemException("unexpected packet Setup");
 	    }
 
 

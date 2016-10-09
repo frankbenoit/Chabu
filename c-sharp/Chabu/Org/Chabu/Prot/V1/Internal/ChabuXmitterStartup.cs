@@ -11,9 +11,10 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
+    using global::System.Collections.Generic;
+    using Runnable = global::System.Action;
 
-
-    public class ChabuXmitterStartup : ChabuXmitter {
+    internal class ChabuXmitterStartup : ChabuXmitter {
 
         /**
 	     * The startup data is completely sent.
@@ -27,20 +28,24 @@ namespace Org.Chabu.Prot.V1.Internal
 
         private Setup setup;
 
-        private readonly ArrayList<LoopCtrlAction> actionsSetupRun = new ArrayList<>();
+        private readonly List<LoopCtrlAction> actionsSetupRun;
 
         private Runnable startupCompletedListener;
 
-	    {
-		    actionsSetupRun.add( this::xmitAction_RemainingXmitBuf   );
-		    actionsSetupRun.add( this::xmitAction_EvalStartup        );
-		    actionsSetupRun.add( this::xmitAction_EvalAbort          );
-		    actionsSetupRun.add( this::xmitAction_EvalAccept         );
-		    actionsSetupRun.add( this::xmitAction_End                );
-	    }
 
-        public ChabuXmitterStartup(AbortMessage abortMessage, Runnable xmitRequestListener, Setup setup, Runnable startupCompletedListener) {
-            super(abortMessage, xmitRequestListener);
+        public ChabuXmitterStartup(AbortMessage abortMessage, Runnable xmitRequestListener, Setup setup, Runnable startupCompletedListener)
+            : base (abortMessage, xmitRequestListener)
+        {
+
+            actionsSetupRun = new List<LoopCtrlAction>
+            {
+                xmitAction_RemainingXmitBuf,
+                xmitAction_EvalStartup     ,
+                xmitAction_EvalAbort       ,
+                xmitAction_EvalAccept      ,
+                xmitAction_End             ,
+            };
+
             this.setup = setup;
             this.startupCompletedListener = startupCompletedListener;
             xmitBuf.order(ByteOrder.BIG_ENDIAN);
@@ -52,23 +57,21 @@ namespace Org.Chabu.Prot.V1.Internal
         }
 
 
-        @Override
-            protected ArrayList<LoopCtrlAction> getActions() {
+        internal override List<LoopCtrlAction> getActions() {
             return actionsSetupRun;
         }
 
-        @Override
-            protected void handleNonSeqCompletion() {
+        protected override void handleNonSeqCompletion() {
             switch (packetType) {
-                case SETUP:
+                case PacketType.SETUP:
                     xmitStartupCompleted = XmitState.XMITTED;
                     break;
 
-                case ACCEPT:
+                case PacketType.ACCEPT:
                     xmitAccepted = XmitState.XMITTED;
                     break;
 
-                case ABORT:
+                case PacketType.ABORT:
                     xmitAbort = XmitState.XMITTED;
                     throwAbort();
                     break;
@@ -78,20 +81,20 @@ namespace Org.Chabu.Prot.V1.Internal
             packetType = PacketType.NONE;
         }
 
-        LoopCtrl xmitAction_EvalStartup() throws IOException {
-		        if( xmitStartupCompleted == XmitState.PENDING ){
+        LoopCtrl xmitAction_EvalStartup()  {
+		    if( xmitStartupCompleted == XmitState.PENDING ){
                 processXmitSetup();
                 return LoopCtrl.Continue;
             }
-		        return LoopCtrl.None;
+		    return LoopCtrl.None;
         }
 
-        LoopCtrl xmitAction_EvalAccept() throws IOException {
-		        if( xmitStartupCompleted != XmitState.XMITTED ){
+        LoopCtrl xmitAction_EvalAccept()  {
+	        if( xmitStartupCompleted != XmitState.XMITTED ){
                 return LoopCtrl.Break;
             }
-		        if( xmitAccepted == XmitState.IDLE ){
-                if (setup.isValidatorWasChecked() && setup.getAcceptInfo().code == ChabuErrorCode.OK_NOERROR.getCode()) {
+	        if( xmitAccepted == XmitState.IDLE ){
+                if (setup.isValidatorWasChecked() && setup.getAcceptInfo().code == (int)ChabuErrorCode.OK_NOERROR) {
                     prepareXmitAccept();
                     return LoopCtrl.Continue;
                 }
@@ -99,22 +102,22 @@ namespace Org.Chabu.Prot.V1.Internal
                     return LoopCtrl.None;
                 }
             }
-		        else if( xmitAccepted == XmitState.PREPARED ){
-                startupCompletedListener.run();
+		    else if( xmitAccepted == XmitState.PREPARED ){
+                startupCompletedListener();
                 return LoopCtrl.Continue;
             }
-		        else if( xmitAccepted == XmitState.XMITTED ){
-                startupCompletedListener.run();
+		    else if( xmitAccepted == XmitState.XMITTED ){
+                startupCompletedListener();
                 return LoopCtrl.Break;
             }
-		        else {
-                Utils.fail(ChabuErrorCode.ASSERT, "shall not be here");
+	        else {
+                Utils.fail((int)ChabuErrorCode.ASSERT, "shall not be here");
                 return LoopCtrl.None;
             }
 
         }
 
-        LoopCtrl xmitAction_End() throws IOException {
+        LoopCtrl xmitAction_End()  {
 		        return LoopCtrl.Break;
         }
 
@@ -132,23 +135,21 @@ namespace Org.Chabu.Prot.V1.Internal
             xmitStartupCompleted = XmitState.PREPARED;
         }
 
-        @Override
-            protected void prepareXmitAccept() {
-            super.prepareXmitAccept();
+        protected override void prepareXmitAccept() {
+            base.prepareXmitAccept();
             xmitAccepted = XmitState.PREPARED;
         }
 
         private void checkLocalAppNameLength() {
             byte[] anlBytes = setup.getInfoLocal().applicationProtocolName.getBytes(StandardCharsets.UTF_8);
-            Utils.ensure(anlBytes.length <= Constants.APV_MAX_LENGTH,
+            Utils.ensure(anlBytes.Length <= Constants.APV_MAX_LENGTH,
                     ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG,
                     "SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.",
-                    anlBytes.length);
+                    anlBytes.Length);
         }
 
-        @Override
-            public String toString() {
-            return xmitBuf.toString();
+        public override string ToString() {
+            return xmitBuf.ToString();
         }
     }
 }

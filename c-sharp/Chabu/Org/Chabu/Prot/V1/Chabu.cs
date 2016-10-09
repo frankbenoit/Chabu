@@ -10,9 +10,9 @@
  *******************************************************************************/
 namespace Org.Chabu.Prot.V1{
 
-    using PrintWriter=System.IO.TextWriter;
-    using ByteBuffer=System.IO.MemoryStream;
-    using Runnable = System.Action;
+    using PrintWriter= global::System.IO.TextWriter;
+    using ByteBuffer= global::System.IO.MemoryStream;
+    using Runnable = global::System.Action;
 
     /**
      * The main object communicating with the network and distributing/collecting the data to/from the

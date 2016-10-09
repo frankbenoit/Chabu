@@ -11,10 +11,11 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-    using System;
-    using ByteBuffer = System.IO.MemoryStream;
-    using System.Threading;
-    using System.IO;
+    using global::System;
+    using ByteBuffer = global::System.IO.MemoryStream;
+    using global::System.Threading;
+    using global::System.IO;
+
 
     /**
      * 
@@ -22,7 +23,7 @@ namespace Org.Chabu.Prot.V1.Internal
      *
      */
     internal sealed class Utils {
-
+        
         public static SystemException failX(String fmt, params object[] args)
         {
 		    throw new SystemException( String.Format( fmt, args ));
@@ -80,7 +81,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	     */
 	    public static void waitOn( Object o, long timeout ){
 		    lock( o ){			
-			    Monitor.Wait(o, System.TimeSpan.FromMilliseconds( timeout ));
+			    Monitor.Wait(o, global::System.TimeSpan.FromMilliseconds( timeout ));
 		    }
 	    }
 	
@@ -154,5 +155,41 @@ namespace Org.Chabu.Prot.V1.Internal
 			    return tv + 4;
 		    }
 	    }
+	    /**
+	     * Tests if the value dividable by 4 with no reminder.
+	     * <p/>
+	     * <pre>
+	     * 4 &rarr; true
+	     * 5 &rarr; false
+	     * 6 &rarr; false
+	     * 7 &rarr; false
+	     * 8 &rarr; true
+	     * 9 &rarr; false
+	     * ...
+	     * </pre>
+	     * 
+	     */
+	    public static bool isAligned4(int value) {
+		    return ( value & 3 ) == 0;
+	    }
+
+	    public static int safePosInt(long value) {
+		    if( value < 0 || value > int.MaxValue ){
+			    fail((int)ChabuErrorCode.ASSERT, "" );
+		    }
+		    return (int)value;
+	    }
+	    public static int safeInt(long value) {
+		    if( value < int.MinValue || value > int.MaxValue)
+            {
+			    fail((int)ChabuErrorCode.ASSERT, "" );
+		    }
+		    return (int)value;
+	    }
+
+	    public static Exception implMissing() {
+		    throw new Exception("Impl missing");
+	    }
+	
     }
 }

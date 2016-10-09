@@ -13,12 +13,13 @@ using System.Diagnostics;
 
 namespace Org.Chabu.Prot.V1.Internal
 {
+    using ByteBuffer = global::System.IO.MemoryStream;
 
     public class ByteBufferUtils
     {
         public static int transferRemaining(ByteBuffer src, ByteBuffer trg)
         {
-            int xfer = Math.min(src.remaining(), trg.remaining());
+            int xfer = Math.Min(src.remaining(), trg.remaining());
             int oldLimit = src.limit();
             src.limit(src.position() + xfer);
             trg.put(src);
@@ -28,7 +29,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
         public static int XtransferUpTo(ByteBuffer src, ByteBuffer trg, int maxCount)
         {
-            int xfer = Math.min(Math.min(src.remaining(), trg.remaining()), maxCount);
+            int xfer = Math.Min(Math.Min(src.remaining(), trg.remaining()), maxCount);
             int oldLimit = src.limit();
             src.limit(src.position() + xfer);
             trg.put(src);
@@ -42,7 +43,7 @@ namespace Org.Chabu.Prot.V1.Internal
          */
         public static void transferUntilTargetPos(ByteBuffer src, ByteBuffer trg, int trgPos)
         {
-            int cpySz = Math.min(src.remaining(), Math.min(trgPos - trg.position(), trg.remaining()));
+            int cpySz = Math.Min(src.remaining(), Math.Min(trgPos - trg.position(), trg.remaining()));
             if (cpySz <= 0)
             {
                 return;

@@ -8,6 +8,7 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
+using Org.Chabu.Prot.V1.Internal;
 using System;
 
 namespace Org.Chabu.Prot.V1
@@ -21,19 +22,25 @@ namespace Org.Chabu.Prot.V1
      */
     public sealed class ChabuSetupInfo {
 	
-	    public readonly int     maxReceiveSize;
+	    public readonly int     recvPacketSize;
 	    public readonly int     applicationVersion;
-        public readonly String applicationName;
+        public readonly String applicationProtocolName;
 
-	    public ChabuSetupInfo( int maxReceiveSize, int applicationVersion, String applicationName ){
-		    this.maxReceiveSize = maxReceiveSize;
-		    this.applicationName = applicationName;
+	    public ChabuSetupInfo(){
+		    recvPacketSize = Constants.MAX_RECV_LIMIT_LOW;
+		    applicationVersion = 0;
+		    applicationProtocolName = "";
+	    }
+
+	    public ChabuSetupInfo( int recvPacketSize, int applicationVersion, String applicationProtocolName ){
+		    this.recvPacketSize = recvPacketSize;
+		    this.applicationProtocolName = applicationProtocolName;
 		    this.applicationVersion = applicationVersion;
 	    }
 
 	    public ChabuSetupInfo( ChabuSetupInfo other ){
-		    this.maxReceiveSize = other.maxReceiveSize;
-		    this.applicationName = other.applicationName;
+		    this.recvPacketSize = other.recvPacketSize;
+		    this.applicationProtocolName = other.applicationProtocolName;
 		    this.applicationVersion = other.applicationVersion;
 	    }
 

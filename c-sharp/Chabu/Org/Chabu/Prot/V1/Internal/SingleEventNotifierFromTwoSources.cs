@@ -11,31 +11,41 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
+    using Runnable = global::System.Action;
 
-    public class SingleEventNotifierFromTwoSources {
+    public class SingleEventNotifierFromTwoSources
+    {
 
-	bool first = false;
-	bool second = false;
-	private Runnable listener;
-	
-	public SingleEventNotifierFromTwoSources( Runnable listener ){
-		this.listener = listener;
-	}
+        bool first = false;
+        bool second = false;
+        private Runnable listener;
 
-	public void event1(){
-		if( !first ){
-			first = true;
-			if( second ){
-				listener.run();
-			}
-		}
-	}
-	public void event2(){
-		if( !second ){
-			second = true;
-			if( first ){
-				listener.run();
-			}
-		}
-	}
+        public SingleEventNotifierFromTwoSources(Runnable listener)
+        {
+            this.listener = listener;
+        }
+
+        public void event1()
+        {
+            if (!first)
+            {
+                first = true;
+                if (second)
+                {
+                    listener();
+                }
+            }
+        }
+        public void event2()
+        {
+            if (!second)
+            {
+                second = true;
+                if (first)
+                {
+                    listener();
+                }
+            }
+        }
+    }
 }

@@ -12,6 +12,7 @@ using System;
 
 namespace Org.Chabu.Prot.V1
 {
+    using ByteBuffer = System.IO.MemoryStream;
 
     public interface ChabuXmitByteSource
     {

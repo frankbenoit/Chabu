@@ -13,6 +13,7 @@ using System.Diagnostics;
 
 namespace Org.Chabu.Prot.V1.Internal
 {
+    using Runnable = global::System.Action;
 
     public class AbortMessage {
 
@@ -25,11 +26,11 @@ namespace Org.Chabu.Prot.V1.Internal
             this.xmitRequestListener = xmitRequestListener;
         }
 
-        public boolean isPending() {
+        public bool isPending() {
             return xmitAbortPending == XmitState.PENDING;
         }
 
-        public boolean isIdle() {
+        public bool isIdle() {
             return xmitAbortPending == XmitState.IDLE;
         }
 
@@ -48,14 +49,14 @@ namespace Org.Chabu.Prot.V1.Internal
         }
 
         public void setPending(ChabuErrorCode code, String message) {
-            setPending(code.getCode(), message);
+            setPending(code, message);
         }
         public void setPending(int code, String message) {
             xmitAbortCode = code;
             xmitAbortMessage = message;
             xmitAbortPending = XmitState.PENDING;
             if (xmitRequestListener != null) {
-                xmitRequestListener.run();
+                xmitRequestListener.Invoke();
             }
         }
     }

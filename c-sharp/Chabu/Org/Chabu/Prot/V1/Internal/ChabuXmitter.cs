@@ -11,227 +11,219 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
+    using ByteBuffer = global::System.IO.MemoryStream;
+    using Runnable = global::System.Action;
+    using global::System.Collections.Generic;
+    using global::System;
 
-    import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.ByteChannel;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
+    internal abstract class ChabuXmitter
+    {
+        internal delegate LoopCtrl LoopCtrlAction();
+        private static readonly int SETUP_PROTNAME_MAXLENGTH = 8;
+        private static readonly int SETUP_APPNAME_MAXLENGTH = 56;
+        private static readonly int ABORT_MSG_MAXLENGTH = 56;
+        protected static readonly int PT_MAGIC = 0x77770000;
 
-import org.chabu.prot.v1.ChabuErrorCode;
-import org.chabu.prot.v1.ChabuException;
-import org.chabu.prot.v1.ChabuSetupInfo;
+        internal enum LoopCtrl {
+            Break, Continue, None
+        }
 
-public abstract class ChabuXmitter {
 
-	private static readonly int SETUP_PROTNAME_MAXLENGTH = 8;
-	private static readonly int SETUP_APPNAME_MAXLENGTH = 56;
-	private static readonly int ABORT_MSG_MAXLENGTH = 56;
-	protected static readonly int   PT_MAGIC = 0x77770000;
-	
-	protected enum LoopCtrl {
-		Break, Continue, None;
-	}
 
-	@FunctionalInterface
-	protected interface LoopCtrlAction {
-	    LoopCtrl run() throws IOException;
-	}
-	
+        internal abstract List<LoopCtrlAction> getActions();
+        private readonly Runnable xmitRequestListener;
+        private readonly AbortMessage abortMessage;
 
-	protected abstract ArrayList<LoopCtrlAction> getActions();
-	private readonly Runnable xmitRequestListener;
-	private readonly AbortMessage abortMessage;
+        internal ByteBuffer xmitBuf = new ByteBuffer(Constants.MAX_RECV_LIMIT_LOW);
+        internal PacketType packetType = PacketType.NONE;
+        internal ByteChannel loopByteChannel;
+        internal XmitState xmitAbort = XmitState.IDLE;
 
-	protected ByteBuffer xmitBuf = ByteBuffer.allocate( Constants.MAX_RECV_LIMIT_LOW );
-	protected PacketType packetType = PacketType.NONE;
-	protected ByteChannel loopByteChannel;
-	protected XmitState xmitAbort = XmitState.IDLE;
+        public ChabuXmitter(AbortMessage abortMessage, Runnable xmitRequestListener) {
+            this.abortMessage = abortMessage;
+            this.xmitRequestListener = xmitRequestListener;
+        }
 
-	public ChabuXmitter(AbortMessage abortMessage, Runnable xmitRequestListener){
-		this.abortMessage = abortMessage;
-		this.xmitRequestListener = xmitRequestListener;
-	}
-	
-	protected void runActionsUntilBreak() throws IOException {
-		ArrayList<LoopCtrlAction> loopActions = getActions();
-		Lwhile: while( true ) {
-			for( LoopCtrlAction action : loopActions ) {
-				LoopCtrl loopCtrl = action.run();
-				if( loopCtrl == LoopCtrl.Break    ) break    Lwhile;
-				if( loopCtrl == LoopCtrl.Continue ) continue Lwhile;
-			}
-		}
-	}
+        protected void runActionsUntilBreak() {
+            List<LoopCtrlAction> loopActions = getActions();
+            Lwhile: while( true ) {
+                foreach (LoopCtrlAction action in loopActions) {
+                    LoopCtrl loopCtrl = action.Invoke();
+                    if (loopCtrl == LoopCtrl.Break) return;
+                    if (loopCtrl == LoopCtrl.Continue) goto Lwhile;
+                }
+            }
+        }
 
-	protected void processXmitNop(){
-		checkXmitBufEmptyOrThrow("Cannot xmit NOP, buffer is not empty");
-		xmitFillStart( PacketType.NOP );
-		xmitFillComplete();
-	}
+        protected void processXmitNop() {
+            checkXmitBufEmptyOrThrow("Cannot xmit NOP, buffer is not empty");
+            xmitFillStart(PacketType.NOP);
+            xmitFillComplete();
+        }
 
-	public void xmit(ByteChannel byteChannel) throws IOException {
-		this.loopByteChannel = byteChannel;
-		try{
-			runActionsUntilBreak();
-		}
-		readonlyly {
-			this.loopByteChannel = null;
-		}
-	}
-	
-	protected LoopCtrl xmitAction_EvalAbort() throws IOException {
-		if( abortMessage.isPending() ){
-			prepareAbort();
-			return LoopCtrl.Continue;
-		}
-		return LoopCtrl.None;
-	}
+        public void xmit(ByteChannel byteChannel) {
+		    this.loopByteChannel = byteChannel;
+		    try{
+                runActionsUntilBreak();
+            }
+            finally {
+                this.loopByteChannel = null;
+            }
+        }
 
-	protected LoopCtrl xmitAction_RemainingXmitBuf() throws IOException {
+        protected LoopCtrl xmitAction_EvalAbort() {
+		    if( abortMessage.isPending() ){
+                prepareAbort();
+                return LoopCtrl.Continue;
+            }
+		    return LoopCtrl.None;
+        }
+
+        protected LoopCtrl xmitAction_RemainingXmitBuf() {
 		
-		if( xmitBuf.hasRemaining() ){
-			loopByteChannel.write(xmitBuf);
-		}
+		    if( xmitBuf.hasRemaining() ){
+                loopByteChannel.write(xmitBuf);
+            }
 		
-		if( !xmitBuf.hasRemaining() && packetType != PacketType.SEQ ){
-			handleNonSeqCompletion();
-			packetType = PacketType.NONE;
-		}
-		if( xmitBuf.hasRemaining() ){
-			callXmitRequestListener();
-		}
+		    if( !xmitBuf.hasRemaining() && packetType != PacketType.SEQ ){
+                handleNonSeqCompletion();
+                packetType = PacketType.NONE;
+            }
+		    if( xmitBuf.hasRemaining() ){
+                callXmitRequestListener();
+            }
 		
-		return xmitBuf.hasRemaining() ? LoopCtrl.Break : LoopCtrl.None;
-	}
+		    return xmitBuf.hasRemaining() ? LoopCtrl.Break : LoopCtrl.None;
+        }
 
 
 
-	protected abstract void handleNonSeqCompletion() ;
+        protected abstract void handleNonSeqCompletion();
 
-	protected void xmitFillSetupPacket(ChabuSetupInfo setupInfo) {
-		xmitFillStart( PacketType.SETUP );
-		xmitFillAddString( SETUP_PROTNAME_MAXLENGTH, Constants.PROTOCOL_NAME );
-		xmitFillAddInt( Constants.PROTOCOL_VERSION );
-		xmitFillAddInt( setupInfo.recvPacketSize );
-		xmitFillAddInt( setupInfo.applicationVersion );
-		xmitFillAddString( SETUP_APPNAME_MAXLENGTH, setupInfo.applicationProtocolName );
-		xmitFillComplete();
-	}
+        protected void xmitFillSetupPacket(ChabuSetupInfo setupInfo) {
+            xmitFillStart(PacketType.SETUP);
+            xmitFillAddstring(SETUP_PROTNAME_MAXLENGTH, Constants.PROTOCOL_NAME);
+            xmitFillAddInt(Constants.PROTOCOL_VERSION);
+            xmitFillAddInt(setupInfo.recvPacketSize);
+            xmitFillAddInt(setupInfo.applicationVersion);
+            xmitFillAddstring(SETUP_APPNAME_MAXLENGTH, setupInfo.applicationProtocolName);
+            xmitFillComplete();
+        }
 
-	protected void prepareXmitAccept(){
-		checkXmitBufEmptyOrThrow("Cannot xmit ACCEPT, buffer is not empty");
-		xmitFillStart( PacketType.ACCEPT );
-		xmitFillComplete();
-	}
+        protected virtual void prepareXmitAccept() {
+            checkXmitBufEmptyOrThrow("Cannot xmit ACCEPT, buffer is not empty");
+            xmitFillStart(PacketType.ACCEPT);
+            xmitFillComplete();
+        }
 
-	protected void xmitFillAddInt(int value) {
-		xmitBuf.putInt( value );
-	}
-	
-	protected void xmitFillAddString( int maxLength, String str) {
-		byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
-		if(bytes.length > maxLength){
-			byte[] bytes2 = new byte[maxLength];
-			System.arraycopy(bytes, 0, bytes2, 0, maxLength);
-			bytes = bytes2;
-		}
-		xmitFillAddString(bytes);
-	}
-	
-	protected void xmitFillAddString(byte[] bytes) {
-		xmitBuf.putInt  ( bytes.length );
-		xmitBuf.put     ( bytes );
-		xmitFillAligned();
-	}
-	void prepareAbort(){
-		checkXmitBufEmptyOrThrow("Cannot xmit ABORT, buffer is not empty");
-		xmitFillStart( PacketType.ABORT );
-		xmitFillAddInt( abortMessage.getCode() );
-		xmitFillAddString( ABORT_MSG_MAXLENGTH, abortMessage.getMessage() );
-		xmitFillComplete();
-		xmitAbort = XmitState.PREPARED;
-	}
-	protected void xmitFillArmPacket(int channelId, int arm) {
-		checkXmitBufEmptyOrThrow("Cannot xmit ACCEPT, buffer is not empty");
-		xmitFillStart( PacketType.ARM );
-		xmitBuf.putInt( channelId );
-		xmitBuf.putInt( arm );
-		xmitFillComplete();
-	}
-	
-	protected void xmitFillStart( PacketType type ){
-		packetType = type;
-		xmitBuf.clear();
-		xmitBuf.putInt( -1 );
-		xmitBuf.putInt( PT_MAGIC | type.id );
-	}
+        protected void xmitFillAddInt(int value) {
+            xmitBuf.putInt(value);
+        }
 
-	protected void xmitFillComplete(){
-		xmitFillAligned();
-		xmitBuf.putInt( 0, xmitBuf.position() );
-		xmitBuf.flip();
-	}
-	protected void xmitFillComplete( int packetSize ){
-		xmitFillAligned();
-		xmitBuf.putInt( 0, packetSize );
-		xmitBuf.flip();
-	}
-	
-	private void xmitFillAligned() {
-		while( xmitBuf.position() % 4 != 0 ){
-			xmitBuf.put( (byte)0 );
-		}
-	}
-	protected void checkXmitBufEmptyOrThrow(String message) {
-		if( xmitBuf.hasRemaining() ){
-			throw new ChabuException(message);
-		}
-	}
+        protected void xmitFillAddstring(int maxLength, string str) {
+            byte[] bytes = str.getBytes(StandardCharsets.UTF_8);
+            if (bytes.Length > maxLength) {
+                byte[] bytes2 = new byte[maxLength];
+                System.arraycopy(bytes, 0, bytes2, 0, maxLength);
+                bytes = bytes2;
+            }
+            xmitFillAddstring(bytes);
+        }
 
-	public void delayedAbort(int code, String message, Object ... args) {
-		Utils.ensure( xmitAbort == XmitState.IDLE, 
-				ChabuErrorCode.ASSERT, 
-				"Abort is already pending while generating Abort from Validator");
-		
-		abortMessage.setPending( code, String.format(message, args) );
-		xmitAbort = XmitState.PENDING;
-		
-		callXmitRequestListener();
+        protected void xmitFillAddstring(byte[] bytes) {
+            xmitBuf.putInt(bytes.Length);
+            xmitBuf.put(bytes);
+            xmitFillAligned();
+        }
+        void prepareAbort() {
+            checkXmitBufEmptyOrThrow("Cannot xmit ABORT, buffer is not empty");
+            xmitFillStart(PacketType.ABORT);
+            xmitFillAddInt(abortMessage.getCode());
+            xmitFillAddstring(ABORT_MSG_MAXLENGTH, abortMessage.getMessage());
+            xmitFillComplete();
+            xmitAbort = XmitState.PREPARED;
+        }
+        internal void xmitFillArmPacket(int channelId, int arm) {
+            checkXmitBufEmptyOrThrow("Cannot xmit ACCEPT, buffer is not empty");
+            xmitFillStart(PacketType.ARM);
+            xmitBuf.putInt(channelId);
+            xmitBuf.putInt(arm);
+            xmitFillComplete();
+        }
 
-	}
+        internal void xmitFillStart(PacketType type) {
+            packetType = type;
+            xmitBuf.clear();
+            xmitBuf.putInt(-1);
+            xmitBuf.putInt(PT_MAGIC | (int)type);
+        }
 
-	protected void throwAbort() {
-		int code = abortMessage.getCode();
-		String msg = abortMessage.getMessage();
-		
-		abortMessage.setXmitted();
-		
-		throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, 
-				String.format("Remote Abort: Code:0x%08X (%d) %s", code, code, msg));
-	}
+        protected void xmitFillComplete() {
+            xmitFillAligned();
+            xmitBuf.putInt(0, xmitBuf.position());
+            xmitBuf.flip();
+        }
+        protected void xmitFillComplete(int packetSize) {
+            xmitFillAligned();
+            xmitBuf.putInt(0, packetSize);
+            xmitBuf.flip();
+        }
 
+        private void xmitFillAligned() {
+            while (xmitBuf.position() % 4 != 0) {
+                xmitBuf.put((byte)0);
+            }
+        }
+        protected void checkXmitBufEmptyOrThrow(string message) {
+            if (xmitBuf.hasRemaining()) {
+                throw new ChabuException(message);
+            }
+        }
 
+        public void delayedAbort(int code, string message, params object[] args) {
+            Utils.ensure(xmitAbort == XmitState.IDLE,
+                    ChabuErrorCode.ASSERT,
+                    "Abort is already pending while generating Abort from Validator");
 
-	public void delayedAbort(ChabuErrorCode ec, String message, Object ... args) {
-		delayedAbort(ec.getCode(), message, args);
-	}
+            abortMessage.setPending(code, string.Format(message, args));
+            xmitAbort = XmitState.PENDING;
 
-	void callXmitRequestListener() {
-		if( xmitRequestListener != null ){
-			xmitRequestListener.run();
-		}
-	}
+            callXmitRequestListener();
 
-	void channelXmitRequestArm(int channelId) {
-		throw new RuntimeException("Xmit request for ARM before activation, channel: " + channelId );
-	}
+        }
 
-	void channelXmitRequestData(int channelId) {
-		throw new RuntimeException("Xmit request for data before activation, channel: " + channelId );
-	}
+        protected void throwAbort() {
+            int code = abortMessage.getCode();
+            string msg = abortMessage.getMessage();
 
-		
+            abortMessage.setXmitted();
+
+            throw new ChabuException(ChabuErrorCode.REMOTE_ABORT, code,
+                    string.Format("Remote Abort: Code:0x%08X (%d) %s", code, code, msg));
+        }
 
 
+
+        public void delayedAbort(ChabuErrorCode ec, string message, params object[] args) {
+            delayedAbort(ec, message, args);
+        }
+
+        protected void callXmitRequestListener() {
+            if (xmitRequestListener != null) {
+                xmitRequestListener.Invoke();
+            }
+        }
+
+        public virtual void channelXmitRequestArm(int channelId) {
+            throw new Exception("Xmit request for ARM before activation, channel: " + channelId);
+        }
+
+        public virtual void channelXmitRequestData(int channelId) {
+            throw new Exception("Xmit request for data before activation, channel: " + channelId);
+        }
+
+
+
+
+    }
 }

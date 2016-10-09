@@ -13,10 +13,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Chabu.Org.Chabu.Prot.V1
+namespace Org.Chabu.Prot.V1
 {
     using ByteBuffer = System.IO.MemoryStream;
-    interface ByteChannel
+    public interface ByteChannel
     {
         int read(ByteBuffer buffer);
         int write(ByteBuffer buffer);

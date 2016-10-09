@@ -11,7 +11,7 @@
 namespace Org.Chabu.Prot.V1
 {
 
-    public interface ChabuByteExchange extends ChabuXmitByteSource, ChabuRecvByteTarget {
+    public interface ChabuByteExchange : ChabuXmitByteSource, ChabuRecvByteTarget {
 
     }
 

@@ -12,7 +12,7 @@
 namespace Org.Chabu.Prot.V1.Internal
 {
 
-    using ByteBuffer=System.IO.MemoryStream;
+    using ByteBuffer=global::System.IO.MemoryStream;
 
     /**
      * A replacement for Java8 <code>Consumer&lt;ByteBuffer&gt;</code>

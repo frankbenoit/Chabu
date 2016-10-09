@@ -11,7 +11,7 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-    class Setup {
+    public class Setup {
         private ChabuSetupInfo infoLocal;
         private ChabuSetupInfo infoRemote;
 
@@ -44,13 +44,13 @@ namespace Org.Chabu.Prot.V1.Internal
         public int getRemoteMaxReceiveSize() {
             return infoRemote.recvPacketSize;
         }
-        public boolean isValidatorWasChecked() {
+        public bool isValidatorWasChecked() {
             return acceptInfo != null;
         }
         public ChabuConnectionAcceptInfo getAcceptInfo() {
             if (acceptInfo == null) {
                 if (connectingValidator != null) {
-                    acceptInfo = connectingValidator.isAccepted(infoLocal, infoRemote);
+                    acceptInfo = connectingValidator(infoLocal, infoRemote);
                 }
                 if (acceptInfo == null) {
                     acceptInfo = new ChabuConnectionAcceptInfo(0, "");
@@ -59,26 +59,25 @@ namespace Org.Chabu.Prot.V1.Internal
             return acceptInfo;
         }
 
-        public boolean isRemoteSetupReceived() {
+        public bool isRemoteSetupReceived() {
             return recvSetupCompleted == RecvState.RECVED;
         }
         public ChabuSetupInfo getInfoLocal() {
             return infoLocal;
         }
 
-        void checkConnectingValidator() {
+        internal void checkConnectingValidator() {
             checkConnectingValidatorMaxReceiveSize();
             callApplicationAcceptListener();
         }
 
 
-        private boolean callApplicationAcceptListener() {
-            boolean isOk = true;
+        private bool callApplicationAcceptListener() {
+            bool isOk = true;
             if (!isValidatorWasChecked()) {
 
-                @SuppressWarnings("hiding")
     
-            ChabuConnectionAcceptInfo acceptInfo = getAcceptInfo();
+                ChabuConnectionAcceptInfo acceptInfo = getAcceptInfo();
 
                 if (acceptInfo != null && acceptInfo.code != 0) {
                     isOk = false;
@@ -92,23 +91,23 @@ namespace Org.Chabu.Prot.V1.Internal
             int maxReceiveSize = getRemoteMaxReceiveSize();
             if (maxReceiveSize < Constants.MAX_RECV_LIMIT_LOW) {
 
-                String msg = String.format("MaxReceiveSize too low: 0x%X", maxReceiveSize);
+                string msg = string.Format("MaxReceiveSize too low: 0x%X", maxReceiveSize);
 
-                abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_LOW.getCode(), msg);
+                abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_LOW, msg);
 
             }
             else if (maxReceiveSize > Constants.MAX_RECV_LIMIT_HIGH) {
 
-                String msg = String.format("MaxReceiveSize too high 0x%X", maxReceiveSize);
+                string msg = string.Format("MaxReceiveSize too high 0x%X", maxReceiveSize);
 
-                abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_HIGH.getCode(), msg);
+                abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_TOO_HIGH, msg);
 
             }
             else if (!Utils.isAligned4(maxReceiveSize)) {
 
-                String msg = String.format("MaxReceiveSize is not aligned 0x%X", maxReceiveSize);
+                string msg = string.Format("MaxReceiveSize is not aligned 0x%X", maxReceiveSize);
 
-                abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_NOT_ALIGNED.getCode(), msg);
+                abortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_MAXRECVSIZE_NOT_ALIGNED, msg);
 
             }
         }
@@ -118,7 +117,7 @@ namespace Org.Chabu.Prot.V1.Internal
             recvAccepted = RecvState.RECVED;
         }
 
-        public boolean isRemoteAcceptReceived() {
+        public bool isRemoteAcceptReceived() {
             return recvAccepted == RecvState.RECVED;
         }
 

@@ -8,28 +8,36 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-using System;
-using System.Diagnostics;
+using global::System;
+using global::System.Collections.Generic;
+using Runnable = global::System.Action;
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-    public class ChabuFactory {
-	
-	public ChabuReceiver createReceiverStartup(AbortMessage abortMessage, Setup setup, Runnable completedStartup){
-		return new ChabuReceiverStartup(abortMessage, setup, completedStartup);
-	}
 
-	public ChabuReceiver createReceiverNormal(ChabuReceiver receiver, ArrayList<ChabuChannelImpl> channels, AbortMessage localAbortMessage, Setup setup){
-		return new ChabuReceiverNormal( receiver, channels, localAbortMessage, setup);
-	}
-	
-	public ChabuXmitter createXmitterStartup(AbortMessage abortMessage, Runnable xmitRequestListener, Setup setup, Runnable completionListener){
-		return new ChabuXmitterStartup(abortMessage, xmitRequestListener, setup, completionListener);
-	}
-	
-	public ChabuXmitter createXmitterNormal(AbortMessage abortMessage, Runnable xmitRequestListener, int priorityCount, ArrayList<ChabuChannelImpl> channels, BiFunction<Integer, Integer, Priorizer> priorizerFactory, int maxXmitSize){		
-		return new ChabuXmitterNormal( abortMessage, xmitRequestListener, priorityCount, channels, priorizerFactory, maxXmitSize );
-	}
+    internal class ChabuFactory
+    {
+        public delegate Priorizer PriorizerFactory(int priorityCount, int channelCount);
+        public ChabuReceiver createReceiverStartup(AbortMessage abortMessage, Setup setup, Runnable completedStartup)
+        {
+            return new ChabuReceiverStartup(abortMessage, setup, completedStartup);
+        }
+
+        public ChabuReceiver createReceiverNormal(ChabuReceiver receiver, List<ChabuChannelImpl> channels, AbortMessage localAbortMessage, Setup setup)
+        {
+            return new ChabuReceiverNormal(receiver, channels, localAbortMessage, setup);
+        }
+
+        public ChabuXmitter createXmitterStartup(AbortMessage abortMessage, Runnable xmitRequestListener, Setup setup, Runnable completionListener)
+        {
+            return new ChabuXmitterStartup(abortMessage, xmitRequestListener, setup, completionListener);
+        }
+
+        public ChabuXmitter createXmitterNormal(AbortMessage abortMessage, Runnable xmitRequestListener, int priorityCount, List<ChabuChannelImpl> channels, PriorizerFactory priorizerFactory, int maxXmitSize)
+        {
+            return new ChabuXmitterNormal(abortMessage, xmitRequestListener, priorityCount, channels, priorizerFactory, maxXmitSize);
+        }
+    }
 }
 
 

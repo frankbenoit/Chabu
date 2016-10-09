@@ -9,27 +9,27 @@
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
 using System;
+
 namespace Org.Chabu.Prot.V1
 {
 
-    /**
-     * Return value from the {@link org.chabu.ChabuConnectingValidator}
-     */
-    public sealed class ChabuConnectionAcceptInfo {
-	
-	    /**
-	     * @see ChabuErrorCode
-	     */
-	    public readonly int code;
-	
-	    /**
-	     * maximum length 48 bytes in UTF8.
-	     */
-	    public readonly String message;
-	
-	    public ChabuConnectionAcceptInfo( int code, String message ){
-		    this.code = code;
-		    this.message = message;
-	    }
+    public interface ChabuXmitByteSource
+    {
+
+        /**
+         * Ask for a ByteBuffer with at least the given amount of bytes remaining.
+         * Depending on how the interface is used, the buffer might be used for receiving or for transmitting.
+         * The caller must call {@link #xmitCompleted()} when done with the buffer. 
+         * @param size
+         * @return
+         */
+        ByteBuffer getXmitBuffer(int size);
+
+        void xmitCompleted();
+
+        void xmitReset();
+
+        void setChannel(ChabuChannel channel);
+
     }
 }

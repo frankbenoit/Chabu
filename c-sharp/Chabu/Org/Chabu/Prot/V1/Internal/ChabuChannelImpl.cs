@@ -8,7 +8,11 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-namespace org.chabu.intern {
+using System;
+using System.Diagnostics;
+
+namespace Org.Chabu.Prot.V1.Internal
+{
 
     using System;
     using org.chabu;

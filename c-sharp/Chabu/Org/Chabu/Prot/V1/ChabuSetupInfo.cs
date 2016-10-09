@@ -9,31 +9,33 @@
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
 using System;
-namespace org.chabu{
 
-/**
- * Value object to represent the information exchanged on connection setup. 
- * These are passed to {@link ChabuConnectingValidator}. 
- * 
- * @author Frank Benoit
- */
-public sealed class ChabuSetupInfo {
+namespace Org.Chabu.Prot.V1
+{
+
+    /**
+     * Value object to represent the information exchanged on connection setup. 
+     * These are passed to {@link ChabuConnectingValidator}. 
+     * 
+     * @author Frank Benoit
+     */
+    public sealed class ChabuSetupInfo {
 	
-	public readonly int     maxReceiveSize;
-	public readonly int     applicationVersion;
-    public readonly String applicationName;
+	    public readonly int     maxReceiveSize;
+	    public readonly int     applicationVersion;
+        public readonly String applicationName;
 
-	public ChabuSetupInfo( int maxReceiveSize, int applicationVersion, String applicationName ){
-		this.maxReceiveSize = maxReceiveSize;
-		this.applicationName = applicationName;
-		this.applicationVersion = applicationVersion;
-	}
+	    public ChabuSetupInfo( int maxReceiveSize, int applicationVersion, String applicationName ){
+		    this.maxReceiveSize = maxReceiveSize;
+		    this.applicationName = applicationName;
+		    this.applicationVersion = applicationVersion;
+	    }
 
-	public ChabuSetupInfo( ChabuSetupInfo other ){
-		this.maxReceiveSize = other.maxReceiveSize;
-		this.applicationName = other.applicationName;
-		this.applicationVersion = other.applicationVersion;
-	}
+	    public ChabuSetupInfo( ChabuSetupInfo other ){
+		    this.maxReceiveSize = other.maxReceiveSize;
+		    this.applicationName = other.applicationName;
+		    this.applicationVersion = other.applicationVersion;
+	    }
 
-}
+    }
 }

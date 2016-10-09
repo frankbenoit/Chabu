@@ -9,18 +9,15 @@
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
 
-namespace Org.Chabu.Prot.V1.Internal
-{
+using Org.Chabu.Prot.V1.Internal;
 
-    /**
-     * 
-     * @author Frank Benoit
-     *
-     */
-    internal enum XmitState {
-	    IDLE,
-	    PENDING,
-	    PREPARED, 
-	    XMITTED
+namespace Org.Chabu.Prot.V1
+{
+    
+
+    public interface ChabuNetworkHandler {
+
+        void handleChannel(ByteChannel channel);
+
     }
 }

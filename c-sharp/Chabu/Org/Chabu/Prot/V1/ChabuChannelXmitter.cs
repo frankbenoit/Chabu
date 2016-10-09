@@ -11,8 +11,20 @@
 namespace Org.Chabu.Prot.V1
 {
 
-    /**
-     * For accepted, either returns null or a ChabuConnectionAcceptInfo with code set to 0.
-     */
-    public delegate ChabuConnectionAcceptInfo ChabuConnectingValidator(ChabuSetupInfo local, ChabuSetupInfo remote);
+    public interface ChabuChannelXmitter : ChabuChannelBase {
+
+	    /**
+	     * Set the index until which position chabu shall transmit data. 
+	     * The value is only allowed to be increased. 
+	     * If a value smaller as zero or smaller as a previously given value is given, a IndexOutofBoundsExcepiton will be thrown. 
+	     * @param xmitLimit
+	     */
+	    void setXmitLimit( long xmitLimit );
+	    long getXmitLimit();
+	    long addXmitLimit( int added );
+	
+	    long getXmitPosition();
+	    int getXmitRemaining();
+	
+    }
 }

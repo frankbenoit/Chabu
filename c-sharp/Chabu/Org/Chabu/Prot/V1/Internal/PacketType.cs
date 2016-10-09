@@ -8,7 +8,9 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-namespace org.chabu.intern {
+
+namespace Org.Chabu.Prot.V1.Internal
+{
 
     /**
      *

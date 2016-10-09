@@ -8,7 +8,11 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-namespace org.chabu.intern {
+using System;
+using System.Diagnostics;
+
+namespace Org.Chabu.Prot.V1.Internal
+{
 
     using System;
     using System.Text;
@@ -235,7 +239,7 @@ namespace org.chabu.intern {
                             throw new ChabuException(String.Format("Packet type 0x{0:X2} left some bytes unconsumed: {1} bytes", packetTypeId, recvBuf.remaining()));
 					    }
 				    }
-				    finally {
+				    readonlyly {
 					    recvBuf.clear();
 				    }
 			    }

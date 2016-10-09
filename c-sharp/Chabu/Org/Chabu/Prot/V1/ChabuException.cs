@@ -11,48 +11,49 @@
 using System;
 using System.Diagnostics;
 
-namespace org.chabu {
+namespace Org.Chabu.Prot.V1
+{
 
-public class ChabuException : SystemException {
+    public class ChabuException : SystemException {
 
-	private readonly int code;
-    private readonly int remoteCode;
+	    private readonly int code;
+        private readonly int remoteCode;
 	
-	public ChabuException( String message )
-        : base( message ) {
+	    public ChabuException( String message )
+            : base( message ) {
 
-            Debug.WriteLine("ChabuException: " + message);
-		this.code = (int)ChabuErrorCode.UNKNOWN;
-		this.remoteCode = 0;
-	}
+                Debug.WriteLine("ChabuException: " + message);
+		    this.code = (int)ChabuErrorCode.UNKNOWN;
+		    this.remoteCode = 0;
+	    }
 
-    public ChabuException(ChabuErrorCode error, String message)
-        : base(message)
-    {
+        public ChabuException(ChabuErrorCode error, String message)
+            : base(message)
+        {
 
-        this.code = (int)error;
-		this.remoteCode = 0;
-	}
+            this.code = (int)error;
+		    this.remoteCode = 0;
+	    }
 
-    public ChabuException(ChabuErrorCode error, int remoteCode, String message)
-        : base(message)
-    {
+        public ChabuException(ChabuErrorCode error, int remoteCode, String message)
+            : base(message)
+        {
 
-        this.code = (int)error;
-		this.remoteCode = remoteCode;
-	}
+            this.code = (int)error;
+		    this.remoteCode = remoteCode;
+	    }
 	
-	public ChabuException( int code, String message )        : base( message ) {
+	    public ChabuException( int code, String message )        : base( message ) {
 
-		this.code = code;
-		this.remoteCode = 0;
-	}
+		    this.code = code;
+		    this.remoteCode = 0;
+	    }
 	
-	public int getCode() {
-		return code;
-	}
-	public int getRemoteCode() {
-		return remoteCode;
-	}
-}
+	    public int getCode() {
+		    return code;
+	    }
+	    public int getRemoteCode() {
+		    return remoteCode;
+	    }
+    }
 }

@@ -8,7 +8,8 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-namespace org.chabu{
+namespace Org.Chabu.Prot.V1
+{
 
     using System;
     using Runnable = System.Action;

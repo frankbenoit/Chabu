@@ -8,17 +8,13 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-using System;
-using ByteBuffer = System.IO.MemoryStream;
-using System.Threading;
-using System.IO;
-//using java.io.PrintWriter;
-//using java.nio.ByteBuffer;
 
-//using org.chabu.ChabuErrorCode;
-//using org.chabu.ChabuException;
-namespace org.chabu.intern
+namespace Org.Chabu.Prot.V1.Internal
 {
+    using System;
+    using ByteBuffer = System.IO.MemoryStream;
+    using System.Threading;
+    using System.IO;
 
     /**
      * 

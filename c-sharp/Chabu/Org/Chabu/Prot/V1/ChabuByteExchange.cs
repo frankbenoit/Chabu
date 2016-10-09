@@ -8,19 +8,12 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
-
-namespace Org.Chabu.Prot.V1.Internal
+namespace Org.Chabu.Prot.V1
 {
 
-    /**
-     * 
-     * @author Frank Benoit
-     *
-     */
-    internal enum XmitState {
-	    IDLE,
-	    PENDING,
-	    PREPARED, 
-	    XMITTED
+    public interface ChabuByteExchange extends ChabuXmitByteSource, ChabuRecvByteTarget {
+
     }
+
 }
+

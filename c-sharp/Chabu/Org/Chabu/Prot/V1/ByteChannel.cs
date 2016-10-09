@@ -1,4 +1,4 @@
-/*******************************************************************************
+﻿/*******************************************************************************
  * The MIT License (MIT)
  * Copyright (c) 2015 Frank Benoit, Stuttgart, Germany <keinfarbton@gmail.com>
  * 
@@ -8,19 +8,17 @@
  * Contributors:
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 
-namespace Org.Chabu.Prot.V1.Internal
+namespace Chabu.Org.Chabu.Prot.V1
 {
-
-    /**
-     * 
-     * @author Frank Benoit
-     *
-     */
-    internal enum XmitState {
-	    IDLE,
-	    PENDING,
-	    PREPARED, 
-	    XMITTED
+    using ByteBuffer = System.IO.MemoryStream;
+    interface ByteChannel
+    {
+        int read(ByteBuffer buffer);
+        int write(ByteBuffer buffer);
     }
 }

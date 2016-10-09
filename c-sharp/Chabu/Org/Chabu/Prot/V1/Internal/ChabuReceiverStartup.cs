@@ -40,7 +40,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
             if (!Constants.PROTOCOL_NAME.equals(pn)) {
                 localAbortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_CHABU_NAME,
-                        string.Format("Chabu protocol name mismatch. Expected %s, received %s", Constants.PROTOCOL_NAME, pn));
+                        string.Format("Chabu protocol name mismatch. Expected {0}, received {1}", Constants.PROTOCOL_NAME, pn));
                 return;
             }
 
@@ -50,7 +50,7 @@ namespace Org.Chabu.Prot.V1.Internal
             setup.setRemote(info);
 
             if ((pv >> 16) != (Constants.PROTOCOL_VERSION >> 16)) {
-                localAbortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, string.Format("Chabu Protocol Version: expt 0x%08X recv 0x%08X",
+                localAbortMessage.setPending(ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, string.Format("Chabu Protocol Version: expt 0x{0:X8} recv 0x{1:X8}",
                         Constants.PROTOCOL_VERSION, pv));
                 return;
             }
@@ -72,18 +72,18 @@ namespace Org.Chabu.Prot.V1.Internal
             int code = recvBuf.getInt();
             string message = getRecvString(56);
 
-            throw new ChabuException(ChabuErrorCode.REMOTE_ABORT, code, string.Format("Recveived ABORT Code=0x%08X: %s", code, message));
+            throw new ChabuException(ChabuErrorCode.REMOTE_ABORT, code, string.Format("Recveived ABORT Code=0x{0:X8}: {1}", code, message));
         }
 
         private string getRecvString(int maxByteCount) {
 
             int len = recvBuf.getInt();
             if (len > maxByteCount) {
-                throw new ChabuException(string.Format("Chabu string length (%d) exceeds max allowed length (%d)",
+                throw new ChabuException(string.Format("Chabu string length ({0}) exceeds max allowed length ({1})",
                         len, maxByteCount));
             }
             if (recvBuf.remaining() < len) {
-                throw new ChabuException(string.Format("Chabu string length exceeds packet length len:%d data-remaining:%d",
+                throw new ChabuException(string.Format("Chabu string length exceeds packet length len:{0} data-remaining:{1}",
                         len, recvBuf.remaining()));
             }
 

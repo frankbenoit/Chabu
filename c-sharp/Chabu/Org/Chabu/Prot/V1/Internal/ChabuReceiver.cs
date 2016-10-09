@@ -41,7 +41,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    cancelCurrentReceive = false;
 		    while( !cancelCurrentReceive ){
 			    if( packetType == PacketType.NONE ){
-				    Utils.ensure(recvBuf.limit() >= HEADER_RECV_SZ, ChabuErrorCode.UNKNOWN, "unknown header size: %s", recvBuf);
+				    Utils.ensure(recvBuf.limit() >= HEADER_RECV_SZ, ChabuErrorCode.UNKNOWN, "unknown header size: {0}", recvBuf);
 				    channel.read(recvBuf);
 				    if( recvBuf.position() < 8 ){
 					    break;
@@ -51,7 +51,7 @@ namespace Org.Chabu.Prot.V1.Internal
 				    int packetTypeId = recvBuf.getInt(4) & 0xFF;
 				    packetType = PacketTypeExtension.findPacketType(packetTypeId);
 				    if( packetType == PacketType.NONE ){
-					    throw new ChabuException(string.Format("Packet type 0x%02X unexpected: packetSize %s", packetTypeId, packetSize ));
+					    throw new ChabuException(string.Format("Packet type 0x%02X unexpected: packetSize {0}", packetTypeId, packetSize ));
 				    }
 			    }
 			
@@ -94,8 +94,8 @@ namespace Org.Chabu.Prot.V1.Internal
 				    case PacketType.RST_ACK : processRecvResetAck(); break; 
 				    default      : break;
 				    }
-				    Utils.ensure( recvBuf.remaining() < HEADER_RECV_SZ, ChabuErrorCode.ASSERT, "After normal command, the remaining bytes must be below the HEADER_RECV_SZ limit, but is %d", recvBuf.limit());
-				    Utils.ensure( recvBuf.position() == packetSize, ChabuErrorCode.ASSERT, "After normal command, the remaining bytes must be below the HEADER_RECV_SZ limit, but is %d", recvBuf.limit());
+				    Utils.ensure( recvBuf.remaining() < HEADER_RECV_SZ, ChabuErrorCode.ASSERT, "After normal command, the remaining bytes must be below the HEADER_RECV_SZ limit, but is {0}", recvBuf.limit());
+				    Utils.ensure( recvBuf.position() == packetSize, ChabuErrorCode.ASSERT, "After normal command, the remaining bytes must be below the HEADER_RECV_SZ limit, but is {0}", recvBuf.limit());
 				    recvBuf.compact();
 				    recvBuf.limit(HEADER_RECV_SZ);
 				    packetType = PacketType.NONE;

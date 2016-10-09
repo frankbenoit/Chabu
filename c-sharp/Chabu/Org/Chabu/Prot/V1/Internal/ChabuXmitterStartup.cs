@@ -144,7 +144,7 @@ namespace Org.Chabu.Prot.V1.Internal
             byte[] anlBytes = setup.getInfoLocal().applicationProtocolName.getBytes(StandardCharsets.UTF_8);
             Utils.ensure(anlBytes.Length <= Constants.APV_MAX_LENGTH,
                     ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG,
-                    "SETUP the local application name must be less than 200 UTF8 bytes, but is %s bytes.",
+                    "SETUP the local application name must be less than 200 UTF8 bytes, but is {0} bytes.",
                     anlBytes.Length);
         }
 

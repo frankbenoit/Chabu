@@ -67,26 +67,26 @@ namespace Org.Chabu.Prot.V1.Internal
         private void verifyPriorityCount() {
             Utils.ensure(priorityCount >= 1 && priorityCount <= 20,
                     ChabuErrorCode.CONFIGURATION_PRIOCOUNT,
-                    "Priority count must be in range 1..20, but is %s", priorityCount);
+                    "Priority count must be in range 1..20, but is {0}", priorityCount);
         }
 
         private static void verifyLocalSetup(ChabuSetupInfo localSetupInfo) {
 
             Utils.ensure(localSetupInfo.recvPacketSize >= Constants.MAX_RECV_LIMIT_LOW, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_LOW,
-                    "maxReceiveSize must be at least 0x100, but is %s", localSetupInfo.recvPacketSize);
+                    "maxReceiveSize must be at least 0x100, but is {0}", localSetupInfo.recvPacketSize);
 
             Utils.ensure(localSetupInfo.recvPacketSize <= Constants.MAX_RECV_LIMIT_HIGH, ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_TOO_HIGH,
-                    "maxReceiveSize must be max 0x%X, but is %s", Constants.MAX_RECV_LIMIT_HIGH, localSetupInfo.recvPacketSize);
+                    "maxReceiveSize must be max 0x{0:X}, but is {1}", Constants.MAX_RECV_LIMIT_HIGH, localSetupInfo.recvPacketSize);
 
             Utils.ensure(Utils.isAligned4(localSetupInfo.recvPacketSize), ChabuErrorCode.SETUP_LOCAL_MAXRECVSIZE_NOT_ALIGNED,
-                    "maxReceiveSize must 4-byte aligned: %s", localSetupInfo.recvPacketSize);
+                    "maxReceiveSize must 4-byte aligned: {0}", localSetupInfo.recvPacketSize);
 
             Utils.ensure(localSetupInfo.applicationProtocolName != null, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_NULL,
                     "applicationName must not be null");
 
             int nameBytes = localSetupInfo.applicationProtocolName.getBytes(StandardCharsets.UTF_8).Length;
             Utils.ensure(nameBytes <= Constants.APV_MAX_LENGTH, ChabuErrorCode.SETUP_LOCAL_APPLICATIONNAME_TOO_LONG,
-                    "applicationName must have length at maximum 200 UTF8 bytes, but has %s", nameBytes);
+                    "applicationName must have length at maximum 200 UTF8 bytes, but has {0}", nameBytes);
         }
 
         private void verifyChannels() {
@@ -94,7 +94,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
             foreach (ChabuChannelImpl ch in channels) {
                 Utils.ensure(ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO,
-                        "Channel %s has higher priority (%s) as the max %s",
+                        "Channel {0} has higher priority ({1}) as the max {2}",
                         ch.getChannelId(), ch.getPriority(), priorityCount);
             }
 

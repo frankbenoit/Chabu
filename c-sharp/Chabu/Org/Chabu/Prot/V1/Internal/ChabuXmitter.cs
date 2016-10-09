@@ -199,7 +199,7 @@ namespace Org.Chabu.Prot.V1.Internal
             abortMessage.setXmitted();
 
             throw new ChabuException(ChabuErrorCode.REMOTE_ABORT, code,
-                    string.Format("Remote Abort: Code:0x%08X (%d) %s", code, code, msg));
+                    string.Format("Remote Abort: Code:0x{0:X8} ({1}) {2}", code, code, msg));
         }
 
 

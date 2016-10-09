@@ -44,7 +44,7 @@ namespace Org.Chabu.Prot.V1
 	public static String getChabuVersion(){
 		int major = Constants.PROTOCOL_VERSION >> 16;
 		int minor = Constants.PROTOCOL_VERSION & 0xFFFF;
-		return String.Format("%d.%02d", major, minor );
+		return String.Format("{0}.{1:D2}", major, minor );
 	}
 	
 	private ChabuBuilder( ChabuSetupInfo localSetupInfo, int priorityCount, Runnable xmitListener ){
@@ -86,7 +86,7 @@ namespace Org.Chabu.Prot.V1
 	 *
 	 */
 	public ChabuBuilder addChannel( int channelId, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ){
-		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected %s, but was %s", this.nextChannelId, channelId );
+		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected {0}, but was {1}", this.nextChannelId, channelId );
 		ChabuChannelImpl channel = new ChabuChannelImpl( priority, recvTarget, xmitSource );
 		channels.add( channel );
 		this.nextChannelId++;

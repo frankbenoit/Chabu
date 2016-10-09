@@ -35,7 +35,7 @@ namespace Org.Chabu.Prot.V1.Internal
         public void request(int priority, int channelId)
         {
             Utils.ensure(priority < requests.Length, ChabuErrorCode.ASSERT,
-                    "priority:%s < xmitChannelRequestData.length:%s", priority, requests.Length);
+                    "priority:{0} < xmitChannelRequestData.length:{1}", priority, requests.Length);
             requests[priority].set(channelId);
         }
 

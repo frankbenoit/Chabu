@@ -51,7 +51,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    public ChabuChannelImpl(int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ) {
 		    this.recvTarget = recvTarget;
 		    this.xmitSource = xmitSource;
-		    Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is %s", priority );
+		    Utils.ensure( priority >= 0, ChabuErrorCode.CONFIGURATION_CH_PRIO, "priority must be >= 0, but is {0}", priority );
 		    Utils.ensure( recvTarget != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 		    Utils.ensure( xmitSource != null, ChabuErrorCode.CONFIGURATION_CH_USER, "IChabuChannelUser must be non null" );
 
@@ -76,7 +76,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	
 	    internal void verifySeq(int packetSeq ) {
 		    Utils.ensure( this.recvSeq == packetSeq, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, 
-				    "Channel[%s] received more seq but expected (%s :: %s). Violation of the SEQ value.%n >> %s", 
+				    "Channel[{0}] received more seq but expected ({1} :: {2}). Violation of the SEQ value.\n >> {3}", 
 				    channelId, packetSeq, this.recvSeq, this );
 	    }
 	
@@ -85,7 +85,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    int allowedRecv = this.recvArm - this.recvSeq;
 		    int remainingBytes = recvByteCount;
 		    Utils.ensure( remainingBytes <= allowedRecv, ChabuErrorCode.PROTOCOL_DATA_OVERFLOW, 
-				    "Channel[%s] received more data (%s) as it can take (%s). Violation of the ARM value.", channelId, remainingBytes, allowedRecv );
+				    "Channel[{0}] received more data ({1}) as it can take ({2}). Violation of the ARM value.", channelId, remainingBytes, allowedRecv );
 			
 		    int summedReadBytes = 0;
 		    while( remainingBytes > 0 ){
@@ -95,14 +95,14 @@ namespace Org.Chabu.Prot.V1.Internal
 				    recvTargetBuffer = recvTarget.getRecvBuffer(remainingBytes);
 				
 				    Utils.ensure( recvTargetBuffer != null, ChabuErrorCode.ASSERT, 
-						    "Channel[%s] recvTargetBuffer is null.", channelId );
+						    "Channel[{0}] recvTargetBuffer is null.", channelId );
 				
 				    Utils.ensure( recvTargetBuffer.remaining() <= remainingBytes, ChabuErrorCode.ASSERT, 
-						    "Channel[%s] recvTargetBuffer has more remaining (%d) as requested (%d).", 
+						    "Channel[{0}] recvTargetBuffer has more remaining ({1}) as requested ({2}).", 
 						    channelId, recvTargetBuffer.remaining(), remainingBytes );
 				
 				    Utils.ensure( recvTargetBuffer.remaining() > 0, ChabuErrorCode.ASSERT, 
-						    "Channel[%s] recvTargetBuffer cannot take data.", 
+						    "Channel[{0}] recvTargetBuffer cannot take data.", 
 						    channelId );
 			    }
 			
@@ -171,7 +171,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 
 	    public String toString(){
-		    return String.Format("Channel[%s recvS:%s recvA:%s recvPostion:%s recvLimit:%s xmitS:%s xmitA:%s xmitPostion:%s xmitLimit:%s]", channelId, this.recvSeq, this.recvArm, this.recvPosition, this.recvLimit, this.xmitSeq, this.xmitArm, this.xmitPosition, this.xmitLimit );
+		    return String.Format("Channel[{0} recvS:{1} recvA:{2} recvPostion:{3} recvLimit:{4} xmitS:{5} xmitA:{6} xmitPostion:{7} xmitLimit:{8}]", channelId, this.recvSeq, this.recvArm, this.recvPosition, this.recvLimit, this.xmitSeq, this.xmitArm, this.xmitPosition, this.xmitLimit );
 	    }
 
 	    public int getChannelId() {

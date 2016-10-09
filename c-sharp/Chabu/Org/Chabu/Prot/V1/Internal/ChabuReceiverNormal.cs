@@ -43,7 +43,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    ChabuChannelImpl chabuChannel = channels.get(channelId);
 		    if( seqPacketIndex == 0 ){
 			    // first processing
-			    Utils.ensure( padding >= 0 && padding < 4, ChabuErrorCode.ASSERT, "padding inplausible packetSize:%s pls:%d", packetSize, pls );
+			    Utils.ensure( padding >= 0 && padding < 4, ChabuErrorCode.ASSERT, "padding inplausible packetSize:{0} pls:{1}", packetSize, pls );
 			    chabuChannel.verifySeq( seq );
 		    }
 
@@ -56,7 +56,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    if( seqPacketIndex >= pls && seqPacketIndex + ChabuImpl.SEQ_MIN_SZ < packetSize ){
 			    int paddingRemaining = packetSize - seqPacketIndex - ChabuImpl.SEQ_MIN_SZ;
 			    recvBufPadding.clear();
-			    Utils.ensure( paddingRemaining <= 3 && paddingRemaining > 0, ChabuErrorCode.ASSERT, "paddingRemaining inplausible %d (%s, %s)", paddingRemaining, seqPacketIndex, packetSize );
+			    Utils.ensure( paddingRemaining <= 3 && paddingRemaining > 0, ChabuErrorCode.ASSERT, "paddingRemaining inplausible {0} ({1}, {2})", paddingRemaining, seqPacketIndex, packetSize );
 			    recvBufPadding.limit(paddingRemaining);
 			    seqPacketIndex += channel.read(recvBufPadding);
 		    }
@@ -78,7 +78,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    int code =  recvBuf.getInt();
 		    string message = getRecvString(56);
 		
-		    throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, string.Format("Recveived ABORT Code=0x%08X: %s", code, message ));
+		    throw new ChabuException( ChabuErrorCode.REMOTE_ABORT, code, string.Format("Recveived ABORT Code=0x{0:X8}: {1}", code, message ));
 	    }
 
 	    protected override void processRecvArm() {
@@ -86,7 +86,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    Utils.ensure( setup.isRemoteAcceptReceived(), ChabuErrorCode.ASSERT, "" );
 		
 		    if( packetSize != 16 ){
-			    throw new ChabuException(string.Format("Packet type ARM with unexpected len field: %s", packetSize ));
+			    throw new ChabuException(string.Format("Packet type ARM with unexpected len field: {0}", packetSize ));
 		    }
 
 		    int channelId = recvBuf.getInt();
@@ -101,11 +101,11 @@ namespace Org.Chabu.Prot.V1.Internal
 		
 		    int len = recvBuf.getInt();
 		    if( len > maxByteCount ){
-			    throw new ChabuException(string.Format("Chabu string length (%d) exceeds max allowed length (%d)",
+			    throw new ChabuException(string.Format("Chabu string length ({0}) exceeds max allowed length ({1})",
 					    len, maxByteCount ));
 		    }
 		    if( recvBuf.remaining() < len ){
-			    throw new ChabuException(string.Format("Chabu string length exceeds packet length len:%d data-remaining:%d",
+			    throw new ChabuException(string.Format("Chabu string length exceeds packet length len:{0} data-remaining:{1}",
 					    len, recvBuf.remaining() ));
 		    }
 			

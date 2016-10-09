@@ -155,7 +155,7 @@ namespace Org.Chabu.Prot.V1.Internal
 			    seqPadding.clear().limit( paddingCount );
 			
 			    Utils.ensure( xmitBuf.getInt(0) == xmitBuf.remaining() + seqPacketPayload.remaining() + seqPadding.remaining(),
-					    ChabuErrorCode.ASSERT, "%d = %d + %d + %d", xmitBuf.getInt(0), xmitBuf.remaining(), seqPacketPayload.remaining(), seqPadding.remaining());
+					    ChabuErrorCode.ASSERT, "{0} = {1} + {2} + {3}", xmitBuf.getInt(0), xmitBuf.remaining(), seqPacketPayload.remaining(), seqPadding.remaining());
 		    }
 		    return xmitBuf.hasRemaining() ? LoopCtrl.Continue : LoopCtrl.None;
 	    }

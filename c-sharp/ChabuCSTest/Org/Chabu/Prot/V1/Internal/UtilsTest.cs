@@ -103,7 +103,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 	
 	    [TestMethod]
-        [ExpectedException(typeof(SystemException),
+        [ExpectedException(typeof(ThreadInterruptedException),
                     "A userId of null was inappropriately allowed.")]
         public void waitOnInterrupts() {
 		    Thread current = Thread.CurrentThread;
@@ -130,7 +130,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 	
 	    [TestMethod]
-        [ExpectedException(typeof(SystemException),
+        [ExpectedException(typeof(ThreadInterruptedException),
                     "A userId of null was inappropriately allowed.")]
         public void waitOnTimedInterrupts() {
             UtilsTest that = this;

@@ -60,7 +60,7 @@ namespace Org.Chabu.Prot.V1.Internal
 		    this.priority = priority;
 	    }
 	
-	    public void activate(ChabuImpl chabu, int channelId ){
+	    internal void activate(ChabuImpl chabu, int channelId ){
 
 		    this.chabu      = chabu;
 		    this.channelId  = channelId;
@@ -142,14 +142,14 @@ namespace Org.Chabu.Prot.V1.Internal
 		    this.xmitArm = arm;
 	    }
 
-	    public void handleXmitCtrl(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf) {
+	    internal void handleXmitCtrl(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf) {
 		    if( recvArmShouldBeXmit ) {
 			    recvArmShouldBeXmit = false;
 			    xmitter.processXmitArm(channelId, recvArm );
 		    }
 	    }
 
-	    public ByteBuffer handleXmitData(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf, int maxSize) {
+	    internal ByteBuffer handleXmitData(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf, int maxSize) {
 		    int davail = Math.Min( getXmitRemainingByRemote(), getXmitRemaining() );
 		    if( davail == 0 ){
 			    //System.out.println("ChabuChannelImpl.handleXmitData() : called by no data available");

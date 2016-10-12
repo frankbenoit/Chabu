@@ -26,8 +26,8 @@ namespace Org.Chabu.Prot.V1.Internal
         [TestMethod]
         public void testTransferUntilTargetPos()
         {
-            ByteBuffer src = new ByteBuffer(100);
-            ByteBuffer trg = new ByteBuffer(100);
+            ByteBuffer src = new ByteBuffer(100).clear();
+            ByteBuffer trg = new ByteBuffer(100).clear();
 
             bbSetup(src, SRC_PATTERN, 0, 100);
             bbSetup(trg, TRG_PATTERN, 0, 100);
@@ -41,8 +41,8 @@ namespace Org.Chabu.Prot.V1.Internal
         [TestMethod]
         public void testTransferUntilTargetPos_TargetTooSmall()
         {
-            ByteBuffer src = new ByteBuffer(100);
-            ByteBuffer trg = new ByteBuffer(100);
+            ByteBuffer src = new ByteBuffer(100).clear();
+            ByteBuffer trg = new ByteBuffer(100).clear();
 
             bbSetup(src, SRC_PATTERN, 0, 100);
             bbSetup(trg, TRG_PATTERN, 10, 12);
@@ -56,8 +56,8 @@ namespace Org.Chabu.Prot.V1.Internal
         [TestMethod]
         public void testTransferUntilTargetPos_SourceTooSmall()
         {
-            ByteBuffer src = new ByteBuffer(100);
-            ByteBuffer trg = new ByteBuffer(100);
+            ByteBuffer src = new ByteBuffer(100).clear();
+            ByteBuffer trg = new ByteBuffer(100).clear();
 
             bbSetup(src, SRC_PATTERN, 0, 5);
             bbSetup(trg, TRG_PATTERN, 10, 20);
@@ -71,8 +71,8 @@ namespace Org.Chabu.Prot.V1.Internal
         [TestMethod]
         public void testTransferRemaining_SourceTooSmall()
         {
-            ByteBuffer src = new ByteBuffer(100);
-            ByteBuffer trg = new ByteBuffer(100);
+            ByteBuffer src = new ByteBuffer(100).clear();
+            ByteBuffer trg = new ByteBuffer(100).clear();
 
             bbSetup(src, SRC_PATTERN, 0, 5);
             bbSetup(trg, TRG_PATTERN, 0, 20);
@@ -86,8 +86,8 @@ namespace Org.Chabu.Prot.V1.Internal
         [TestMethod]
         public void testTransferRemaining_TargetTooSmall()
         {
-            ByteBuffer src = new ByteBuffer(100);
-            ByteBuffer trg = new ByteBuffer(100);
+            ByteBuffer src = new ByteBuffer(100).clear();
+            ByteBuffer trg = new ByteBuffer(100).clear();
 
             bbSetup(src, SRC_PATTERN, 0, 20);
             bbSetup(trg, TRG_PATTERN, 5, 10);
@@ -100,14 +100,14 @@ namespace Org.Chabu.Prot.V1.Internal
 
         private void bbTestPosLim(ByteBuffer trg, int pos, int limit)
         {
-            Assert.Equals(pos, trg.position());
-            Assert.Equals(limit, trg.limit());
+            Assert.AreEqual(pos, trg.position());
+            Assert.AreEqual(limit, trg.limit());
         }
 
         private void bbTestContent(ByteBuffer bb, int startPos, int endPos)
         {
             int i = 0;
-            for (; i < startPos; i++)
+            for (; i < startPos && i < bb.limit(); i++)
             {
                 sbyte b = bb.get(i);
                 Assert.AreEqual(TRG_PATTERN, b & 0xFF, String.Format("Index %d", i));
@@ -126,6 +126,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
         private void bbSetup(ByteBuffer src, int fillPattern, int pos, int limit)
         {
+            src.clear();
             for (int i = 0; i < src.capacity(); i++)
             {
                 src.put(i, (sbyte)fillPattern);

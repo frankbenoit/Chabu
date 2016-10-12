@@ -51,7 +51,7 @@ namespace Org.Chabu.Prot.V1.Internal
 				    int packetTypeId = recvBuf.getInt(4) & 0xFF;
 				    packetType = PacketTypeExtension.findPacketType(packetTypeId);
 				    if( packetType == PacketType.NONE ){
-					    throw new ChabuException(string.Format("Packet type 0x%02X unexpected: packetSize {0}", packetTypeId, packetSize ));
+					    throw new ChabuException(string.Format("Packet type 0x{0:X2} unexpected: packetSize {1}", packetTypeId, packetSize ));
 				    }
 			    }
 			

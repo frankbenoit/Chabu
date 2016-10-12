@@ -111,7 +111,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    recv_remote_setup_with_wrong_protocol_major_version()  {
 		    byteChannel.putRecvData(getSetupRecvData("CHABU", Constants.PROTOCOL_VERSION + 0x10000, 1000, 0x12345678, "ABC"));
 		    sut.recv(byteChannel);
-            abortMessage.Verify(a => a.setPending(ChabuErrorCode.SETUP_REMOTE_CHABU_NAME, It.IsAny<String>()));
+            abortMessage.Verify(a => a.setPending(ChabuErrorCode.SETUP_REMOTE_CHABU_VERSION, It.IsAny<String>()));
 	    }	
 	
 	    [TestMethod] public void
@@ -137,7 +137,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 	
 	    [TestMethod]
-        [ExpectedException(typeof(SystemException),
+        [ExpectedException(typeof(ChabuException),
             "A userId of null was inappropriately allowed.")]
         public void
 	    recv_remote_setup_with_too_long_protocol_name()  {
@@ -152,7 +152,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 	
 	    [TestMethod]
-        [ExpectedException(typeof(SystemException),
+        [ExpectedException(typeof(ChabuException),
             "A userId of null was inappropriately allowed.")]
         public void
 	    recv_remote_setup_with_too_long_appl_protocol_name()  {
@@ -167,7 +167,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 	
 	    [TestMethod]
-        [ExpectedException(typeof(SystemException),
+        [ExpectedException(typeof(ChabuException),
             "A userId of null was inappropriately allowed.")]
         public void
 	    recv_remote_setup_with_appl_protocol_name_not_fully_contained_in_recv_buffer()  {

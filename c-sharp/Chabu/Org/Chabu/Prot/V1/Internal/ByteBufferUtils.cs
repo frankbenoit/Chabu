@@ -20,10 +20,11 @@ namespace Org.Chabu.Prot.V1.Internal
         public static int transferRemaining(ByteBuffer src, ByteBuffer trg)
         {
             int xfer = Math.Min(src.remaining(), trg.remaining());
-            int oldLimit = src.limit();
-            src.limit(src.position() + xfer);
-            trg.put(src);
-            src.limit(oldLimit);
+
+            Array.Copy(src.GetBuffer(), src.Position, trg.GetBuffer(), trg.Position, xfer);
+            trg.position(trg.position() + xfer);
+            src.position(src.position() + xfer);
+
             return xfer;
         }
 

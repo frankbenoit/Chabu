@@ -9,6 +9,9 @@
  *     Frank Benoit - initial API and implementation
  *******************************************************************************/
 
+using System;
+using System.Diagnostics;
+
 namespace Org.Chabu.Prot.V1.Internal
 {
 

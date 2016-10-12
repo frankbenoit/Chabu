@@ -21,8 +21,13 @@ namespace Org.Chabu.Prot.V1.Internal
         private int xmitAbortCode = 0;
         private String xmitAbortMessage = "";
         private readonly Runnable xmitRequestListener;
-	
-	    public AbortMessage(Runnable xmitRequestListener) {
+
+        public AbortMessage()
+        {
+            this.xmitRequestListener = null;
+        }
+        public AbortMessage(Runnable xmitRequestListener)
+        {
             this.xmitRequestListener = xmitRequestListener;
         }
 
@@ -48,10 +53,10 @@ namespace Org.Chabu.Prot.V1.Internal
             xmitAbortPending = XmitState.XMITTED;
         }
 
-        public void setPending(ChabuErrorCode code, String message) {
-            setPending(code, message);
+        public virtual void setPending(ChabuErrorCode code, String message) {
+            setPending((int)code, message);
         }
-        public void setPending(int code, String message) {
+        public virtual void setPending(int code, String message) {
             xmitAbortCode = code;
             xmitAbortMessage = message;
             xmitAbortPending = XmitState.PENDING;

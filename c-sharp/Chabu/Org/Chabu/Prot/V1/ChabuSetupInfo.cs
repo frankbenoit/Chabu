@@ -44,5 +44,17 @@ namespace Org.Chabu.Prot.V1
 		    this.applicationVersion = other.applicationVersion;
 	    }
 
+        public override bool Equals(object o)
+        {
+            if (o == null) return false;
+            if (o.GetType() != typeof(ChabuSetupInfo)) return false;
+            ChabuSetupInfo c = (ChabuSetupInfo)o;
+            if (recvPacketSize != c.recvPacketSize) return false;
+            if (applicationVersion != c.applicationVersion) return false;
+            if (applicationProtocolName == null) return false;
+            if (applicationProtocolName != c.applicationProtocolName) return false;
+            return true;
+        }
+
     }
 }

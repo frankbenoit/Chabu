@@ -28,7 +28,7 @@ namespace Org.Chabu.Prot.V1.Internal
     }
     internal static class StandardCharsets
     {
-        internal readonly static StandardCharset UTF_8 = new StandardCharset();
+        public readonly static StandardCharset UTF_8 = new StandardCharset();
     }
     internal static class System
     {
@@ -59,7 +59,8 @@ namespace Org.Chabu.Prot.V1.Internal
             {
                 byte[] buffer = ms.GetBuffer();
                 // Array.Copy behaves like memmove
-                Array.Copy(buffer, ms.Position, buffer, 0, cpySz);
+                Buffer.BlockCopy(buffer, (int)ms.Position, buffer, 0, cpySz);
+                //Array.Copy(buffer, ms.Position, buffer, 0, cpySz);
             }
             ms.limit(ms.capacity());
             ms.position(cpySz);
@@ -118,7 +119,7 @@ namespace Org.Chabu.Prot.V1.Internal
         }
         public static sbyte get(this ByteBuffer ms, int pos )
         {
-            Utils.ensure(ms.Position + 1 <= ms.Length, 0, "" );
+//            Utils.ensure(ms.Position + 1 <= ms.Length, 0, "pos {0}, length {1}", ms.Position, ms.Length );
             byte[] buffer = ms.GetBuffer();
             sbyte res = (sbyte)buffer[pos];
             return res;

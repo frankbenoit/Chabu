@@ -62,7 +62,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	    }
 
 	    [TestMethod]
-        [ExpectedException(typeof(ArgumentException),
+        [ExpectedException(typeof(ChabuException),
             "A userId of null was inappropriately allowed.")]
         public void requestTestsArgPriority() {
 		    create( 3, 3);

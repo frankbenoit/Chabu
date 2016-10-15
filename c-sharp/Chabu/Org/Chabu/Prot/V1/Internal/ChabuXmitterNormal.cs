@@ -12,7 +12,8 @@
 namespace Org.Chabu.Prot.V1.Internal
 {
     using global::System.Collections.Generic;
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using Util;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
     using Runnable = global::System.Action;
 
     internal class ChabuXmitterNormal : ChabuXmitter {

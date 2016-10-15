@@ -15,7 +15,7 @@ using System.Text;
 
 namespace Org.Chabu.Prot.V1
 {
-    using ByteBuffer = System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
     public interface ByteChannel
     {
         int read(ByteBuffer buffer);

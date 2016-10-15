@@ -12,6 +12,7 @@
 namespace Org.Chabu.Prot.V1.Internal
 {
     using global::System.Collections.Generic;
+    using Util;
     using Runnable = global::System.Action;
 
     internal class ChabuXmitterStartup : ChabuXmitter {

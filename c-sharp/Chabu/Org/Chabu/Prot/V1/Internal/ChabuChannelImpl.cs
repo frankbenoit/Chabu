@@ -15,7 +15,7 @@ using Org.Chabu.Prot.V1;
 namespace Org.Chabu.Prot.V1.Internal
 {
     using global::System;
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
     using PrintWriter = global::System.IO.TextWriter;
 
     /**

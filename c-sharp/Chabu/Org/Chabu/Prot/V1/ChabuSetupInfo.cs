@@ -56,5 +56,13 @@ namespace Org.Chabu.Prot.V1
             return true;
         }
 
+        public override int GetHashCode()
+        {
+            return new {
+                recvPacketSize,
+                applicationVersion,
+                applicationProtocolName
+            }.GetHashCode();
+        }
     }
 }

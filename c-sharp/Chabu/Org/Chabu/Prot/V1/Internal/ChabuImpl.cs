@@ -16,7 +16,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
     using global::System;
     using global::System.Text;
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
     using BitSet = global::System.Collections.BitArray;
     using PrintWriter = global::System.IO.TextWriter;
     using Runnable = global::System.Action;

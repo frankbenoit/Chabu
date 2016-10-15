@@ -12,7 +12,7 @@ using System;
 
 namespace Org.Chabu.Prot.V1
 {
-    using ByteBuffer = System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
 
     public interface ChabuRecvByteTarget
     {

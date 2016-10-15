@@ -42,6 +42,8 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Org\Chabu\Prot\Util\ByteBuffer.cs" />
+    <Compile Include="Org\Chabu\Prot\Util\ByteOrder.cs" />
     <Compile Include="Org\Chabu\Prot\V1\ByteChannel.cs" />
     <Compile Include="Org\Chabu\Prot\V1\Chabu.cs" />
     <Compile Include="Org\Chabu\Prot\V1\ChabuBuilder.cs" />

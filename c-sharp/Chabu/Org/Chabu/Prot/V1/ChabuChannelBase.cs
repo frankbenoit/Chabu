@@ -14,9 +14,9 @@ namespace Org.Chabu.Prot.V1
     public interface ChabuChannelBase
     {
 
-        int getChannelId();
+        int ChannelId { get; }
 
-        int getPriority();
+        int Priority { get; }
 
     }
 }

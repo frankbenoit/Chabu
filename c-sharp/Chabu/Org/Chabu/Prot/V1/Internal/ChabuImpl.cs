@@ -93,9 +93,9 @@ namespace Org.Chabu.Prot.V1.Internal
             Utils.ensure(channels.size() > 0, ChabuErrorCode.CONFIGURATION_NO_CHANNELS, "No channels are set.");
 
             foreach (ChabuChannelImpl ch in channels) {
-                Utils.ensure(ch.getPriority() < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO,
+                Utils.ensure(ch.Priority < priorityCount, ChabuErrorCode.CONFIGURATION_CH_PRIO,
                         "Channel {0} has higher priority ({1}) as the max {2}",
-                        ch.getChannelId(), ch.getPriority(), priorityCount);
+                        ch.ChannelId, ch.Priority, priorityCount);
             }
 
         }
@@ -132,7 +132,7 @@ namespace Org.Chabu.Prot.V1.Internal
         /////////////////////////////////////////////////////////////////////////////////
         // public interface methods
 
-        public void handleChannel(ByteChannel channel) {
+        public void HandleChannel(ByteChannel channel) {
             receiver.recv(channel);
             xmitter.xmit(channel);
         }

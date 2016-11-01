@@ -41,7 +41,7 @@ namespace Org.Chabu.Prot.V1
 	private readonly ChabuSetupInfo localSetupInfo;
 	private readonly int priorityCount;
 
-	public static String getChabuVersion(){
+	public static String GetChabuVersion(){
 		int major = Constants.PROTOCOL_VERSION >> 16;
 		int minor = Constants.PROTOCOL_VERSION & 0xFFFF;
 		return String.Format("{0}.{1:D2}", major, minor );
@@ -67,7 +67,7 @@ namespace Org.Chabu.Prot.V1
 	 * @param xmitListener Listener called, when chabu want to be notified on a write possiblitiy.
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 */
-	public static ChabuBuilder start( int applicationVersion, String applicationProtocolName, int recvPacketSize, int priorityCount, Runnable xmitListener ){
+	public static ChabuBuilder Start( int applicationVersion, String applicationProtocolName, int recvPacketSize, int priorityCount, Runnable xmitListener ){
 		ChabuSetupInfo ci = new ChabuSetupInfo( recvPacketSize, applicationVersion, applicationProtocolName );
 		return new ChabuBuilder(ci, priorityCount, xmitListener);
 	}
@@ -85,7 +85,7 @@ namespace Org.Chabu.Prot.V1
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 *
 	 */
-	public ChabuBuilder addChannel( int channelId, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ){
+	public ChabuBuilder AddChannel( int channelId, int priority, ChabuRecvByteTarget recvTarget, ChabuXmitByteSource xmitSource ){
 		Utils.ensure( channelId == this.nextChannelId, ChabuErrorCode.CONFIGURATION_CH_ID, "Channel ID must be ascending, expected {0}, but was {1}", this.nextChannelId, channelId );
 		ChabuChannelImpl channel = new ChabuChannelImpl( priority, recvTarget, xmitSource );
 		channels.add( channel );
@@ -93,8 +93,8 @@ namespace Org.Chabu.Prot.V1
 		return this;
 	}
 	
-	public ChabuBuilder addChannel( int channelId, int priority, ChabuByteExchange byteExchange ){
-		return addChannel(channelId, priority, byteExchange, byteExchange);
+	public ChabuBuilder AddChannel( int channelId, int priority, ChabuByteExchange byteExchange ){
+		return AddChannel(channelId, priority, byteExchange, byteExchange);
 	}
 
 	/**
@@ -106,7 +106,7 @@ namespace Org.Chabu.Prot.V1
 	 *
 	 * @return this ChabuBuilder instance. Use for fluent API style.
 	 */
-	public ChabuBuilder setConnectionValidator( ChabuConnectingValidator connectingValidator ) {
+	public ChabuBuilder SetConnectionValidator( ChabuConnectingValidator connectingValidator ) {
 		Utils.ensure( connectingValidator != null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "passed in null");
 		Utils.ensure( this.connectingValidator == null, ChabuErrorCode.CONFIGURATION_VALIDATOR, "already set. Only one is allowed.");
 		this.connectingValidator = connectingValidator;
@@ -119,7 +119,7 @@ namespace Org.Chabu.Prot.V1
 	 *
 	 * @return the IChabu instance.
 	 */
-	public Chabu build() {
+	public Chabu Build() {
 		ChabuFactory factory = new ChabuFactory();
 		ChabuImpl res = new ChabuImpl( factory, localSetupInfo, priorityCount, channels, xmitRequestListener, connectingValidator );
 		return res;

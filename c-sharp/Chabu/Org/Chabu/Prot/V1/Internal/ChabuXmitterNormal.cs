@@ -69,7 +69,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	
 	    public override void channelXmitRequestData(int channelId){
             lock (this){
-			    int priority = channels.get(channelId).getPriority();
+			    int priority = channels.get(channelId).Priority;
 			    xmitChannelRequestData.request( priority, channelId );
 		    }
 		    callXmitRequestListener();
@@ -77,7 +77,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
         public override void channelXmitRequestArm(int channelId){
 		    lock(this){
-			    int priority = channels.get(channelId).getPriority();
+			    int priority = channels.get(channelId).Priority;
 			    xmitChannelRequestCtrl.request( priority, channelId );
 		    }
 		    callXmitRequestListener();
@@ -126,8 +126,8 @@ namespace Org.Chabu.Prot.V1.Internal
 
 	    private void handleSeqCompletion() {
 		    seqChannel.seqPacketCompleted();
-		    if( seqChannel.getXmitRemaining() > 0 && seqChannel.getXmitRemainingByRemote() > 0 ){
-			    xmitChannelRequestData.request( seqChannel.getPriority(), seqChannel.getChannelId());
+		    if( seqChannel.XmitRemaining > 0 && seqChannel.getXmitRemainingByRemote() > 0 ){
+			    xmitChannelRequestData.request( seqChannel.Priority, seqChannel.ChannelId);
 			    callXmitRequestListener();
 		    }
 

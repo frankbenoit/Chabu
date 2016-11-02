@@ -12,7 +12,7 @@ using System;
 
 namespace Org.Chabu.Prot.V1
 {
-    using ByteBuffer = System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
 
     public interface ChabuRecvByteTarget
     {
@@ -24,21 +24,21 @@ namespace Org.Chabu.Prot.V1
 	     * @param size
 	     * @return
 	     */
-        ByteBuffer getRecvBuffer(int size);
+        ByteBuffer GetRecvBuffer(int size);
 
         /**
 	     * Notification from Chabu, that the given buffer from the call to {@link #getRecvBuffer(int)} is not filled and handling is completed.
 	     */
-        void recvCompleted();
+        void RecvCompleted();
 
         /**
 	     * Notification from Chabu, that the receive stream of this channel is reseted. 
 	     */
-        void recvReset();
+        void RecvReset();
 
         /**
 	     * Chabu provides a reference to the channel instance.
 	     */
-        void setChannel(ChabuChannel channel);
+        void SetChannel(ChabuChannel channel);
     }
 }

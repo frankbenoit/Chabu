@@ -20,7 +20,8 @@ namespace Org.Chabu.Prot.V1{
      *
      * @author Frank Benoit
      */
-    public interface Chabu {
+    public interface Chabu : ChabuNetworkHandler
+    {
 
 	    /**
 	     * Get the count of configured channels.

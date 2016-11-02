@@ -12,7 +12,7 @@ using System;
 
 namespace Org.Chabu.Prot.V1
 {
-    using ByteBuffer = System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
 
     public interface ChabuXmitByteSource
     {
@@ -24,13 +24,13 @@ namespace Org.Chabu.Prot.V1
          * @param size
          * @return
          */
-        ByteBuffer getXmitBuffer(int size);
+        ByteBuffer GetXmitBuffer(int size);
 
-        void xmitCompleted();
+        void XmitCompleted();
 
-        void xmitReset();
+        void XmitReset();
 
-        void setChannel(ChabuChannel channel);
+        void SetChannel(ChabuChannel channel);
 
     }
 }

@@ -12,7 +12,7 @@
 namespace Org.Chabu.Prot.V1.Internal
 {
     using global::System;
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
     using global::System.Threading;
     using global::System.IO;
 
@@ -46,6 +46,12 @@ namespace Org.Chabu.Prot.V1.Internal
         {
 		    throw new ChabuException( error, String.Format( fmt, args ));
 	    }
+
+        public static void ensure(bool cond, String fmt, params object[] args)
+        {
+            if (cond) return;
+            throw new SystemException(String.Format(fmt, args));
+        }
 
         public static void ensure(bool cond, ChabuErrorCode error, String fmt, params object[] args)
         {
@@ -116,8 +122,8 @@ namespace Org.Chabu.Prot.V1.Internal
 
 	    public static int transferRemaining( ByteBuffer src, ByteBuffer trg ){
 		    int xfer = Math.Min( src.remaining(), trg.remaining() );
-		    trg.Write( src.GetBuffer(), src.position(), xfer );
-            src.Position += xfer;
+		    trg.put( src.array(), src.position()+src.arrayOffset(), xfer );
+            src.position( src.position() + xfer);
 		    return xfer;
 	    }
 
@@ -125,10 +131,9 @@ namespace Org.Chabu.Prot.V1.Internal
             int xfer = Math.Min(Math.Min(src.remaining(), trg.remaining()), maxCount);
 		    //int oldLimit = src.limit();
 		    //src.limit( src.position() + xfer );
-		    trg.Write( src.GetBuffer(), (int)src.Position, xfer );
-            src.Position += xfer;
-		    //src.limit( oldLimit );
-		    return xfer;
+            trg.put(src.array(), src.position() + src.arrayOffset(), xfer);
+            src.position(src.position() + xfer);
+            return xfer;
 	    }
 
 	

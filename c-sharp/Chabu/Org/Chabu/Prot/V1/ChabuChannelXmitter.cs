@@ -19,12 +19,11 @@ namespace Org.Chabu.Prot.V1
 	     * If a value smaller as zero or smaller as a previously given value is given, a IndexOutofBoundsExcepiton will be thrown. 
 	     * @param xmitLimit
 	     */
-	    void setXmitLimit( long xmitLimit );
-	    long getXmitLimit();
-	    long addXmitLimit( int added );
+	    long XmitLimit { get; set; }
+	    long AddXmitLimit( int added );
 	
-	    long getXmitPosition();
-	    int getXmitRemaining();
+	    long XmitPosition { get; }
+	    int XmitRemaining { get; }
 	
     }
 }

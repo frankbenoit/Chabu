@@ -13,7 +13,7 @@ using System;
 namespace Org.Chabu.Prot.V1.Internal
 {
     using global::System.Text;
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
 
     public class TestUtils {
 

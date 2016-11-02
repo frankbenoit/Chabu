@@ -11,7 +11,8 @@
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using Util;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
     internal abstract class ChabuReceiver {
 
 	    private static readonly int HEADER_RECV_SZ = ChabuImpl.SEQ_MIN_SZ;

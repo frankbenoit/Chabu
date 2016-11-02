@@ -17,7 +17,7 @@ namespace Org.Chabu.Prot.V1
 
     public interface ChabuNetworkHandler {
 
-        void handleChannel(ByteChannel channel);
+        void HandleChannel(ByteChannel channel);
 
     }
 }

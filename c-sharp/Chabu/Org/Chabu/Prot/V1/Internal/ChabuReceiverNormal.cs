@@ -13,7 +13,7 @@ namespace Org.Chabu.Prot.V1.Internal
 {
     using global::System.Collections.Generic;
     using global::System.Text;
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
 
     internal class ChabuReceiverNormal : ChabuReceiver {
 

@@ -13,7 +13,7 @@ using System.Diagnostics;
 
 namespace Org.Chabu.Prot.V1.Internal
 {
-    using ByteBuffer = global::System.IO.MemoryStream;
+    using ByteBuffer = Org.Chabu.Prot.Util.ByteBuffer;
 
     public class ByteBufferUtils
     {
@@ -21,7 +21,7 @@ namespace Org.Chabu.Prot.V1.Internal
         {
             int xfer = Math.Min(src.remaining(), trg.remaining());
 
-            Array.Copy(src.GetBuffer(), src.Position, trg.GetBuffer(), trg.Position, xfer);
+            Array.Copy(src.array(), src.position(), trg.array(), trg.position(), xfer);
             trg.position(trg.position() + xfer);
             src.position(src.position() + xfer);
 

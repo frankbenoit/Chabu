@@ -37,6 +37,11 @@ namespace Org.Chabu.Prot.Util
         {
         }
 
+        public static ByteBuffer wrap(byte[] buffer)
+        {
+            return new ByteBuffer(buffer, 0, buffer.Length);
+        }
+
         public ByteBuffer duplicate()
         {
             var res = new ByteBuffer(bytes, bytesOffset, arrayLength);

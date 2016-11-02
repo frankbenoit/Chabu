@@ -112,7 +112,7 @@ namespace Org.Chabu.Prot.V1.Internal
         }
 
         private void xmitCompletedStartup() {
-            xmitter = factory.createXmitterNormal(xmitAbortMessage, xmitRequestListener, priorityCount, channels, (int priorityCount, int channelCount) => new Priorizer(priorityCount, channelCount), setup.getRemoteMaxReceiveSize());
+            xmitter = factory.createXmitterNormal(xmitAbortMessage, xmitRequestListener, priorityCount, channels, (int _priorityCount, int _channelCount) => new Priorizer(_priorityCount, _channelCount), setup.getRemoteMaxReceiveSize());
             notifierWhenRecvAndXmitCompletedStartup.event1();
         }
 

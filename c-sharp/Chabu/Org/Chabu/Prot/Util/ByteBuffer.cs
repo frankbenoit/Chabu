@@ -154,7 +154,7 @@ namespace Org.Chabu.Prot.Util
         }
         public short getShort(int pos)
         {
-            Utils.ensure(pos >= 0 && pos + 2 >= arrayLength, 0, "");
+            Utils.ensure(pos >= 0 && pos + 2 <= arrayLength, 0, "");
             ushort res;
             byte[] buffer = bytes;
             if (byteOrder == ByteOrder.BIG_ENDIAN)

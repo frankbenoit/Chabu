@@ -30,7 +30,7 @@ namespace Org.Chabu.Prot.V1.Internal
     */
     internal sealed class ChabuImpl : Chabu {
 
-        public static readonly int SEQ_MIN_SZ = 20;
+        public const int SEQ_MIN_SZ = 20;
 
         private readonly List<ChabuChannelImpl> channels;
         private readonly Setup setup;

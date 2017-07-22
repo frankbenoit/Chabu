@@ -14,15 +14,15 @@ namespace Org.Chabu.Prot.V1.Internal
 
     public static class Constants {
 
-        internal static readonly string PROTOCOL_NAME = "CHABU";
+        internal const string PROTOCOL_NAME = "CHABU";
 
-        internal static readonly int PROTOCOL_VERSION = 0x00010000 + 1;
+        internal const int PROTOCOL_VERSION = 0x00010000 + 1;
 
-        internal static readonly int MAX_RECV_LIMIT_HIGH = 0x10000000;
-        internal static readonly int MAX_RECV_LIMIT_LOW = 0x00000100;
+        internal const int MAX_RECV_LIMIT_HIGH = 0x10000000;
+        internal const int MAX_RECV_LIMIT_LOW = 0x00000100;
 
-        internal static readonly int APV_MAX_LENGTH = 56;
-        internal static readonly int ABORT_MSG_MAX_LENGTH = 56;
+        internal const int APV_MAX_LENGTH = 56;
+        internal const int ABORT_MSG_MAX_LENGTH = 56;
 
     }
 }

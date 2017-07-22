@@ -17,19 +17,23 @@ namespace Org.Chabu.Prot.V1
     public interface ChabuXmitByteSource
     {
 
-        /**
-         * Ask for a ByteBuffer with at least the given amount of bytes remaining.
-         * Depending on how the interface is used, the buffer might be used for receiving or for transmitting.
-         * The caller must call {@link #xmitCompleted()} when done with the buffer. 
-         * @param size
-         * @return
-         */
+        /// <summary>Ask for a ByteBuffer with at least the given amount of bytes remaining.
+        /// </summary>
+        /// Depending on how the interface is used, the buffer might be used for receiving or for transmitting.
+        /// The caller must call {@link #xmitCompleted()} when done with the buffer. 
+        /// <param name="size">The minimum amount of byes that must be available in the returned buffer</param>
         ByteBuffer GetXmitBuffer(int size);
 
+        /// <summary>The caller is done with the ByteBuffer received earlier from <see cref="GetXmitBuffer(int)"/> .
+        /// </summary>
         void XmitCompleted();
 
+        /// <summary>Reset all data for this channel
+        /// </summary>
         void XmitReset();
 
+        /// <summary>Set the channel used for this data stream
+        /// </summary>
         void SetChannel(ChabuChannel channel);
 
     }

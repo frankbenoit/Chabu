@@ -143,15 +143,15 @@ static void handleReads( struct Chabu_Data* chabu ){
 				}
 
 				struct Chabu_Channel_Data* ch = &chabu->channels[ channelId ];
-				if( seq != ch->recv.seq ){
+				if( seq != UINT64_LO( ch->recv.seq )){
 					Chabu_ReportError( chabu, Chabu_ErrorCode_PROTOCOL_SEQ_VALUE, __FILE__, __LINE__,
-							"ch[%d] received wrong SEQ index: local:%d, received:%d", ch->channelId, ch->recv.seq, seq );
+							"ch[%d] received wrong SEQ index: local:%d, received:%d", ch->channelId, UINT64_LO(ch->recv.seq), seq );
 					return;
 				}
 
 				uint32 payloadSizeAligned = Common_AlignUp4(payloadSize);
 
-				ch->recv.seq = seq + payloadSize;
+				ch->recv.seq += payloadSize;
 				chabu->recv.seqChannel = ch;
 				chabu->recv.state = Chabu_RecvState_SeqPayload;
 				chabu->recv.seqRemainingPayload = payloadSize;
@@ -424,7 +424,6 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			chabu->xmit.state = Chabu_XmitState_Ping;
 			return true;
 		}
-
 		struct Chabu_Channel_Data* ch = NULL;
 		ch = Chabu_Priority_PopNextRequestCtrl( chabu );
 		if( ch != NULL ){
@@ -443,9 +442,8 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, 16 );
 				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, PACKET_MAGIC | PacketType_ARM );
 				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->channelId );
-				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, ch->recv.arm );
+				Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, (int)ch->recv.arm );
 				Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
-
 				chabu->xmit.state = Chabu_XmitState_Arm;
 				return true;
 			}
@@ -474,9 +472,7 @@ static bool prepareNextXmitState(struct Chabu_Data* chabu){
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, (uint32)ch->xmit.seq );
 			Chabu_ByteBuffer_putIntBe( &chabu->xmit.buffer, (uint32)xmitSize );
 			Chabu_ByteBuffer_flip( &chabu->xmit.buffer );
-
 			ch->xmit.seq += xmitSize;
-			
 			chabu->xmit.seqChannel = ch;
 			chabu->xmit.seqRemainingPayload = (int) xmitSize;
 			chabu->xmit.seqRemainingPadding = (int)( xmitSizeAligned - xmitSize );

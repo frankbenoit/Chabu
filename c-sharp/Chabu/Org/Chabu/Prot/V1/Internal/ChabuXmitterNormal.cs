@@ -23,19 +23,19 @@ namespace Org.Chabu.Prot.V1.Internal
 	     */
 	    private XmitState xmitNop   = XmitState.IDLE;
 	
-	    private Priorizer xmitChannelRequestData;
-	    private Priorizer xmitChannelRequestCtrl;
+	    private readonly Priorizer xmitChannelRequestData;
+	    private readonly Priorizer xmitChannelRequestCtrl;
 	
-	    private List<ChabuChannelImpl> channels;
+	    private readonly List<ChabuChannelImpl> channels;
 	
 
-	    private int remoteRecvPacketSize = Constants.MAX_RECV_LIMIT_LOW; 
+	    private readonly int RemoteRecvPacketSize; 
 	
-	    private ByteBuffer       seqPadding = new ByteBuffer(3);
+	    private readonly ByteBuffer seqPadding = new ByteBuffer(3);
 	    private ByteBuffer       seqPacketPayload;
 	    private ChabuChannelImpl seqChannel;
 
-        private List<LoopCtrlAction> actionsNormalRun;
+        private readonly List<LoopCtrlAction> actionsNormalRun;
 
 
         internal override List<LoopCtrlAction> getActions(){
@@ -59,7 +59,7 @@ namespace Org.Chabu.Prot.V1.Internal
             xmitBuf.order(ByteOrder.BIG_ENDIAN);
 		    xmitBuf.clear().limit(0);
 		
-		    this.remoteRecvPacketSize = remoteRecvPacketSize;
+		    this.RemoteRecvPacketSize = remoteRecvPacketSize;
 		
 		    this.channels = channels;
 		    xmitChannelRequestData = priorizerFactory(priorityCount, channels.size());
@@ -69,7 +69,7 @@ namespace Org.Chabu.Prot.V1.Internal
 	
 	    public override void channelXmitRequestData(int channelId){
             lock (this){
-			    int priority = channels.get(channelId).Priority;
+			    var priority = channels.get(channelId).Priority;
 			    xmitChannelRequestData.request( priority, channelId );
 		    }
 		    callXmitRequestListener();
@@ -77,7 +77,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
         public override void channelXmitRequestArm(int channelId){
 		    lock(this){
-			    int priority = channels.get(channelId).Priority;
+			    var priority = channels.get(channelId).Priority;
 			    xmitChannelRequestCtrl.request( priority, channelId );
 		    }
 		    callXmitRequestListener();
@@ -98,8 +98,8 @@ namespace Org.Chabu.Prot.V1.Internal
 		    }
 	    }
 	
-	    LoopCtrl xmitAction_RemainingSeq() {
-		    bool isCompleted = true;
+	    private LoopCtrl xmitAction_RemainingSeq() {
+		    var isCompleted = true;
 		    if( packetType == PacketType.SEQ ){
 			
 			    if( seqPacketPayload.hasRemaining() ){
@@ -109,12 +109,12 @@ namespace Org.Chabu.Prot.V1.Internal
 				    loopByteChannel.write(seqPadding);
 			    }
 			
-			    bool isDataComplete = !seqPacketPayload.hasRemaining();
-			    bool isPaddingComplete = !seqPadding.hasRemaining();
+			    var isDataComplete = !seqPacketPayload.hasRemaining();
+			    var isPaddingComplete = !seqPadding.hasRemaining();
 			    isCompleted = isDataComplete && isPaddingComplete;
 			
 			    if( isCompleted ){
-				    handleSeqCompletion();
+				    HandleSeqCompletion();
 			    }
 			    else {
 				    callXmitRequestListener();
@@ -124,7 +124,7 @@ namespace Org.Chabu.Prot.V1.Internal
 
 	    }
 
-	    private void handleSeqCompletion() {
+	    private void HandleSeqCompletion() {
 		    seqChannel.seqPacketCompleted();
 		    if( seqChannel.XmitRemaining > 0 && seqChannel.getXmitRemainingByRemote() > 0 ){
 			    xmitChannelRequestData.request( seqChannel.Priority, seqChannel.ChannelId);
@@ -135,19 +135,17 @@ namespace Org.Chabu.Prot.V1.Internal
 		    seqChannel       = null;
 		    packetType       = PacketType.NONE;
 	    }
-	
-	    LoopCtrl xmitAction_EvalChannelCtrl() {
-		    ChabuChannelImpl ch = popNextPriorizedChannelRequest(xmitChannelRequestCtrl);
-		    if( ch != null ){
-			    ch.handleXmitCtrl( this, xmitBuf );
-		    }
+
+        private LoopCtrl xmitAction_EvalChannelCtrl() {
+		    var ch = PopNextPriorizedChannelRequest(xmitChannelRequestCtrl);
+		    ch?.handleXmitCtrl( this, xmitBuf );
 		    return xmitBuf.hasRemaining() ? LoopCtrl.Continue : LoopCtrl.None;
 	    }
 
-	    LoopCtrl xmitAction_EvalChannelData() {
-		    ChabuChannelImpl ch = popNextPriorizedChannelRequest(xmitChannelRequestData);
+        private LoopCtrl xmitAction_EvalChannelData() {
+		    ChabuChannelImpl ch = PopNextPriorizedChannelRequest(xmitChannelRequestData);
 		    if( ch != null ){
-			    seqPacketPayload = ch.handleXmitData( this, xmitBuf, remoteRecvPacketSize - ChabuImpl.SEQ_MIN_SZ );
+			    seqPacketPayload = ch.handleXmitData( this, xmitBuf, RemoteRecvPacketSize - ChabuImpl.SEQ_MIN_SZ );
 			    if( seqPacketPayload == null ){
 				    return LoopCtrl.None;
 			    }
@@ -160,20 +158,20 @@ namespace Org.Chabu.Prot.V1.Internal
 		    }
 		    return xmitBuf.hasRemaining() ? LoopCtrl.Continue : LoopCtrl.None;
 	    }
-	
-	    LoopCtrl xmitAction_EvalNop() {
+
+        private LoopCtrl xmitAction_EvalNop() {
 		    if( xmitNop == XmitState.PENDING ){
 			    processXmitNop();
 			    xmitNop = XmitState.PREPARED;
 		    }
 		    return LoopCtrl.None;
 	    }
-	    LoopCtrl xmitAction_End() {
+        private LoopCtrl xmitAction_End() {
 		    return LoopCtrl.Break;
 	    }
 	
 
-	    private ChabuChannelImpl popNextPriorizedChannelRequest(Priorizer priorizer) {
+	    private ChabuChannelImpl PopNextPriorizedChannelRequest(Priorizer priorizer) {
 		    lock(this){
 			    int reqChannel = priorizer.popNextRequest();
 			    if( reqChannel < 0 ) return null;
@@ -184,14 +182,14 @@ namespace Org.Chabu.Prot.V1.Internal
 	    /** 
 	     * Called by channel
 	     */
-	    internal void processXmitArm( int channelId, int arm ){
+	    internal void ProcessXmitArm( int channelId, int arm ){
 		    xmitFillArmPacket(channelId, arm);
 	    }
 
 	    /** 
 	     * Called by channel
 	     */
-	    internal void processXmitSeq( int channelId, int seq, int payload ){
+	    internal void ProcessXmitSeq( int channelId, int seq, int payload ){
 		    checkXmitBufEmptyOrThrow("Cannot xmit SEQ, buffer is not empty");
 		
 		    xmitFillStart( PacketType.SEQ );

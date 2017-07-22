@@ -145,7 +145,7 @@ namespace Org.Chabu.Prot.V1.Internal
         internal void handleXmitCtrl(ChabuXmitterNormal xmitter, ByteBuffer xmitBuf) {
             if (recvArmShouldBeXmit) {
                 recvArmShouldBeXmit = false;
-                xmitter.processXmitArm(channelId, recvArm);
+                xmitter.ProcessXmitArm(channelId, recvArm);
             }
         }
 
@@ -163,7 +163,7 @@ namespace Org.Chabu.Prot.V1.Internal
             Utils.ensure(realPls > 0, ChabuErrorCode.ASSERT, "XmitSource gave buffer with no space");
             Utils.ensure(realPls <= pls, ChabuErrorCode.ASSERT, "XmitSource gave buffer with more data than was requested");
 
-            xmitter.processXmitSeq(channelId, xmitSeq, realPls);
+            xmitter.ProcessXmitSeq(channelId, xmitSeq, realPls);
             xmitSeq += realPls;
             xmitPosition += realPls;
 

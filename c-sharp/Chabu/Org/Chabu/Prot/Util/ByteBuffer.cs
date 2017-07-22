@@ -37,6 +37,12 @@ namespace Org.Chabu.Prot.Util
         {
         }
 
+        /// <summary>
+        /// Wrap the given data with the byte buffer.
+        /// </summary>
+        /// Have position at zero and limit and capacity equal to the buffer length.
+        /// <param name="buffer">data</param>
+        /// <returns>the new instance</returns>
         public static ByteBuffer wrap(byte[] buffer)
         {
             return new ByteBuffer(buffer, 0, buffer.Length);
@@ -413,7 +419,10 @@ namespace Org.Chabu.Prot.Util
         }
 
 
-
+        /// <summary>
+        /// Set position to zero and limit to capacity.
+        /// </summary>
+        /// <returns>this</returns>
         public ByteBuffer clear()
         {
             relPosition = 0;
@@ -432,12 +441,16 @@ namespace Org.Chabu.Prot.Util
             return bytesOffset;
         }
 
-
-
-
-
-
-
-
+        /// <summary>
+        /// Get an ArraySegment of amount of bytes. Incrementing the position.
+        /// </summary>
+        /// <param name="count">amount of bytes</param>
+        /// <returns>The array segment</returns>
+        public ArraySegment<byte> GetAsArraySegment( int count )
+        {
+            var res = new ArraySegment<byte>(bytes, bytesOffset + position(), count);
+            position(position() + count);
+            return res;
+        }
     }
 }
